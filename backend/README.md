@@ -60,6 +60,8 @@ This project aims to develop a web platform for University Training Management S
 | 16  | semesters               | Học kỳ (HK1 2024–2025…)               |
 | 17  | course_classes          | Lớp học phần mở trong học kỳ          |
 | 18  | lecturer_course_classes | Phân công giảng viên dạy lớp học phần |
+|     | class                   | lớp hành chính, như CTT1-K20          |   
+|     | student_classes         | sinh viên thuộc lớp hành chính        |
 
 **VI. NHÓM ĐĂNG KÝ HỌC PHẦN**
 | STT | Tên bảng             | Chức năng                  |
@@ -115,68 +117,17 @@ This project aims to develop a web platform for University Training Management S
 | 39  | feedbacks  | Đánh giá giảng viên / môn học |
 | 40  | attendance | Điểm danh sinh viên           |
 
-
-### Sprint 1
-
-| Task ID | Description                        | Assignee    | Priority | Status      | Start Date | Due Date   |
-|--------|------------------------------------|-------------|----------|-------------|------------|------------|
-| 1      | Setup project repository           | Your Name   | High     | Done        | 2026-01-29 | 2026-02-05 |
-| 2      | Design database schema             | Developer 1 | High     | In Progress | 2026-01-29 | 2026-02-05 |
-| 3      | Develop user authentication module | Developer 2 | High     | Pending     | 2026-01-29 | 2026-02-05 |
-| 4      | Develop login                      | Developer 2 | High     | Pending     | 2026-01-29 | 2026-02-05 |
-
-### Sprint 2
-
-| Task ID | Description                                   | Assignee    | Priority | Status  | Start Date | Due Date   |
-|--------:|-----------------------------------------------|-------------|----------|---------|------------|------------|
-| 1       | Create components system                      | Developer 1 | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-| 2       | Implement API for system                      | Developer 2 | High     | Pending | 2026-01-29 | 2026-02-05 |
-| 3       | Setup CI/CD pipeline                          | DevOps      | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-
-### Sprint 3
-
-| Task ID | Description                                   | Assignee    | Priority | Status  | Start Date | Due Date   |
-|--------:|-----------------------------------------------|-------------|----------|---------|------------|------------|
-| 1       | Create components system                      | Developer 1 | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-| 2       | Implement API for system                      | Developer 2 | High     | Pending | 2026-01-29 | 2026-02-05 |
-| 3       | Setup CI/CD pipeline                          | DevOps      | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-
-### Sprint 4
-
-| Task ID | Description                                   | Assignee    | Priority | Status  | Start Date | Due Date   |
-|--------:|-----------------------------------------------|-------------|----------|---------|------------|------------|
-| 1       | Create components system                      | Developer 1 | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-| 2       | Implement API for system                      | Developer 2 | High     | Pending | 2026-01-29 | 2026-02-05 |
-| 3       | Setup CI/CD pipeline                          | DevOps      | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-
-### Sprint 5
-
-| Task ID | Description                                   | Assignee    | Priority | Status  | Start Date | Due Date   |
-|--------:|-----------------------------------------------|-------------|----------|---------|------------|------------|
-| 1       | Create components system                      | Developer 1 | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-| 2       | Implement API for system                      | Developer 2 | High     | Pending | 2026-01-29 | 2026-02-05 |
-| 3       | Setup CI/CD pipeline                          | DevOps      | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-
-### Sprint 6
-
-| Task ID | Description                                   | Assignee    | Priority | Status  | Start Date | Due Date   |
-|--------:|-----------------------------------------------|-------------|----------|---------|------------|------------|
-| 1       | Create components system                      | Developer 1 | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-| 2       | Implement API for system                      | Developer 2 | High     | Pending | 2026-01-29 | 2026-02-05 |
-| 3       | Setup CI/CD pipeline                          | DevOps      | Medium   | Pending | 2026-01-29 | 2026-02-05 |
-
-
 ## Milestones
 
-| Milestone ID | Description                                         | Due Date   | Status      |
-|-------------:|-----------------------------------------------------|------------|-------------|
-| 1            | Initial project setup complete                      | 2026-01-01 | Completed   |
-| 2            | Database schema design complete                     | 2026-02-05 | In Progress |
-| 3            | User authentication module development complete     | 2026-02-15 | Pending     |
-| 4            | UI components                                       | 2026-08-17 | Pending     |
-| 5            | API for management complete                         | 2026-08-19 | Pending     |
-| 6            | CI/CD pipeline setup complete                       | 2026-08-25 | Pending     |
-| 7            | MVP ready for internal testing                      | 2026-09-01 | Pending     |
+| Milestone ID | Description                                         | Due Date | Status |
+|-------------:|-----------------------------------------------------|----------|--------|
+| 1            | Initial project setup complete                      |          |        |
+| 2            | Database schema design complete                     |          |        |
+| 3            | User authentication module development complete     |          |        |
+| 4            | UI components                                       |          |        |
+| 5            | API for management complete                         |          |        |
+| 6            | CI/CD pipeline setup complete                       |          |        |
+| 7            | MVP ready for internal testing                      |          |        |
 ## Notes:
 - Project repository setup is high priority.
 - Database schema design should start immediately.
