@@ -4,11 +4,57 @@ import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
 export default function SignUpForm() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [firstname, setFirstname] = useState("");
+  const [lastname, setLastname] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:8081/api/v1/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstname,
+          lastname,
+          email,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Registration failed. Please check your information and try again.");
+      }
+
+      const data = await response.json();
+      
+      // Lưu token vào localStorage
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("refresh_token", data.refresh_token);
+
+      // Redirect đến dashboard
+      router.push("/");
+    } catch (err: any) {
+      setError(err.message || "An error occurred during registration");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="no-scrollbar flex w-full flex-1 flex-col overflow-y-auto lg:w-1/2">
       <div className="mx-auto mb-5 w-full max-w-md sm:pt-10">
@@ -27,7 +73,7 @@ export default function SignUpForm() {
               Sign Up
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-4 leading-relaxed00 leading-relaxed">
-              Enter your email and password to sign up!
+              Enter your information to create an account!
             </p>
           </div>
           <div>
@@ -83,34 +129,50 @@ export default function SignUpForm() {
                 </span>
               </div>
             </div>
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="space-y-5">
+                {/* Error Message */}
+                {error && (
+                  <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                    {error}
+                  </div>
+                )}
+
+                {/* First Name and Last Name */}
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  {/* <!-- First Name --> */}
-                  <div className="sm:col-span-1">
+                  {/* First Name */}
+                  <div>
                     <Label>
                       First Name<span className="text-error-500">*</span>
                     </Label>
                     <Input
                       type="text"
-                      id="fname"
-                      name="fname"
+                      id="firstname"
+                      name="firstname"
                       placeholder="Enter your first name"
+                      value={firstname}
+                      onChange={(e) => setFirstname(e.target.value)}
+                      required
                     />
                   </div>
-                  {/* <!-- Last Name --> */}
-                  <div className="sm:col-span-1">
+
+                  {/* Last Name */}
+                  <div>
                     <Label>
                       Last Name<span className="text-error-500">*</span>
                     </Label>
                     <Input
                       type="text"
-                      id="lname"
-                      name="lname"
+                      id="lastname"
+                      name="lastname"
                       placeholder="Enter your last name"
+                      value={lastname}
+                      onChange={(e) => setLastname(e.target.value)}
+                      required
                     />
                   </div>
                 </div>
+
                 {/* <!-- Email --> */}
                 <div>
                   <Label>
@@ -121,8 +183,12 @@ export default function SignUpForm() {
                     id="email"
                     name="email"
                     placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                   />
                 </div>
+
                 {/* <!-- Password --> */}
                 <div>
                   <Label>
@@ -132,6 +198,9 @@ export default function SignUpForm() {
                     <Input
                       placeholder="Enter your password"
                       type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -145,6 +214,7 @@ export default function SignUpForm() {
                     </span>
                   </div>
                 </div>
+
                 {/* <!-- Checkbox --> */}
                 <div className="flex items-center gap-3">
                   <Checkbox
@@ -153,20 +223,18 @@ export default function SignUpForm() {
                     onChange={setIsChecked}
                   />
                   <p className="inline-block font-normal text-slate-600 dark:text-slate-400 leading-relaxed">
-                    By creating an account means you agree to the{" "}
-                    <span className="text-slate-900 dark:text-white/90">
-                      Terms and Conditions,
-                    </span>{" "}
-                    and our{" "}
-                    <span className="text-slate-900 dark:text-white">
-                      Privacy Policy
-                    </span>
+                    Remember me
                   </p>
                 </div>
+
                 {/* <!-- Button --> */}
                 <div>
-                  <button className="shadow-theme-xs flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-indigo-700">
-                    Sign Up
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="shadow-theme-xs flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                  >
+                    {loading ? "Signing up..." : "Sign Up"}
                   </button>
                 </div>
               </div>

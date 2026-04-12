@@ -17,8 +17,6 @@ import {
   Zap,
   X,
 } from "lucide-react";
-import { authLogin } from "../../api/auth";
-import { getCaptchaImg } from "../../api/captcha";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -26,43 +24,18 @@ export default function SignInForm() {
   const [isTrialModalOpen, setIsTrialModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const router = useRouter();
-  // Captcha state
-  const [captchaId, setCaptchaId] = useState("");
-  const [captchaImg, setCaptchaImg] = useState("");
-  const [verifyCode, setVerifyCode] = useState("");
+  // Captcha state - DISABLED
+  // const [captchaId, setCaptchaId] = useState("");
+  // const [captchaImg, setCaptchaImg] = useState("");
+  // const [verifyCode, setVerifyCode] = useState("");
 
-  // Lấy baseUrl từ biến môi trường trong component
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-  console.log("[DEBUG] API_BASE_URL:", API_BASE_URL);
-  // Lấy captcha khi mount hoặc refresh
-  const fetchCaptcha = async () => {
-    try {
-      const res = await getCaptchaImg(API_BASE_URL);
-      console.log("[DEBUG] Captcha API response:", res);
-      setCaptchaId(res.data.id);
-      setCaptchaImg(res.data.img); // img là base64 hoặc url
-      console.log("[DEBUG] captchaImg:", res.img);
-    } catch (e) {
-      setCaptchaId("");
-      setCaptchaImg("");
-      console.error("[DEBUG] Captcha API error:", e);
-    }
-  };
-  React.useEffect(() => {
-    fetchCaptcha();
-  }, [API_BASE_URL]);
-  //THÊM: State để lưu thông tin nhập từ Form từ be
+  // State để lưu thông tin nhập từ Form
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const trialRoles = [
-    {
-      id: "admin",
-      label: "Admin",
-      icon: <User size={24} />,
-      color:
-        "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400",
-    },
     {
       id: "branch-management",
       label: "Quản lý chi nhánh",
@@ -112,61 +85,84 @@ export default function SignInForm() {
       router.refresh();
     }
   };
-  // --- THÊM: State để vô hiệu hóa nút khi đang gửi request ---
-  const [isLoading, setIsLoading] = useState(false);
-
+  
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return; // Chống spam click
+    if (isLoading) return;
 
+    setError("");
     setIsLoading(true);
+
     try {
-      // 1. Chuẩn bị dữ liệu đúng theo Swagger cổng 7001
+      // Gửi request đến backend
+      const response = await fetch("http://localhost:8081/api/v1/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: username.trim(),
+          password: password,
+        }),
+      });
 
-      const loginData = {
-        username: username.trim(),
-        password: password,
-        captchaId,
-        verifyCode: verifyCode.trim(),
-      };
-      console.log("[DEBUG] loginData gửi lên:", loginData);
+      console.log("[DEBUG] Response status:", response.status);
+      console.log("[DEBUG] Response headers:", response.headers.get("content-type"));
 
-      // 2. Gọi API thông qua Proxy đã cấu hình trong next.config.ts
-      const response = await authLogin(loginData);
-      console.log("[DEBUG] login API response:", response);
-      // 3. Kiểm tra phản hồi (Swagger: Success code 200)
-      if (
-        response &&
-        response.data &&
-        response.data.code === 200 &&
-        response.data.data?.token
-      ) {
-        const { token } = response.data;
-        // XỬ LÝ VAI TRÒ (ROLE):
-        const userRole = "admin"; // hoặc response.data.role nếu backend trả về
+      // Kiểm tra response content type
+      const contentType = response.headers.get("content-type");
+      let data;
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error("[DEBUG] Response is not JSON:", text);
+        throw new Error(`Invalid response format: ${text.substring(0, 100)}`);
+      }
+
+      console.log("[DEBUG] Login response:", data);
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || `Login failed (${response.status})`);
+      }
+
+      // Lưu token
+      if (data.access_token) {
+        localStorage.setItem("access_token", data.access_token);
+        if (data.refresh_token) {
+          localStorage.setItem("refresh_token", data.refresh_token);
+        }
+
+        // Lấy role từ response hoặc mặc định là student
+        const userRole = (data.role || "student").toLowerCase();
+
+        // Lưu vào cookie
         const maxAge = isChecked ? 7 * 86400 : 86400;
-        document.cookie = `user-token=${token}; path=/; max-age=${maxAge}`;
+        document.cookie = `user-token=${data.access_token}; path=/; max-age=${maxAge}`;
         document.cookie = `user-role=${userRole}; path=/; max-age=${maxAge}`;
-        router.push(`/dashboard/${userRole}`);
+
+        // Điều hướng dựa vào role
+        const roleMap: Record<string, string> = {
+          "admin": "/dashboard/admin",
+          "manager": "/dashboard/manager",
+          "teacher": "/dashboard/teacher",
+          "student": "/dashboard/student",
+          "consultant": "/dashboard/consultant",
+          "parent": "/dashboard/parent",
+        };
+
+        const redirectPath = roleMap[userRole] || "/";
+        router.push(redirectPath);
         router.refresh();
       } else {
-        // Thông báo lỗi cụ thể từ Server
-        const msg =
-          response && response.data && response.data.message
-            ? response.data.message
-            : "Tên đăng nhập, mật khẩu hoặc mã xác thực không đúng.";
-        alert(msg);
-        fetchCaptcha(); // reset captcha khi lỗi
+        throw new Error("No access token received");
       }
-    } catch (error: any) {
-      // Xử lý lỗi hệ thống hoặc mất kết nối Localhost 7001
-      console.error("SignIn API Error:", error);
-      alert(
-        "Không thể kết nối tới máy chủ. Công hãy kiểm tra Backend cổng 7001 đã bật chưa nhé!",
-      );
-      fetchCaptcha();
+    } catch (err: any) {
+      const errorMsg = err.message || "An error occurred. Please try again.";
+      setError(errorMsg);
+      console.error("[DEBUG] Login error:", err);
     } finally {
-      // Kết thúc trạng thái chờ
       setIsLoading(false);
     }
   };
@@ -266,6 +262,13 @@ export default function SignInForm() {
         </div>
 
         <form onSubmit={handleSignIn} className="space-y-5">
+          {/* Error message display */}
+          {error && (
+            <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
           <div>
             <Label className="font-bold text-slate-700 dark:text-slate-300">
               Email <span className="text-rose-500">*</span>
@@ -276,6 +279,7 @@ export default function SignInForm() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              disabled={isLoading}
             />
           </div>
           <div>
@@ -289,6 +293,7 @@ export default function SignInForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
               <span
                 onClick={() => setShowPassword(!showPassword)}
@@ -302,7 +307,8 @@ export default function SignInForm() {
               </span>
             </div>
           </div>
-          <div>
+          {/* CAPTCHA DISABLED */}
+          {/* <div>
             <Label className="font-bold text-slate-700 dark:text-slate-300">
               Mã xác thực <span className="text-rose-500">*</span>
             </Label>
@@ -329,10 +335,10 @@ export default function SignInForm() {
                 />
               )}
             </div>
-          </div>
+          </div> */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Checkbox checked={isChecked} onChange={setIsChecked} />
+              <Checkbox checked={isChecked} onChange={setIsChecked} disabled={isLoading} />
               <span className="dark:text-slate-4 leading-relaxed00 text-sm font-medium text-slate-600">
                 Ghi nhớ tôi
               </span>
@@ -345,10 +351,12 @@ export default function SignInForm() {
             </Link>
           </div>
           <Button
-            className="w-full rounded-xl bg-indigo-600 py-4 font-bold text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700 dark:shadow-none"
+            type="submit"
+            disabled={isLoading}
+            className="w-full rounded-xl bg-indigo-600 py-4 font-bold text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed dark:shadow-none"
             size="sm"
           >
-            Sign in
+            {isLoading ? "Signing in..." : "Sign in"}
           </Button>
         </form>
 
