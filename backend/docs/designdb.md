@@ -39,7 +39,7 @@ INDEX (optional):
 
 TABLE: Users account
 - UserId               UNIQUEIDENTIFIER  PK  NOT NULL  DEFAULT (NEWID())                 -- định danh tài khoản
-- PersonId         UNIQUEIDENTIFIER FK NOT NULL REFERENCES Persons(PersonId)
+- PersonId             UNIQUEIDENTIFIER FK NOT NULL REFERENCES Persons(PersonId)
 - Username             NVARCHAR(50)       UQ  NOT NULL                                    -- duy nhất
 - PasswordHash         NVARCHAR(255)          NOT NULL
 - Email                NVARCHAR(150)      UQ  NULL                                        -- tùy policy, có thể NOT NULL
@@ -97,6 +97,8 @@ CONSTRAINTS / INDEX:
 - ApiPath         NVARCHAR(255)         NULL
 - HttpMethod      NVARCHAR(10)          NULL
 - Screen          NVARCHAR(100)         NULL
+- ScreenAction    NVARCHAR(50)          NULL          -- Hành động trên màn hình (VIEW/CREATE/EDIT/DELETE)
+- ParentScreen    NVARCHAR(100)         NULL         -- Menu cha (VD: /students là con của /academic)
 - IsMenu          BIT                   NOT NULL DEFAULT(0)
 - OrderIndex      INT                   NULL
 - IsActive        BIT                   NOT NULL DEFAULT(1)
@@ -140,11 +142,11 @@ CONSTRAINTS / INDEX:
 - StudentId          UNIQUEIDENTIFIER  PK  NOT NULL DEFAULT(NEWID())
 - PersonId           UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Persons(PersonId)
 - StudentCode        NVARCHAR(50)      UQ  NOT NULL
-- EnrollmentYear     INT                   NULL
+- EnrollmentYear     INT                   NULL -- năm nhập hc
 - EducationLevel     NVARCHAR(50)          NULL
 - TrainingType       NVARCHAR(50)          NULL
 - MajorId            UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Majors(MajorId)
-- CourseCohort       NVARCHAR(50)          NULL      -- K20/K21... (đổi tên tránh trùng với "Course" môn học)
+- CourseCohort       NVARCHAR(50)          NULL      -- khoá học K20/K21... (đổi tên tránh trùng với "Course" môn học) 
 - Note               NVARCHAR(255)         NULL
 - IsActive           BIT                   NOT NULL DEFAULT(1)
 
@@ -222,7 +224,7 @@ TABLE: StudentClasses
 - StudentId      UNIQUEIDENTIFIER FK NOT NULL REFERENCES Students(StudentId)
 - ClassId        UNIQUEIDENTIFIER FK NOT NULL REFERENCES Classes(ClassId)
 - AcademicYear   INT                 NULL          -- thay nam_hoc
-- TermCode       NVARCHAR(20)        NULL          -- HK1/HK2/HE
+- semester       UNIQUEIDENTIFIER FK NOT NULL REFERENCES semester(semesterId)          -- HK1/HK2/HE
 - RoleInClass    NVARCHAR(50)        NULL          -- SV/LOP_TRUONG...
 - StartDate      DATE                NULL          -- ngay_vao_lop
 - EndDate        DATE                NULL
@@ -271,9 +273,7 @@ CONSTRAINTS / INDEX:
 CONSTRAINTS:
 - UQ_Employees_PersonId UNIQUE(PersonId)  -- 1 person tối đa 1 hồ sơ employee
   TABLE: Instructors (bảng con) giảng viên
-  TABLE: Instructors
 - EmployeeId       UNIQUEIDENTIFIER PK/FK NOT NULL REFERENCES Employees(EmployeeId)
-
 - InstructorCode   NVARCHAR(50)     UQ NOT NULL
 - DepartmentId     UNIQUEIDENTIFIER    NULL REFERENCES Departments(DepartmentId)
 - DegreeId         UNIQUEIDENTIFIER    NULL REFERENCES Degrees(DegreeId)
@@ -340,7 +340,7 @@ RULE (optional, nếu muốn 1 hợp đồng active):
 3) Nghỉ phép, chấm công
    TABLE:EmployeeLeaveRequests
 - LeaveRequestId UNIQUEIDENTIFIER PK NOT NULL DEFAULT(NEWID())
-- EmployeeLeaveRequests   UNIQUEIDENTIFIER FK NOT NULL REFERENCES Employees(EmployeeId)
+- EmployeeId   UNIQUEIDENTIFIER FK NOT NULL REFERENCES Employees(EmployeeId)
 
 - FromDate       DATE               NOT NULL
 - ToDate         DATE               NOT NULL
@@ -362,7 +362,7 @@ CHECK:
 - IX_ILR_Status(Status)
   TABLE: EmployeeAttendances
 - AttendanceId  UNIQUEIDENTIFIER PK NOT NULL DEFAULT(NEWID())
-- EmployeeAttendances  UNIQUEIDENTIFIER FK NOT NULL REFERENCES Employees(EmployeeId)
+- EmployeeId  UNIQUEIDENTIFIER FK NOT NULL REFERENCES Employees(EmployeeId)
 
 - WorkDate      DATE               NOT NULL
 - CheckInTime   TIME(0)            NULL
@@ -381,10 +381,9 @@ CONSTRAINTS / INDEX:
    TABLE: TeachingAssignments (PHAN_CONG_GIANG_DAY)
 - AssignmentId   UNIQUEIDENTIFIER  PK  NOT NULL DEFAULT(NEWID())     -- thay INT bằng GUID theo chuẩn bạn chốt
 - InstructorId   UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Instructors(EmployeeId)
-- SubjectId      UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Subjects(SubjectId)      -- mon_hoc_id
+- course_class_id    UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Courses(CourseId)      -- mon_hoc_id
 - ClassId        UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Classes(ClassId)         -- lop_hoc_id
-
-- Semester       NVARCHAR(20)          NOT NULL                        -- hoc_ky (VD: HK1, HK2, HE)
+- semester       UNIQUEIDENTIFIER FK NOT NULL REFERENCES semester(semesterId)          -- HK1/HK2/HE                       -- hoc_ky (VD: HK1, HK2, HE)
 - SchoolYear     NVARCHAR(20)          NOT NULL                        -- nam_hoc (VD: 2025-2026)
 
 - Note           NVARCHAR(255)         NULL
@@ -396,10 +395,10 @@ CONSTRAINTS / INDEX:
 - UpdatedBy      UNIQUEIDENTIFIER     NULL
 
 CONSTRAINTS / INDEX:
-- IX_TA_InstructorId(InstructorId)
-- IX_TA_SubjectId(SubjectId)
+- IX_TA_InstructorId(EmployeeId)
+- IX_TA_CourseId(CourseId)
 - IX_TA_ClassId(ClassId)
-- UQ_TA UNIQUE(InstructorId, SubjectId, ClassId, Semester, SchoolYear)  -- chống phân công trùng
+- UQ_TA UNIQUE(InstructorId, CourseId, ClassId, Semester, SchoolYear)  -- chống phân công trùng
 
 TABLE: Majors
 - MajorId      UNIQUEIDENTIFIER  PK  NOT NULL DEFAULT(NEWID())
@@ -418,7 +417,7 @@ TABLE: Majors
 - PK_Majors(MajorId)
 - UQ_Majors_Code(Code)
 - IX_Majors_IsActive(IsActive)
-  TABLE: TrainingPrograms
+  TABLE: TrainingPrograms chương trình đào tạo theo ngành và khoá 
 - TrainingProgramId UNIQUEIDENTIFIER PK NOT NULL DEFAULT(NEWID())
 - Code              NVARCHAR(20)     UQ NOT NULL                -- VD: CTDT_CNTT_K20
 - Name              NVARCHAR(255)       NOT NULL
@@ -438,7 +437,7 @@ TABLE: Majors
   INDEX:
 - IX_TrainingPrograms_MajorId(MajorId)
 - IX_TrainingPrograms_CohortCode(CohortCode)
-  TABLE: Courses
+  TABLE: Courses   Môn học / học phần 
 - CourseId        UNIQUEIDENTIFIER PK NOT NULL DEFAULT(NEWID())
 - Code            NVARCHAR(20)     UQ NOT NULL
 - Name            NVARCHAR(200)       NOT NULL
@@ -486,7 +485,7 @@ INDEX:
   V. NHÓM QUẢN LÝ HỌC KỲ – LỚP HỌC PHẦN
   Bảng Semesters
   Tên trường	Kiểu dữ liệu	Ý nghĩa
-  id	UUID	Khóa chính
+  semesterId	UUID	Khóa chính
   code	VARCHAR(30)	Mã học kỳ
   name	VARCHAR(150)	Tên học kỳ
   academic_year	VARCHAR (20)	Năm học
@@ -500,27 +499,27 @@ INDEX:
   created_by	UUID	Người tạo
   updated_by	UUID	Người cập nhật
   deleted_by	UUID	Người xóa
-  Bảng Course_class
+Bảng Course_class   Lớp học phần mở theo học kỳ
   Tên Trường	Kiểu dữ liệu	Ý nghĩa
-  id	UNIQUEIDENTIFIER	Khóa chính
+  CourseClassId	UNIQUEIDENTIFIER	Khóa chính
   class_code	NVARCHAR(50)	Mã lớp học phần
   max_student	INT	Sĩ số tối đa
   current_student	INT	Sĩ số hiện tại
   schedule	NVARCHAR(255)	Lịch học
   room	NVARCHAR(50)	Phòng học
   status	NVARCHAR(20)	Trạng thái lớp
-  semester_id	INT (FK)	Học kỳ
+  semester_id	UNIQUEIDENTIFIER (FK)	Học kỳ
   created_at	DATETIME2	Thời điểm tạo
   updated_at	DATETIME2	Thời điểm cập nhật
   deleted_at	DATETIME2 NULL	Thời điểm xóa
   created_by	UNIQUEIDENTIFIER NULL	Người tạo
   updated_by	UNIQUEIDENTIFIER NULL	Người cập nhật
   deleted_by	UNIQUEIDENTIFIER NULL	Người xóa
-  Bảng lecturer_course_classes
+Bảng lecturer_course_classes
   Tên Trường	Kiểu dữ liệu	Ý Nghĩa
   id	UNIQUEIDENTIFIER	Khóa chính
-  lecturer_id	BIGINT NOT NULL	Khóa ngoại tới giảng viên
-  course_class_id	BIGINT NOT NULL	Khóa ngoại tới lớp học phần
+  lecturer_id	UNIQUEIDENTIFIER NOT NULL	Khóa ngoại tới giảng viên
+  course_class_id	UNIQUEIDENTIFIER NOT NULL	Khóa ngoại tới lớp học phần
   role	NVARCHAR(50) NOT NULL	Vai trò giảng viên
   created_at	DATETIME2	Thời điểm tạo
   updated_at	DATETIME2	Thời điểm cập nhật
@@ -535,7 +534,7 @@ INDEX:
   lecturer_code	VARCHAR(20) NOT NULL UNIQUE	Mã giảng viên
   full_name	NVARCHAR(100) NOT NULL	Họ tên giảng viên
   email	VARCHAR(100) UNIQUE	Email
-  department_id	BIGINT NULL	Mã khoa/bộ môn
+  department_id	UNIQUEIDENTIFIER NULL	Mã khoa/bộ môn
   created_at	DATETIME2	Thời điểm tạo
   updated_at	DATETIME2	Thời điểm cập nhật
   created_by	UNIQUEIDENTIFIER	Người tạo
@@ -586,9 +585,9 @@ INDEX:
   VII. NHÓM QUẢN LÝ LỊCH HỌC – PHÒNG HỌC
   Bảng rooms
   TÊN TRƯỜNG	KIỂU DỮ LIỆU	CHỨC NĂNG / Ý NGHĨA
-  room_id	INT (PK)	Mã định danh
+  room_id	UNIQUEIDENTIFIER (PK)	Mã định danh
   room_name	VARCHAR	Số phòng
-  building_id	INT (FK)	Liên kết đến bảng buildings
+  building_id	UNIQUEIDENTIFIER (FK)	Liên kết đến bảng buildings
   capacity	INT	Sức chứa tối đa
   room_type	ENUM	Loại phòng
   status	VARCHAR(20)	Trạng thái phòng
@@ -601,7 +600,7 @@ INDEX:
   is_active	BIT	Trạng thái hiệu lực
   Bảng buildings
   TÊN TRƯỜNG	KIỂU DỮ LIỆU	CHỨC NĂNG / Ý NGHĨA
-  building_id	INT (PK)	Mã định danh
+  building_id	UNIQUEIDENTIFIER (PK)	Mã định danh
   building_name	VARCHAR	Tên tòa nhà
   address	TEXT	Địa chỉ chi tiết
   description	TEXT	Ghi chú
@@ -614,13 +613,13 @@ INDEX:
   is_active	BIT	Trạng thái hiệu lực
   Bảng schedules
   TÊN TRƯỜNG	KIỂU DỮ LIỆU	CHỨC NĂNG / Ý NGHĨA
-  schedule_id	INT (PK)	Mã định danh
-  course_class_id	INT (FK)	Liên kết với lớp học phần
-  room_id	INT (FK)	Liên kết với phòng học
+  schedule_id	UNIQUEIDENTIFIER (PK)	Mã định danh
+  course_class_id	UNIQUEIDENTIFIER (FK)	Liên kết với lớp học phần
+  room_id	UNIQUEIDENTIFIER (FK)	Liên kết với phòng học
   day_of_week	TINYINT	Thứ trong tuần
   start_period	INT	Tiết bắt đầu
   end_period	INT	Tiết kết thúc
-  semester_id	INT (FK)	Học kỳ
+  semester_id	UNIQUEIDENTIFIER (FK)	Học kỳ
   created_at	UNIQUEIDENTIFIER	Ngày tạo
   created_by	UNIQUEIDENTIFIER	Người tạo
   updated_at	UNIQUEIDENTIFIER	Ngày cập nhật
@@ -632,7 +631,7 @@ INDEX:
   Bảng grade_components
   STT	Tên trường	Kiểu dữ liệu	Chức năng
   1	component_id	UNIQUEIDENTIFIER	Mã thành phần điểm
-  2	course_id	INT	Mã học phần
+  2	course_id	UNIQUEIDENTIFIER	Mã học phần
   3	component_name	VARCHAR(100)	Tên thành phần điểm
   4	weight	DECIMAL(5,2)	Phần trăm
   5	description	VARCHAR(255)	Ghi chú
@@ -646,9 +645,9 @@ INDEX:
   Bảng student_grades
   STT	Tên trường	Kiểu dữ liệu	Chức năng
   1	grade_id	UNIQUEIDENTIFIER	Mã bản ghi điểm
-  2	student_id	INT	Mã sinh viên
-  3	course_id	INT	Mã học phần
-  4	component_id	INT	Mã thành phần điểm
+  2	student_id	UNIQUEIDENTIFIER	Mã sinh viên
+  3	course_id	UNIQUEIDENTIFIER	Mã học phần
+  4	component_id UNIQUEIDENTIFIER	Mã thành phần điểm
   5	score	DECIMAL(4,2)	Điểm thành phần
   6	final_score	DECIMAL(4,2)	Điểm tổng kết
   7	grade_letter	CHAR(2)	Điểm chữ
@@ -680,7 +679,7 @@ INDEX:
   IX. NHÓM HỌC PHÍ – TÀI CHÍNH
   Bảng tuition_fees – Mức học phí
   STT	Tên trường	Kiểu dữ liệu	Mô tả	Ý nghĩa
-  1	id	INT (PK, AI)	Khóa chính	Mã định danh duy nhất
+  1	id	UNIQUEIDENTIFIER (PK, AI)	Khóa chính	Mã định danh duy nhất
   2	program_code	VARCHAR(50)	Mã chương trình đào tạo	VD: IT, KT, QTKD…
   3	program_name	VARCHAR(100)	Tên chương trình	Tên đầy đủ
   4	credit_fee	DECIMAL(10,2)	Học phí / tín chỉ	Mức học phí tính cho một tín chỉ
@@ -697,9 +696,9 @@ INDEX:
   15	is_active	TINYINT	Trạng thái hoạt động	1: hoạt động, 0: không
   Bảng student_tuition – Học phí sinh viên theo học kỳ
   STT	Tên trường	Kiểu dữ liệu	Mô tả	Ý nghĩa
-  1	id	INT (PK, AI)	Khóa chính	Mã định danh học phí
-  2	student_id	INT (FK)	Mã sinh viên	Liên kết bảng sinh viên
-  3	semester	VARCHAR(20)	Học kỳ	HK1, HK2
+  1	id	UNIQUEIDENTIFIER (PK, AI)	Khóa chính	Mã định danh học phí
+  2	student_id	UNIQUEIDENTIFIER (FK)	Mã sinh viên	Liên kết bảng sinh viên
+  3	semester_id	 UNIQUEIDENTIFIER FK REFERENCES semester(SemesterId)
   4	academic_year	VARCHAR(20)	Năm học	Năm học của học kỳ
   5	total_credits	INT	Tổng số tín chỉ	Số tín chỉ đăng ký
   6	tuition_fee	DECIMAL(12,2)	Tổng học phí	Tính theo số tín chỉ
@@ -718,9 +717,9 @@ INDEX:
   19	is_active	TINYINT	Trạng thái	1: hoạt động, 0: không
   Bảng payments – Lịch sử thanh toán
   STT	Tên trường	Kiểu dữ liệu	Mô tả	Ý nghĩa
-  1	id	INT (PK, AI)	Khóa chính	Mã giao dịch
-  2	student_tuition_id	INT (FK)	Liên kết học phí SV	Liên kết đến học phí học kỳ
-  3	student_id	INT (FK)	Mã sinh viên	Mã sinh viên thanh toán
+  1	id	UNIQUEIDENTIFIER (PK, AI)	Khóa chính	Mã giao dịch
+  2	student_tuition_id	UNIQUEIDENTIFIER (FK)	Liên kết học phí SV	Liên kết đến học phí học kỳ
+  3	student_id	UNIQUEIDENTIFIER (FK)	Mã sinh viên	Mã sinh viên thanh toán
   4	payment_date	DATETIME	Ngày thanh toán	Ngày và giờ
   5	amount	DECIMAL(12,2)	Số tiền thanh toán	Số tiền đã thanh toán
   6	payment_method	VARCHAR(50)	Tiền mặt / Chuyển khoản	Phương thức thanh toán
@@ -756,7 +755,7 @@ INDEX:
   4	exam_date	DATE	Ngày thi
   5	start_time	TIME	Giờ bắt đầu
   6	end_time	TIME	Giờ kết thúc
-  7	semester	NVARCHAR(20)	Học kỳ
+  semester_id	 UNIQUEIDENTIFIER FK REFERENCES semester(SemesterId)
   8	school_year	NVARCHAR(20)	Năm học
   9	created_at	DATETIME2	Ngày tạo
   10	updated_at	DATETIME2	Ngày cập nhật
@@ -826,7 +825,7 @@ INDEX:
   2	session_code	NVARCHAR(50)	Mã đợt xét
   3	session_name	NVARCHAR(200)	Tên đợt xét
   4	academic_year	NVARCHAR(20)	Năm học
-  5	semester	NVARCHAR(20)	Học kỳ
+  semester_id	 UNIQUEIDENTIFIER FK REFERENCES semester(SemesterId)
   6	start_date	DATE	Ngày bắt đầu xét
   7	due_date	DATE	Ngày kết thúc xét
   8	description	NVARCHAR(255)	Mô tả
@@ -843,7 +842,7 @@ INDEX:
   2	council_code	NVARCHAR(50)	Mã hội đồng
   3	council_name	NVARCHAR(200)	Tên hội đồng
   4	school_year	NVARCHAR(20)	Năm học
-  5	semester	NVARCHAR(20)	Học kỳ
+  semester_id	 UNIQUEIDENTIFIER FK REFERENCES semester(SemesterId)
   6	decision_number	NVARCHAR(50)	Số quyết định thành lập
   7	decision_date	DATE	Ngày ra quyết định
   8	chairman_id	UNIQUEIDENTIFIER	Chủ tịch hội đồng
@@ -880,13 +879,13 @@ INDEX:
   XII. NHÓM THÔNG BÁO – HỆ THỐNG
   Bảng Notifications
   STT	Tên trường	Kiểu dữ liệu	Mô tả
-  1	id	BIGINT (PK)	ID thông báo
+  1	id	UNIQUEIDENTIFIER (PK)	ID thông báo
   2	title	NVARCHAR(255)	Tiêu đề thông báo
   3	content	NVARCHAR(MAX)	Nội dung chi tiết
   4	type	VARCHAR(50)	Loại thông báo
   5	priority	VARCHAR(20)	Mức độ
-  6	sender_id	BIGINT (FK → users.id)	Người gửi
-  7	receiver_id	BIGINT (FK → users.id, NULLABLE)	Người nhận cụ thể
+  6	sender_id	UNIQUEIDENTIFIER (FK → users.id)	Người gửi
+  7	receiver_id	UNIQUEIDENTIFIER (FK → users.id, NULLABLE)	Người nhận cụ thể
   8	target_role	VARCHAR(50)	Gửi theo vai trò
   9	is_read	BIT	Đã đọc chưa
   10	send_channel	VARCHAR(50)	Kênh gửi
@@ -897,8 +896,8 @@ INDEX:
   15	related_id	BIGINT	ID đối tượng liên quan
   Bảng Logs
   STT	Tên trường	Kiểu dữ liệu	Mô tả
-  1	id	INT (PK, AI)	Khóa chính
-  2	user_id	INT (FK, NULL)	ID người thực hiện
+  1	id	UNIQUEIDENTIFIER (PK, AI)	Khóa chính
+  2	user_id	UNIQUEIDENTIFIER (FK, NULL)	ID người thực hiện
   3	action	VARCHAR(50)	Hành động thực hiện
   4	table_name	VARCHAR(100)	Tên bảng
   5	record_id	INT	ID bản ghi
@@ -909,13 +908,13 @@ INDEX:
   10	created_at	DATETIME	Thời gian xảy ra
   Bảng Settings
   STT	Tên trường	Kiểu dữ liệu	Mô tả
-  1	id	BIGINT (PK)	Mã định danh
-  2	student_id	BIGINT (FK → students.id)	Sinh viên được xét
-  3	condition_id	BIGINT (FK → graduation_conditions.id)	Điều kiện xét
+  1	id	UNIQUEIDENTIFIER (PK)	Mã định danh
+  2	student_id UNIQUEIDENTIFIER (FK → students.id)	Sinh viên được xét
+  3	condition_id	UNIQUEIDENTIFIER (FK → graduation_conditions.id)	Điều kiện xét
   4	total_credits	INT	Tổng số tín chỉ
   5	gpa	DECIMAL(3,2)	Điểm trung bình tích lũy
   6	result_status	VARCHAR(50)	Kết quả xét
   7	graduation_classification	VARCHAR(50)	Xếp loại
-  8	evaluated_by	BIGINT (FK → users.id)	Người xét
+  8	evaluated_by	UNIQUEIDENTIFIER (FK → users.id)	Người xét
   9	evaluated_at	DATETIME	Ngày xét
-  10	remarks	NVARCHAR(255)	Ghi chú bổ sung
+  10 remarks	NVARCHAR(255)	Ghi chú bổ sung
