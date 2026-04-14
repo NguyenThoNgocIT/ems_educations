@@ -1,5 +1,7 @@
 package com.quanlydaotao.backend.building;
 
+import com.quanlydaotao.backend.exception.BadRequestException;
+import com.quanlydaotao.backend.exception.NotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -18,13 +20,13 @@ public class BuildingService {
 
     public Building getBuildingById(UUID id) {
         return buildingRepository.findByIdAndIsActiveTrue(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dữ liệu"));
     }
 
     public Building createBuilding(BuildingRequest request) {
         buildingRepository.findByBuildingCode(request.getBuildingCode())
                 .ifPresent(existing -> {
-                    throw new RuntimeException("Dữ liệu đã tồn tại");
+                    throw new BadRequestException("Dữ liệu đã tồn tại");
                 });
         Building building = Building.builder()
                 .buildingCode(request.getBuildingCode())
@@ -40,7 +42,7 @@ public class BuildingService {
         if (!existing.getBuildingCode().equals(request.getBuildingCode())) {
             buildingRepository.findByBuildingCode(request.getBuildingCode())
                     .ifPresent(conflict -> {
-                        throw new RuntimeException("Dữ liệu đã tồn tại");
+                        throw new BadRequestException("Dữ liệu đã tồn tại");
                     });
         }
         existing.setBuildingCode(request.getBuildingCode());

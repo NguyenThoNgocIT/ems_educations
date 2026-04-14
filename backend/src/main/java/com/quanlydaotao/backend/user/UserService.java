@@ -1,5 +1,7 @@
 package com.quanlydaotao.backend.user;
 
+import com.quanlydaotao.backend.exception.BadRequestException;
+import com.quanlydaotao.backend.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,7 +47,7 @@ public class UserService {
 
     public User updateUser(Integer id, UpdateUserRequest request) {
         User user = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (request.getEmail() != null) {
             user.setEmail(request.getEmail());
@@ -66,33 +68,29 @@ public class UserService {
 
     public void deleteUser(Integer id) {
         if (!repository.existsById(id)) {
-            throw new IllegalArgumentException("User not found");
+            throw new NotFoundException("User not found");
         }
         repository.deleteById(id);
     }
 
     public User getUserById(Integer id) {
         return repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
 
         var user = (User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
 
-        // check if the current password is correct
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new IllegalStateException("Wrong password");
+            throw new BadRequestException("Wrong password");
         }
-        // check if the two new passwords are the same
+
         if (!request.getNewPassword().equals(request.getConfirmationPassword())) {
-            throw new IllegalStateException("Password are not the same");
+            throw new BadRequestException("Password are not the same");
         }
 
-        // update the password
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-
-        // save the new password
         repository.save(user);
     }
 }
