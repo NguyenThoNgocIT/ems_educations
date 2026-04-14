@@ -30,6 +30,7 @@ import static com.quanlydaotao.backend.user.Role.ADMIN;
 import static com.quanlydaotao.backend.user.Role.MANAGER;
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
@@ -79,6 +80,19 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(req ->
                         req.requestMatchers(WHITE_LIST_URL)
                                 .permitAll()
+                                .requestMatchers(GET, "/api/v1/admin/lecturers/**").hasAnyRole("ADMIN", "TEACHER")
+                                .requestMatchers(GET, "/api/v1/admin/course-classes/**").hasAnyRole("ADMIN", "TEACHER")
+                                .requestMatchers(GET, "/api/v1/admin/lecturer-course-classes/by-lecturer/**").hasAnyRole("ADMIN", "TEACHER")
+                                .requestMatchers(GET, "/api/v1/admin/schedules/**").hasAnyRole("ADMIN", "TEACHER")
+                                .requestMatchers("/api/v1/admin/grade-scales/**").hasRole("ADMIN")
+                                .requestMatchers("/api/v1/admin/settings/**").hasRole("ADMIN")
+                                .requestMatchers("/api/v1/admin/logs/**").hasRole("ADMIN")
+                                .requestMatchers(GET, "/api/v1/admin/student-grades/**").hasAnyRole("ADMIN", "TEACHER")
+                                .requestMatchers(POST, "/api/v1/admin/student-grades/**").hasAnyRole("ADMIN", "TEACHER")
+                                .requestMatchers(PUT, "/api/v1/admin/student-grades/**").hasAnyRole("ADMIN", "TEACHER")
+                                .requestMatchers(PATCH, "/api/v1/admin/student-grades/*/lock").hasAnyRole("ADMIN", "TEACHER")
+                                .requestMatchers("/api/v1/student/grades/**").hasRole("STUDENT")
+                                .requestMatchers("/api/v1/notifications/**").authenticated()
                                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                                 .requestMatchers("/api/v1/teacher/**").hasRole("TEACHER")
                                 .requestMatchers("/api/v1/student/**").hasRole("STUDENT")
