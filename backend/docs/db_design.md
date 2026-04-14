@@ -381,7 +381,7 @@ CONSTRAINTS / INDEX:
    TABLE: TeachingAssignments (PHAN_CONG_GIANG_DAY)
 - AssignmentId   UNIQUEIDENTIFIER  PK  NOT NULL DEFAULT(NEWID())     -- thay INT bằng GUID theo chuẩn bạn chốt
 - InstructorId   UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Instructors(EmployeeId)
-- SubjectId      UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Subjects(SubjectId)      -- mon_hoc_id
+- CoursesId      UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Courses(CourseId)      -- mon_hoc_id
 - ClassId        UNIQUEIDENTIFIER  FK  NOT NULL REFERENCES Classes(ClassId)         -- lop_hoc_id
 
 - Semester       NVARCHAR(20)          NOT NULL                        -- hoc_ky (VD: HK1, HK2, HE)
@@ -397,9 +397,9 @@ CONSTRAINTS / INDEX:
 
 CONSTRAINTS / INDEX:
 - IX_TA_InstructorId(InstructorId)
-- IX_TA_SubjectId(SubjectId)
+- IX_TA_CourseId(CoursesId)
 - IX_TA_ClassId(ClassId)
-- UQ_TA UNIQUE(InstructorId, SubjectId, ClassId, Semester, SchoolYear)  -- chống phân công trùng
+- UQ_TA UNIQUE(InstructorId, CoursesId, ClassId, Semester, SchoolYear)  -- chống phân công trùng
 
 TABLE: Majors
 - MajorId      UNIQUEIDENTIFIER  PK  NOT NULL DEFAULT(NEWID())
