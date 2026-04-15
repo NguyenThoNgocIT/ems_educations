@@ -20,7 +20,9 @@ public interface SubjectRepository extends JpaRepository<Subject, UUID> {
     List<Subject> findByIsActiveTrue();
 
     Page<Subject> findByIsActiveTrue(Pageable pageable);
+    Optional<Subject> findByCourseCodeIgnoreCase(String courseCode);
 
+    List<Subject> findByProgramIdAndIsActiveTrue(UUID programId);
     @Query("SELECT s FROM Subject s WHERE s.isActive = true AND (LOWER(s.courseCode) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Subject> searchActiveByKeyword(@Param("keyword") String keyword);
 }
