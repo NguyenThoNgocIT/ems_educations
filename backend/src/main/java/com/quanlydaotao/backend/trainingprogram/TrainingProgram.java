@@ -51,6 +51,15 @@ public class TrainingProgram {
 
     private String note;
 
+    @Column(name = "approval_status")
+    private String approvalStatus;
+
+    @Column(name = "approval_comment", columnDefinition = "TEXT")
+    private String approvalComment;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -66,6 +75,9 @@ public class TrainingProgram {
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+        if (this.approvalStatus == null) {
+            this.approvalStatus = "DRAFT";
+        }
         this.isActive = true;
     }
 

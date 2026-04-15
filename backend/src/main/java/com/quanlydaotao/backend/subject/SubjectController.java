@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/admin/subjects")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
 public class SubjectController {
 
     private final SubjectService subjectService;
@@ -77,5 +78,12 @@ public class SubjectController {
             @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(subjectService.getSubjectsPage(page, size));
+    }
+
+    @GetMapping(value = "/export", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> exportSubjects() {
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=subjects.csv")
+                .body(subjectService.exportSubjectsCsv());
     }
 }

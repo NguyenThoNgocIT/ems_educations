@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/admin/training-programs")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
 public class TrainingProgramController {
 
     private final TrainingProgramService trainingProgramService;
@@ -70,5 +71,31 @@ public class TrainingProgramController {
             @RequestParam(defaultValue = "10") int size
     ) {
         return ResponseEntity.ok(trainingProgramService.getTrainingProgramsPage(page, size));
+    }
+
+    @GetMapping("/{id}/validate")
+    public ResponseEntity<TrainingProgramService.TrainingProgramValidationResponse> validateTrainingProgram(@PathVariable UUID id) {
+        return ResponseEntity.ok(trainingProgramService.validateTrainingProgram(id));
+    }
+
+    @PatchMapping("/{id}/submit")
+    public ResponseEntity<TrainingProgram> submitTrainingProgram(@PathVariable UUID id) {
+        return ResponseEntity.ok(trainingProgramService.submitTrainingProgramForApproval(id));
+    }
+
+    @PatchMapping("/{id}/approve")
+    public ResponseEntity<TrainingProgram> approveTrainingProgram(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String comment
+    ) {
+        return ResponseEntity.ok(trainingProgramService.approveTrainingProgram(id, comment));
+    }
+
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<TrainingProgram> rejectTrainingProgram(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String comment
+    ) {
+        return ResponseEntity.ok(trainingProgramService.rejectTrainingProgram(id, comment));
     }
 }

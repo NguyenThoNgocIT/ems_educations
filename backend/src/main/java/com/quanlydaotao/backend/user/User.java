@@ -1,24 +1,12 @@
 package com.quanlydaotao.backend.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.quanlydaotao.backend.token.Token;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -33,9 +21,12 @@ public class User implements UserDetails {
   @Id
   @GeneratedValue
   private Integer id;
+
   private String firstname;
   private String lastname;
   private String email;
+
+  @JsonIgnore // 🔥 thêm
   private String password;
 
   @Enumerated(EnumType.STRING)
@@ -53,9 +44,6 @@ public class User implements UserDetails {
 
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;
-
-  @OneToMany(mappedBy = "user")
-  private List<Token> tokens;
 
   @PrePersist
   public void prePersist() {

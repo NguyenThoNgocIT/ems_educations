@@ -15,6 +15,8 @@ public interface TrainingProgramRepository extends JpaRepository<TrainingProgram
 
     Optional<TrainingProgram> findByProgramCode(String programCode);
 
+    Optional<TrainingProgram> findByProgramCodeIgnoreCase(String programCode);
+
     Optional<TrainingProgram> findByIdAndIsActiveTrue(UUID id);
 
     List<TrainingProgram> findByIsActiveTrue();
