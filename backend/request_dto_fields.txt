@@ -1,0 +1,190 @@
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\auth\AuthenticationRequest.java
+private String email;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\auth\RegisterRequest.java
+private String firstname;
+private String lastname;
+private String email;
+private String password;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\building\BuildingRequest.java
+private String buildingCode;
+private String buildingName;
+private String address;
+private String description;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\classroom\ClassroomRequest.java
+private String name;
+private Integer courseId;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\course\CourseRequest.java
+private String title;
+private String description;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\courseclass\CourseClassRequest.java
+private UUID courseId;
+private UUID semesterId;
+private String classCode;
+private Integer maxStudent;
+private String schedule;
+private String room;
+private Integer status;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\enrollment\EnrollmentRequest.java
+private Integer courseId;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\gradescale\GradeScaleRequest.java
+private String scaleName;
+private Double minScore;
+private Double maxScore;
+private String gradeLetter;
+private Double gpaValue;
+private String description;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\graduationcondition\GraduationConditionRequest.java
+private String conditionCode;
+private String conditionName;
+private Integer minCredits;
+private Double minGpa;
+private Integer maxFailedCourses;
+private String requiredCertificate;
+private String description;
+private LocalDate startDate;
+private LocalDate dueDate;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\graduationcouncil\GraduationCouncilRequest.java
+private String councilCode;
+private String councilName;
+private String schoolYear;
+private String semester;
+private String decisionNumber;
+private LocalDate decisionDate;
+private String description;
+private LocalDate startDate;
+private LocalDate endDate;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\graduationcouncil\GraduationCouncilUpdateRoleRequest.java
+private UUID userId;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\graduationprofile\GraduationProfileRequest.java
+private UUID studentId;
+private UUID councilId;
+private UUID conditionId;
+private String profileCode;
+private LocalDate submissionDate;
+private String status;
+private String note;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\graduationprofile\GraduationProfileReviewRequest.java
+private String status;
+private UUID reviewerId;
+private String note;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\graduationresult\GraduationResultDecisionRequest.java
+private String decisionNumber;
+private LocalDate decisionDate;
+private LocalDate startDate;
+private LocalDate dueDate;
+private String graduationRank;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\graduationresult\GraduationResultRequest.java
+private UUID studentId;
+private UUID conditionId;
+private Integer totalCredits;
+private Double gpa;
+private Integer failedCourses;
+private String graduationStatus;
+private String graduationRank;
+private String decisionNumber;
+private LocalDate decisionDate;
+private LocalDate startDate;
+private LocalDate dueDate;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\graduationsession\GraduationSessionRequest.java
+private String sessionCode;
+private String sessionName;
+private String academicYear;
+private String semester;
+private LocalDate startDate;
+private LocalDate dueDate;
+private String description;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\lecturercourseclass\LecturerCourseClassRequest.java
+private UUID lecturerId;
+private UUID courseClassId;
+private String role;
+private Boolean isActive;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\lesson\LessonRequest.java
+private String title;
+private String content;
+private Integer courseId;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\log\LogRequest.java
+private UUID userId;
+private String action;
+private String tableName;
+private UUID recordId;
+private String oldValue;
+private String newValue;
+private String ipAddress;
+private String userAgent;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\major\MajorRequest.java
+private String majorCode;
+private String majorName;
+private String description;
+private UUID departmentId;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\notification\NotificationRequest.java
+private String title;
+private String content;
+private String type;
+private String priority;
+private UUID senderId;
+private UUID receiverId;
+private String targetRole;
+private String sendChannel;
+private String relatedType;
+private UUID relatedId;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\prerequisite\CoursePrerequisiteRequest.java
+private UUID courseId;
+private UUID prerequisiteId;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\room\RoomRequest.java
+private String roomCode;
+private String roomName;
+private UUID buildingId;
+private Integer capacity;
+private String roomType;
+private String status;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\schedule\ScheduleRequest.java
+private UUID courseClassId;
+private UUID roomId;
+private UUID semesterId;
+private Integer dayOfWeek;
+private Integer startPeriod;
+private Integer endPeriod;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\semester\SemesterRequest.java
+private String code;
+private String name;
+private String academicYear;
+private LocalDate startDate;
+private LocalDate endDate;
+private String description;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\setting\SettingRequest.java
+private String configKey;
+private String configValue;
+private String description;
+private String category;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\subject\SubjectRequest.java
+private String courseCode;
+private String courseName;
+private Integer credits;
+private Integer theoryHours;
+private Integer practiceHours;
+private String description;
+private Integer semester;
+private Boolean isMandatory;
+private UUID programId;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\trainingprogram\TrainingProgramRequest.java
+private String programCode;
+private String programName;
+private UUID majorId;
+private String academicYear;
+private Integer totalCredits;
+private String description;
+private Boolean status;
+private String note;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\user\AdminCreateUserRequest.java
+private String email;
+private String password;
+private String fullName;
+private String role;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\user\ChangePasswordRequest.java
+private String currentPassword;
+private String newPassword;
+private String confirmationPassword;
+---- D:\ems_educations\backend\src\main\java\com\quanlydaotao\backend\user\UpdateUserRequest.java
+private String email;
+private String fullName;
+private String role;

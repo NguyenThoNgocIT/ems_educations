@@ -1,5 +1,6 @@
 package com.quanlydaotao.backend.course;
 
+import com.quanlydaotao.backend.exception.NotFoundException;
 import com.quanlydaotao.backend.user.User;
 import com.quanlydaotao.backend.user.UserRepository;
 import java.util.List;
@@ -19,7 +20,7 @@ public class CourseService {
 
   public Course getCourseById(Integer id) {
     return courseRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Course not found"));
+        .orElseThrow(() -> new NotFoundException("Course not found"));
   }
 
   public List<Course> getCoursesByTeacher(Integer teacherId) {
@@ -28,7 +29,7 @@ public class CourseService {
 
   public Course createCourse(CourseRequest request, Integer teacherId) {
     User teacher = userRepository.findById(teacherId)
-        .orElseThrow(() -> new RuntimeException("Teacher not found"));
+        .orElseThrow(() -> new NotFoundException("Teacher not found"));
 
     Course course = Course.builder()
         .title(request.getTitle())

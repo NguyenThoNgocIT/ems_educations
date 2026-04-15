@@ -1,6 +1,8 @@
 package com.quanlydaotao.backend.room;
 
 import com.quanlydaotao.backend.building.BuildingRepository;
+import com.quanlydaotao.backend.exception.BadRequestException;
+import com.quanlydaotao.backend.exception.NotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -20,16 +22,16 @@ public class RoomService {
 
     public Room getRoomById(UUID id) {
         return roomRepository.findByIdAndIsActiveTrue(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dữ liệu"));
     }
 
     public Room createRoom(RoomRequest request) {
         roomRepository.findByRoomCode(request.getRoomCode())
                 .ifPresent(existing -> {
-                    throw new RuntimeException("Dữ liệu đã tồn tại");
+                    throw new BadRequestException("Dữ liệu đã tồn tại");
                 });
         buildingRepository.findByIdAndIsActiveTrue(request.getBuildingId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dữ liệu"));
         Room room = Room.builder()
                 .roomCode(request.getRoomCode())
                 .roomName(request.getRoomName())
@@ -46,11 +48,11 @@ public class RoomService {
         if (!existing.getRoomCode().equals(request.getRoomCode())) {
             roomRepository.findByRoomCode(request.getRoomCode())
                     .ifPresent(conflict -> {
-                        throw new RuntimeException("Dữ liệu đã tồn tại");
+                        throw new BadRequestException("Dữ liệu đã tồn tại");
                     });
         }
         buildingRepository.findByIdAndIsActiveTrue(request.getBuildingId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy dữ liệu"));
         existing.setRoomCode(request.getRoomCode());
         existing.setRoomName(request.getRoomName());
         existing.setBuildingId(request.getBuildingId());

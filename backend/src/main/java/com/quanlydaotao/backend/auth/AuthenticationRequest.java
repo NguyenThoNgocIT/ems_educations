@@ -1,5 +1,8 @@
 package com.quanlydaotao.backend.auth;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,6 +14,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthenticationRequest {
 
+  @Email
+  @NotBlank
+  @Size(max = 255)
   private String email;
-  String password;
+
+  @NotBlank
+  @Size(max = 255)
+  private String password;
 }

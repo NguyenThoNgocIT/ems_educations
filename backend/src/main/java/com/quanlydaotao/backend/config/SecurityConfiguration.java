@@ -91,6 +91,8 @@ public class SecurityConfiguration {
                                 .requestMatchers(POST, "/api/v1/admin/student-grades/**").hasAnyRole("ADMIN", "TEACHER")
                                 .requestMatchers(PUT, "/api/v1/admin/student-grades/**").hasAnyRole("ADMIN", "TEACHER")
                                 .requestMatchers(PATCH, "/api/v1/admin/student-grades/*/lock").hasAnyRole("ADMIN", "TEACHER")
+                                .requestMatchers("/api/v1/admin/users/**").hasAnyRole("ADMIN", "MANAGER")
+                                .requestMatchers("/api/v1/admin/students/**").hasAnyRole("ADMIN", "MANAGER")
                                 .requestMatchers("/api/v1/student/grades/**").hasRole("STUDENT")
                                 .requestMatchers("/api/v1/notifications/**").authenticated()
                                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

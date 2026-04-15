@@ -58,6 +58,12 @@ public class Student {
     @Column(nullable = false)
     private String course;
 
+    @Column(name = "course_class_id")
+    private UUID courseClassId;
+
+    @Column(name = "course_class_code")
+    private String courseClassCode;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
