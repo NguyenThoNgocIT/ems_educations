@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.security.Principal;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,9 +31,44 @@ public class UserService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.valueOf(request.getRole().toUpperCase()))
+                .locked(false)
                 .build();
 
         return repository.save(user);
+    }
+
+    public User uploadAvatar(Integer id, MultipartFile file) {
+        User user = getUserById(id);
+        try {
+            user.setAvatar(file.getBytes());
+        } catch (IOException e) {
+            throw new BadRequestException("Unable to read avatar file");
+        }
+        return repository.save(user);
+    }
+
+    public User lockUser(Integer id) {
+        User user = getUserById(id);
+        user.setLocked(true);
+        return repository.save(user);
+    }
+
+    public User unlockUser(Integer id) {
+        User user = getUserById(id);
+        user.setLocked(false);
+        return repository.save(user);
+    }
+
+    public List<User> searchUsers(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return getAllUsers(null);
+        }
+        String lowerKeyword = keyword.toLowerCase();
+        return repository.findAll().stream()
+                .filter(u -> u.getEmail().toLowerCase().contains(lowerKeyword)
+                        || u.getFirstname().toLowerCase().contains(lowerKeyword)
+                        || u.getLastname().toLowerCase().contains(lowerKeyword))
+                .collect(Collectors.toList());
     }
 
     public List<User> getAllUsers(String role) {
