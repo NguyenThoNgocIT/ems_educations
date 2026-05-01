@@ -1,0 +1,4 @@
+open:
+  api:
+    serverName: "Production Server"
+    serverUrl: "https://api.ten-domain-cua-ban.com"

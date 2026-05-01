@@ -1,0 +1,4 @@
+open:
+  api:
+    serverName: "Local Development Server"
+    serverUrl: "http://localhost:8080"
