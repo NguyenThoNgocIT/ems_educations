@@ -1,4 +1,13 @@
+server:
+  port: 8082
+spring:
+  config:
+    activate:
+      on-profile: prod
 open:
   api:
-    serverName: "Production Server"
-    serverUrl: "https://api.ten-domain-cua-ban.com"
+    title: API Quản lý Đào tạo
+    description: Tài liệu API cho dự án hệ thống Quản lý Đào tạo
+    version: 1.0.0
+    serverName: Local Server
+    serverUrl: http://localhost:${server.port}

@@ -14,7 +14,6 @@ import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
-
     @Bean
     public OpenAPI openAPI(@Value("${open.api.title}") String title,
                            @Value("${open.api.description}") String description,

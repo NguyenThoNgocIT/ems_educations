@@ -1,9 +1,10 @@
+#key message k đc load lên trong thời điểm compile time
 server:
-  port: 8080
+  port: 8081
 spring:
   config:
     activate:
-      on-profile: dev
+      on-profile: test
 open:
   api:
     title: API Quản lý Đào tạo
@@ -11,3 +12,4 @@ open:
     version: 1.0.0
     serverName: Local Server
     serverUrl: http://localhost:${server.port}
+---

@@ -1,18 +1,16 @@
-open:
-  api:
-    title: "API Quản lý Đào tạo"
-    description: "Tài liệu API cho dự án hệ thống Quản lý Đào tạo"
-    version: "1.0.0"
-    serverName: "Local Server"
-    serverUrl: "http://localhost:8080"
 spring:
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    driver-class-name: ${DB_DRIVER}
+    driver-class-name: ${DB_DRIVER:com.microsoft.sqlserver.jdbc.SQLServerDriver}
   jpa:
     database-platform: org.hibernate.dialect.SQLServerDialect
     hibernate:
       ddl-auto: update
     show-sql: true
+  profiles:
+    active: @spring.profiles.active@
+
+# .\mvnw.cmd clean package -DskipTests -P dev
+#  java -jar .\target\backend-0.0.1-SNAPSHOT.jar
