@@ -3,11 +3,13 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { STUDENT_NAV_ITEMS } from "@/constants/student_navigation";
+
 import { ShoppingCart } from "lucide-react";
 // 1. IMPORT USER DROPDOWN
-import UserDropdown from "@/components/header/UserDropdown";
+
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
+import { STUDENT_NAV_ITEMS } from "@/components/constants/student_navigation";
+import UserDropdown from "@/header/UserDropdown";
 
 export default function StudentNavbar() {
   const pathname = usePathname();

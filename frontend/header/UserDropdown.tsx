@@ -3,9 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { Dropdown } from "../ui/dropdown/Dropdown";
-import { DropdownItem } from "../ui/dropdown/DropdownItem";
+
 import { User, Settings, LifeBuoy, LogOut } from "lucide-react";
+import { Dropdown } from "@/components/ui/dropdown/Dropdown";
+import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 
 // Định nghĩa Props để nhận role từ AppHeader
 interface UserDropdownProps {
@@ -67,7 +68,7 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
         </span>
 
         {/* HIỂN THỊ ROLE Ở ĐÂY */}
-        <span className="mr-1 hidden text-sm font-bold sm:block">
+        <span className="mr-1 hidden text-semibold-14 sm:block">
           {currentRoleLabel}
         </span>
 
@@ -94,7 +95,7 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
         className="absolute right-0 mt-[17px] flex w-[240px] flex-col rounded-2xl border border-slate-100 bg-white p-3 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
       >
         <div className="mb-2 border-b border-slate-50 px-3 py-2 dark:border-slate-800">
-          <span className="block text-sm font-bold text-slate-9 leading-relaxed00 dark:text-white">
+          <span className="block text-semibold-14 text-slate-9 leading-relaxed00 dark:text-white">
             Mona Software
           </span>
           <span className="mt-0.5 block text-xs text-slate-400">
@@ -108,7 +109,7 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
               onItemClick={closeDropdown}
               tag="a"
               href="/profile"
-              className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-4 leading-relaxed00 dark:hover:bg-white/5"
+              className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-semibold-14 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-4 leading-relaxed00 dark:hover:bg-white/5"
             >
               <User
                 size={18}
@@ -122,7 +123,7 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
               onItemClick={closeDropdown}
               tag="a"
               href="/settings"
-              className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-4 leading-relaxed00 dark:hover:bg-white/5"
+              className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-semibold-14 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-4 leading-relaxed00 dark:hover:bg-white/5"
             >
               <Settings
                 size={18}
@@ -136,7 +137,7 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
         {/* NÚT ĐĂNG XUẤT THỰC TẾ */}
         <button
           onClick={handleSignOut}
-          className="group mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-50 dark:hover:bg-rose-500/10"
+          className="group mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-semibold-14 text-rose-600 transition-colors hover:bg-rose-50 dark:hover:bg-rose-500/10"
         >
           <LogOut size={18} className="text-rose-500" />
           Sign out

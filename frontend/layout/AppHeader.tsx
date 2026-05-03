@@ -6,7 +6,8 @@ import { Plus, MapPin, Search, Command } from "lucide-react";
 import QuickLeadForm from "./QuickLeadForm";
 import NotificationDropdown from "@/header/NotificationDropdown";
 import UserDropdown from "@/header/UserDropdown";
-import { ThemeToggleButton } from "@/component/common/ThemeToggleButton";
+import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
+import { useSidebar } from "@/components/context/SidebarContext";
 
 const BRANCHES = [
   { value: "cs2", label: "CS2 - Bình Thạnh HCM" },

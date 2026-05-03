@@ -128,3 +128,15 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  /* Typography: Bold & Large - semibold 14px */
+  .text-semibold-14 {
+    @apply font-semibold text-sm;
+  }
+
+  /* Typography: Normal - 13px */
+  .text-normal-13 {
+    @apply font-normal text-xs;
+  }
+}

@@ -1,9 +1,9 @@
 "use client";
+import { Dropdown } from "@/components/ui/dropdown/Dropdown";
+import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
-import { Dropdown } from "../ui/dropdown/Dropdown";
-import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
 export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -55,7 +55,7 @@ export default function NotificationDropdown() {
         className="shadow-theme-lg absolute -right-[240px] mt-[17px] flex h-[480px] w-[350px] flex-col rounded-2xl border border-slate-200 bg-white p-3 sm:w-[361px] lg:right-0 dark:border-slate-700 dark:bg-slate-900"
       >
         <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-600">
-          <h5 className="text-lg font-semibold text-slate-900 dark:text-slate-200 leading-normal">
+          <h5 className="text-semibold-14 text-slate-900 dark:text-slate-200 leading-normal">
             Notification
           </h5>
           <button
@@ -374,7 +374,7 @@ export default function NotificationDropdown() {
         </ul>
         <Link
           href="/"
-          className="mt-3 block rounded-lg border border-slate-300 bg-white px-4 py-2 text-center text-sm font-medium text-slate-900 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-4 leading-relaxed00 dark:hover:bg-slate-700"
+          className="mt-3 block rounded-lg border border-slate-300 bg-white px-4 py-2 text-center text-semibold-14 text-slate-900 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-4 leading-relaxed00 dark:hover:bg-slate-700"
         >
           View All Notifications
         </Link>
