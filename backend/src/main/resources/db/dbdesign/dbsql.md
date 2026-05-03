@@ -38,6 +38,8 @@ CONSTRAINT PK_Persons PRIMARY KEY (PersonId)
 
 CREATE INDEX IX_Persons_FullName ON Persons(FullName);
 CREATE INDEX IX_Persons_PhoneNumber ON Persons(PhoneNumber);
+CREATE INDEX IX_Persons_CreatedAt ON Persons(CreatedAt);
+CREATE INDEX IX_Persons_UpdatedAt ON Persons(UpdatedAt);
 
 -- ============================================
 -- USERS TABLE
@@ -68,7 +70,8 @@ CONSTRAINT UQ_Users_PersonId UNIQUE (PersonId)
 
 CREATE INDEX IX_Users_IsActive ON Users(IsActive);
 CREATE INDEX IX_Users_LastLoginAt ON Users(LastLoginAt);
-
+CREATE INDEX IX_Users_CreatedAt ON Users(CreatedAt);
+CREATE INDEX IX_Users_UpdatedAt ON Users(UpdatedAt);
 -- ============================================
 -- ROLES TABLE
 -- ============================================
@@ -93,7 +96,7 @@ CONSTRAINT UQ_Roles_Code UNIQUE (Code)
 );
 
 CREATE INDEX IX_Roles_IsActive ON Roles(IsActive);
-
+CREATE INDEX IX_Roles_CreatedAt ON Roles(CreatedAt);
 -- ============================================
 -- PERMISSIONS TABLE
 -- ============================================
@@ -117,6 +120,7 @@ DeletedBy UNIQUEIDENTIFIER NULL,
 );
 
 CREATE INDEX IX_Permissions_Module ON Permissions(Module);
+CREATE INDEX IX_Permissions_CreatedAt ON Permissions(CreatedAt);
 -- ============================================
 -- MENU
 -- ============================================
@@ -154,6 +158,8 @@ Description NVARCHAR(255) NULL,
 CreatedAt DATETIME2(3) NOT NULL DEFAULT SYSDATETIME(),
 CreatedBy UNIQUEIDENTIFIER NULL,
 UpdatedAt DATETIME2(3) NULL,
+DeletedAt DATETIME2(3) NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
 
     CONSTRAINT PK_PermissionApis PRIMARY KEY (PermissionId, ApiPath, HttpMethod),
     CONSTRAINT FK_PermissionApis_Permission FOREIGN KEY (PermissionId)
@@ -211,6 +217,8 @@ UserId UNIQUEIDENTIFIER NOT NULL,
 
     CreatedAt DATETIME2(3) NOT NULL DEFAULT SYSDATETIME(),
     UpdatedAt DATETIME2(3) NULL,
+    DeletedAt DATETIME2(3) NULL,
+    DeletedBy UNIQUEIDENTIFIER NULL,
 
     CONSTRAINT PK_UserSessions PRIMARY KEY (SessionId),
     CONSTRAINT FK_UserSessions_User FOREIGN KEY (UserId) REFERENCES Users(UserId)
@@ -351,7 +359,7 @@ CONSTRAINT UQ_Students_StudentCode UNIQUE (StudentCode)
 );
 
 CREATE INDEX IX_Students_TrainingProgramId ON Students(TrainingProgramId);
-
+CREATE INDEX IX_Students_CreatedAt ON Students(CreatedAt);
 -- ============================================
 -- STUDENT STATUS CATALOG
 -- ============================================
@@ -366,6 +374,8 @@ CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_StudentStatusCatalog_CreatedAt DEF
 CreatedBy UNIQUEIDENTIFIER NULL,
 UpdatedAt DATETIME2(3) NULL,
 UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2(3) NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_StudentStatusCatalog PRIMARY KEY (StudentStatusId),
 CONSTRAINT UQ_StudentStatusCatalog_Code UNIQUE (Code)
 );
@@ -393,6 +403,8 @@ CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_StudentStatusHistories_CreatedAt D
 CreatedBy UNIQUEIDENTIFIER NULL,
 UpdatedAt DATETIME2(3) NULL,
 UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2(3) NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_StudentStatusHistories PRIMARY KEY (StudentStatusHistoryId),
 CONSTRAINT FK_SSH_Students FOREIGN KEY (StudentId) REFERENCES Students(StudentId),
 CONSTRAINT FK_SSH_StudentStatusCatalog FOREIGN KEY (StudentStatusId) REFERENCES StudentStatusCatalog(StudentStatusId),
@@ -479,17 +491,15 @@ CONSTRAINT UQ_Courses_Code UNIQUE (Code)
 );
 
 CREATE INDEX IX_Courses_IsActive ON Courses(IsActive);
-
+CREATE INDEX IX_Courses_CreatedAt ON Courses(CreatedAt);
 -- ============================================
 -- TRAINING PROGRAM COURSES
 -- ============================================
+
 CREATE TABLE TrainingProgramCourses (
 TrainingProgramId UNIQUEIDENTIFIER NOT NULL,
 CourseId UNIQUEIDENTIFIER NOT NULL,
-CourseCode NVARCHAR(20) NULL,
-CourseName NVARCHAR(200) NULL,
 SemesterId UNIQUEIDENTIFIER NULL,
-SemesterCode VARCHAR(30) NULL,
 IsRequired BIT NULL,
 GroupCode NVARCHAR(50) NULL,
 Credits DECIMAL(5,1) NULL,
@@ -556,7 +566,7 @@ CONSTRAINT PK_Classes PRIMARY KEY (ClassId),
 CONSTRAINT UQ_Classes_ClassCode UNIQUE (ClassCode),
 CONSTRAINT FK_Classes_Departments FOREIGN KEY (DepartmentId) REFERENCES Departments(DepartmentId),
 CONSTRAINT FK_Classes_AcademicCohorts FOREIGN KEY (AcademicCohortId) REFERENCES AcademicCohorts(AcademicCohortId),
-CONSTRAINT CK_Classes_MaxSize CHECK (MaxSize IS NULL OR MaxSize > 0)
+CONSTRAINT CK_Classes_MaxSize CHECK (MaxSize IS NULL OR MaxSize > 0),
 );
 
 -- ============================================
@@ -641,6 +651,12 @@ DegreeId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Degrees_DegreeId DEFAULT NEWID(
 Name NVARCHAR(150) NOT NULL,
 Major NVARCHAR(150) NULL,
 IsActive BIT NOT NULL CONSTRAINT DF_Degrees_IsActive DEFAULT 1,
+CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_Positions_CreatedAt DEFAULT SYSDATETIME(),
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedAt DATETIME2(3) NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2(3) NULL,
+DeletedBy UNIQUEIDENTIFIER NULL
 CONSTRAINT PK_Degrees PRIMARY KEY (DegreeId)
 );
 
@@ -664,7 +680,13 @@ CONSTRAINT FK_Instructors_Departments FOREIGN KEY (DepartmentId) REFERENCES Depa
 CONSTRAINT FK_Instructors_Degrees FOREIGN KEY (DegreeId) REFERENCES Degrees(DegreeId),
 CONSTRAINT UQ_Instructors_InstructorCode UNIQUE (InstructorCode)
 );
+CREATE INDEX IX_Instructors_DepartmentId ON Instructors(DepartmentId);
+CREATE INDEX IX_Instructors_DegreeId ON Instructors(DegreeId);
+CREATE INDEX IX_Instructors_DeletedAt ON Instructors(DeletedAt);
 
+ALTER TABLE Classes
+ADD CONSTRAINT FK_Classes_Instructors_Advisor
+FOREIGN KEY (AdvisorId) REFERENCES Instructors(EmployeeId);
 -- ============================================
 -- POSITIONS
 -- ============================================
@@ -673,9 +695,14 @@ PositionId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Positions_PositionId DEFAULT 
 Name NVARCHAR(150) NOT NULL,
 Allowance DECIMAL(18,2) NULL,
 IsActive BIT NOT NULL CONSTRAINT DF_Positions_IsActive DEFAULT 1,
+CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_Positions_CreatedAt DEFAULT SYSDATETIME(),
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedAt DATETIME2(3) NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2(3) NULL,
+DeletedBy UNIQUEIDENTIFIER NULL
 CONSTRAINT PK_Positions PRIMARY KEY (PositionId)
 );
-
 -- ============================================
 -- DIVISIONS
 -- ============================================
@@ -732,6 +759,8 @@ CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_Contracts_CreatedAt DEFAULT SYSDAT
 CreatedBy UNIQUEIDENTIFIER NULL,
 UpdatedAt DATETIME2(3) NULL,
 UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2(3) NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_Contracts PRIMARY KEY (ContractId),
 CONSTRAINT FK_Contracts_Employees FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId)
 );
@@ -756,9 +785,11 @@ CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_EmployeeLeaveRequests_CreatedAt DE
 CreatedBy UNIQUEIDENTIFIER NULL,
 UpdatedAt DATETIME2(3) NULL,
 UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2(3) NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_EmployeeLeaveRequests PRIMARY KEY (LeaveRequestId),
 CONSTRAINT FK_ELR_Employees FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId),
-CONSTRAINT FK_ELR_ApprovedBy FOREIGN KEY (ApprovedBy) REFERENCES Staffs(EmployeeId),
+CONSTRAINT FK_ELR_ApprovedBy_Employees FOREIGN KEY (ApprovedBy) REFERENCES Employees(EmployeeId),
 CONSTRAINT CK_LeaveRequest_DateRange CHECK (FromDate <= ToDate)
 );
 
@@ -777,6 +808,8 @@ CheckOutTime TIME(0) NULL,
 Status TINYINT NOT NULL CONSTRAINT DF_EmployeeAttendances_Status DEFAULT 0,
 CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_EmployeeAttendances_CreatedAt DEFAULT SYSDATETIME(),
 CreatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2(3) NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_EmployeeAttendances PRIMARY KEY (AttendanceId),
 CONSTRAINT FK_EA_Employees FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId),
 CONSTRAINT UQ_EA_Employee_WorkDate UNIQUE (EmployeeId, WorkDate),
@@ -800,6 +833,8 @@ CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_TeachingAssignments_CreatedAt DEFA
 CreatedBy UNIQUEIDENTIFIER NULL,
 UpdatedAt DATETIME2(3) NULL,
 UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2(3) NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_TeachingAssignments PRIMARY KEY (AssignmentId),
 CONSTRAINT FK_TA_Instructors FOREIGN KEY (InstructorId) REFERENCES Instructors(EmployeeId),
 CONSTRAINT FK_TA_CourseClasses FOREIGN KEY (CourseClassId) REFERENCES CourseClasses(CourseClassId),
@@ -869,7 +904,8 @@ CONSTRAINT FK_CR_RegistrationPeriods FOREIGN KEY (RegistrationPeriodId) REFERENC
 CREATE INDEX IX_CourseRegistrations_StudentId ON CourseRegistrations(StudentId);
 CREATE INDEX IX_CourseRegistrations_CourseClassId ON CourseRegistrations(CourseClassId);
 CREATE INDEX IX_CourseRegistrations_RegistrationPeriodId ON CourseRegistrations(RegistrationPeriodId);
-
+CREATE INDEX IX_CourseRegistrations_CreatedAt ON CourseRegistrations(CreatedAt);
+CREATE INDEX IX_CourseRegistrations_UpdatedAt ON CourseRegistrations(UpdatedAt);
 -- ============================================
 -- EQUIVALENT COURSES
 -- ============================================
@@ -1024,9 +1060,11 @@ CONSTRAINT FK_Schedules_Semesters FOREIGN KEY (SemesterId) REFERENCES Semesters(
 CONSTRAINT FK_Schedules_Rooms FOREIGN KEY (RoomId) REFERENCES Rooms(RoomId),
 CONSTRAINT FK_Schedules_TimeSlots FOREIGN KEY (TimeSlotId) REFERENCES TimeSlots(TimeSlotId),
 CONSTRAINT UQ_Schedules_CourseClass_Day_Time UNIQUE (CourseClassId, DayOfWeek, TimeSlotId),
-CONSTRAINT UQ_Schedules_Room_Semester_Day_Time UNIQUE (RoomId, SemesterId, DayOfWeek, TimeSlotId)
+CONSTRAINT UQ_Schedules_Room_Semester_Day_Time UNIQUE (RoomId, SemesterId, DayOfWeek, TimeSlotId),
+CONSTRAINT FK_Schedules_Employees FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId)
 );
-
+CREATE INDEX IX_Schedules_CreatedAt ON Schedules(CreatedAt);
+CREATE INDEX IX_Schedules_UpdatedAt ON Schedules(UpdatedAt)
 -- ============================================
 -- GRADE COMPONENTS
 -- ============================================
@@ -1177,7 +1215,7 @@ CONSTRAINT UQ_StudentTuitions UNIQUE (StudentId, SemesterId)
 );
 
 CREATE INDEX IX_StudentTuitions_SemesterId ON StudentTuition(SemesterId);
-
+CREATE INDEX IX_StudentTuition_CreatedAt ON StudentTuition(CreatedAt);
 -- ============================================
 -- PAYMENTS
 -- ============================================
@@ -1204,7 +1242,8 @@ CONSTRAINT CK_Payments_Amount CHECK (Amount > 0)
 );
 
 CREATE INDEX IX_Payments_StudentTuitionId ON Payments(StudentTuitionId);
-
+CREATE INDEX IX_Payments_CreatedAt ON Payments(CreatedAt);
+CREATE INDEX IX_Payments_UpdatedAt ON Payments(UpdatedAt);
 -- ============================================
 -- EXAM TYPES
 -- ============================================
@@ -1249,7 +1288,8 @@ CONSTRAINT FK_Exams_ExamTypes FOREIGN KEY (ExamTypeId) REFERENCES ExamTypes(Exam
 CONSTRAINT FK_Exams_CourseClasses FOREIGN KEY (CourseClassId) REFERENCES CourseClasses(CourseClassId),
 CONSTRAINT FK_Exams_Semesters FOREIGN KEY (SemesterId) REFERENCES Semesters(SemesterId)
 );
-
+CREATE INDEX IX_Exams_CreatedAt ON Exams(CreatedAt);
+CREATE INDEX IX_Exams_UpdatedAt ON Exams(UpdatedAt);
 -- ============================================
 -- EXAM ROOMS
 -- ============================================
@@ -1319,7 +1359,7 @@ ExamResultId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ExamResults_ExamResultId DE
 RegistrationId UNIQUEIDENTIFIER NOT NULL,
 Score DECIMAL(4,2) NULL,
 Status NVARCHAR(50) NULL,
-GradedBy UNIQUEIDENTIFIER NULL,
+GradedByUserId UNIQUEIDENTIFIER NULL,
 GradedAt DATETIME NULL,
 IsLocked BIT NULL,
 AppealStatus VARCHAR(20) NULL,
@@ -1331,7 +1371,8 @@ UpdatedBy UNIQUEIDENTIFIER NULL,
 DeletedAt DATETIME2 NULL,
 DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_ExamResults PRIMARY KEY (ExamResultId),
-CONSTRAINT FK_ExamResults_ExamRegistrations FOREIGN KEY (RegistrationId) REFERENCES ExamRegistrations(ExamRegistrationId)
+CONSTRAINT FK_ExamResults_ExamRegistrations FOREIGN KEY (RegistrationId) REFERENCES ExamRegistrations(ExamRegistrationId),
+CONSTRAINT FK_ExamResults_Instructors FOREIGN KEY (GradedByUserId) REFERENCES Users(UserId)
 );
 
 -- ============================================
@@ -1446,7 +1487,7 @@ CONSTRAINT FK_GR_Students FOREIGN KEY (StudentId) REFERENCES Students(StudentId)
 CONSTRAINT FK_GR_GraduationConditions FOREIGN KEY (GraduationConditionId) REFERENCES GraduationConditions(GraduationConditionId),
 CONSTRAINT FK_GR_GraduationCouncils FOREIGN KEY (GraduationCouncilId) REFERENCES GraduationCouncils(GraduationCouncilId)
 );
-
+CREATE INDEX IX_GraduationResults_CreatedAt ON GraduationResults(CreatedAt);
 -- ============================================
 -- GRADUATION PROFILES
 -- ============================================
@@ -1492,7 +1533,8 @@ UpdatedBy UNIQUEIDENTIFIER NULL,
 DeletedAt DATETIME2 NULL,
 DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_Notifications PRIMARY KEY (NotificationId),
-CONSTRAINT FK_Notifications_Roles FOREIGN KEY (TargetRoleId) REFERENCES Roles(RoleId)
+CONSTRAINT FK_Notifications_Roles FOREIGN KEY (TargetRoleId) REFERENCES Roles(RoleId),
+CONSTRAINT FK_Notifications_Users_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserId)
 );
 
 -- ============================================
@@ -1512,7 +1554,8 @@ DeletedAt DATETIME2 NULL,
 DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_UserNotifications PRIMARY KEY (UserNotificationId),
 CONSTRAINT FK_UN_Users FOREIGN KEY (UserId) REFERENCES Users(UserId),
-CONSTRAINT FK_UN_Notifications FOREIGN KEY (NotificationId) REFERENCES Notifications(NotificationId)
+CONSTRAINT FK_UN_Notifications FOREIGN KEY (NotificationId) REFERENCES Notifications(NotificationId),
+CONSTRAINT FK_UserNotifications_Users_UpdatedBy FOREIGN KEY (UpdatedBy) REFERENCES Users(UserId)
 );
 
 -- ============================================
@@ -1534,7 +1577,7 @@ UpdatedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_Logs PRIMARY KEY (LogId),
 CONSTRAINT FK_Logs_Users FOREIGN KEY (UserId) REFERENCES Users(UserId)
 );
-
+CREATE INDEX IX_Logs_CreatedAt ON Logs(CreatedAt);
 -- ============================================
 -- SETTINGS
 -- ============================================

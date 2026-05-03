@@ -3,6 +3,7 @@ import com.quanlydaotao.backend.lecturer.dto.LecturerCreateRequest;
 import com.quanlydaotao.backend.lecturer.dto.LecturerProfileDto;
 import com.quanlydaotao.backend.lecturer.dto.LecturerUpdateRequest;
 import com.quanlydaotao.backend.lecturer.service.LecturerService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/lecturers")
 @RequiredArgsConstructor
+@Tag(name = "Lecturer Management", description = "APIs for managing lecturers")
 public class LecturerController {
     private final LecturerService lecturerService;
     @PostMapping
