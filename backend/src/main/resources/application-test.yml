@@ -1,0 +1,15 @@
+#key message k đc load lên trong thời điểm compile time
+server:
+  port: 8081
+spring:
+  config:
+    activate:
+      on-profile: test
+open:
+  api:
+    title: API Quản lý Đào tạo
+    description: Tài liệu API cho dự án hệ thống Quản lý Đào tạo
+    version: 1.0.0
+    serverName: Local Server
+    serverUrl: http://localhost:${server.port}
+---
