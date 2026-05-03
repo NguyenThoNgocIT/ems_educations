@@ -42,7 +42,7 @@ public class OpenApiConfig {
     public GroupedOpenApi groupedOpenApi(){
         return GroupedOpenApi.builder()
                 .group("api-service")
-                .packagesToScan("quét tới các controller")
+                .packagesToScan("com.quanlydaotao.backend")
                 .build();
     }
 }
