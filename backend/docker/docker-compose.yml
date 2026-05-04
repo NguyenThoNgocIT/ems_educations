@@ -1,11 +1,7 @@
-version: '3.8'
-
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver_db
-    env_file:
-      - ../.env
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=Nguyenthongoc123@
@@ -14,6 +10,8 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
+      - ./init.sql:/var/opt/mssql/backup/init.sql
+    command: /bin/bash -c 'sqlservr & sleep 15 && /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Nguyenthongoc123@" -i /var/opt/mssql/backup/init.sql && wait'
 
 volumes:
   sqlserver_data:

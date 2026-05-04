@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 spring:
   config:
     activate:
@@ -11,7 +11,7 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
