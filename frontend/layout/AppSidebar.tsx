@@ -1,9 +1,9 @@
 "use client";
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Rocket, ChevronDown, MoreHorizontal } from "lucide-react";
+import AnimatedLogo from "@/components/common/AnimatedLogo";
 
 import {
   CenterItems,
@@ -46,6 +46,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
     index: number;
   } | null>(null);
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const shouldShowExpanded = isExpanded || isHovered || isMobileOpen || openSubmenu !== null;
 
   const isAdmin = role === "admin";
   const isBranch = role === "branch-management";
@@ -111,6 +112,11 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
     setOpenSubmenu((prev) =>
       prev?.type === menuType && prev?.index === index ? null : { type: menuType, index }
     );
+
+    // Keep submenu visible when user clicks parent item in collapsed mode.
+    if (!isExpanded && !isHovered && !isMobileOpen) {
+      setIsHovered(true);
+    }
   };
 
   const renderMenuItems = (items: NavItem[], menuType: string) => (
@@ -130,12 +136,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30"
                     : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   }
-                  ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}
+                  ${!shouldShowExpanded ? "lg:justify-center" : "lg:justify-start"}
                 `}
               >
                 <span className="text-2xl">{nav.icon}</span>
 
-                {(isExpanded || isHovered || isMobileOpen) && (
+                {shouldShowExpanded && (
                   <div className="flex flex-1 items-center justify-between">
                     <span>{nav.name}</span>
 
@@ -162,12 +168,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
                       ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30"
                       : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                     }
-                    ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}
+                    ${!shouldShowExpanded ? "lg:justify-center" : "lg:justify-start"}
                   `}
                 >
                   <span className="text-2xl">{nav.icon}</span>
 
-                  {(isExpanded || isHovered || isMobileOpen) && (
+                  {shouldShowExpanded && (
                     <div className="flex flex-1 items-center justify-between">
                       <span>{nav.name}</span>
                       {nav.pro && (
@@ -183,7 +189,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
             )}
 
             {/* Submenu */}
-            {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
+            {nav.subItems && shouldShowExpanded && (
               <div
                 ref={(el) => {
                   subMenuRefs.current[`${menuType}-${index}`] = el;
@@ -230,7 +236,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
   return (
     <aside
       className={`fixed top-0 left-0 z-50 mt-16 flex h-screen flex-col border-r border-slate-200 bg-white transition-all duration-300 lg:mt-0 dark:border-slate-800 dark:bg-slate-950
-        ${isExpanded || isHovered || isMobileOpen ? "w-72" : "w-20"} 
+        ${shouldShowExpanded ? "w-72" : "w-20"} 
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
@@ -238,21 +244,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-8">
-        <Image
-          src="/images/logo/logo.svg"
-          alt="Logo"
-          width={42}
-          height={42}
-          className="dark:hidden"
-        />
-        <Image
-          src="/images/logo/logo-dark.svg"
-          alt="Logo"
-          width={42}
-          height={42}
-          className="hidden dark:block"
-        />
-        {(isExpanded || isHovered || isMobileOpen) && (
+        <AnimatedLogo className="h-[42px] w-[42px]" ariaLabel="Sidebar logo" />
+        {shouldShowExpanded && (
           <span className="text-2xl font-bold font-Inter">Admin</span>
         )}
       </div>
@@ -262,7 +255,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
         <nav className="space-y-8">
           <div>
             <h2 className="mb-3 px-4 text-xs font-semibold tracking-widest text-slate-500 font-Inter">
-              {isExpanded || isHovered || isMobileOpen
+              {shouldShowExpanded
                 ? isParent ? "THÔNG TIN CHUNG" : "TRUNG TÂM"
                 : <MoreHorizontal size={20} />}
             </h2>
@@ -271,7 +264,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
 
           <div>
             <h2 className="mb-3 px-4 text-xs font-semibold tracking-widest text-slate-500 font-Inter">
-              {isExpanded || isHovered || isMobileOpen ? "HỌC TẬP" : <MoreHorizontal size={20} />}
+              {shouldShowExpanded ? "HỌC TẬP" : <MoreHorizontal size={20} />}
             </h2>
             {renderMenuItems(displayLearningItems, "learning")}
           </div>
@@ -279,7 +272,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
           {(isAdmin || isBranch || isConsultant) && (
             <div>
               <h2 className="mb-3 px-4 text-xs font-semibold tracking-widest text-slate-500 font-Inter">
-                {isExpanded || isHovered || isMobileOpen ? "QUẢN LÝ" : <MoreHorizontal size={20} />}
+                {shouldShowExpanded ? "QUẢN LÝ" : <MoreHorizontal size={20} />}
               </h2>
               {isAdmin && renderMenuItems(navItems, "main")}
               {isBranch && renderMenuItems(BranchNav, "main")}
@@ -290,7 +283,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ role = "admin" }) => {
           {(isAdmin || isBranch) && (
             <div>
               <h2 className="mb-3 px-4 text-xs font-semibold tracking-widest text-slate-500 font-Inter">
-                {isExpanded || isHovered || isMobileOpen ? "CẤU HÌNH" : <MoreHorizontal size={20} />}
+                {shouldShowExpanded ? "CẤU HÌNH" : <MoreHorizontal size={20} />}
               </h2>
               {isAdmin && renderMenuItems(othersItems, "cauhinh")}
               {isBranch && renderMenuItems(BranchOthers, "cauhinh")}

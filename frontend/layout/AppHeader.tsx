@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, MapPin, Search, Command } from "lucide-react";
@@ -7,6 +6,7 @@ import QuickLeadForm from "./QuickLeadForm";
 import NotificationDropdown from "@/header/NotificationDropdown";
 import UserDropdown from "@/header/UserDropdown";
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
+import AnimatedLogo from "@/components/common/AnimatedLogo";
 import { useSidebar } from "@/components/context/SidebarContext";
 
 const BRANCHES = [
@@ -83,20 +83,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ role = "admin" }) => {
             </button>
 
             <Link href="/" className="ml-2 lg:hidden">
-              <Image
-                width={120}
-                height={30}
-                src="/images/logo/logo.svg"
-                alt="Logo"
-                className="dark:hidden"
-              />
-              <Image
-                width={120}
-                height={30}
-                src="/images/logo/logo-dark.svg"
-                alt="Logo"
-                className="hidden dark:block"
-              />
+              <AnimatedLogo className="h-[30px] w-[120px]" ariaLabel="Header logo" />
             </Link>
 
             {/* Ô TÌM KIẾM: Đã chỉnh màu text tự động */}

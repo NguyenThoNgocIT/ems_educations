@@ -1,12 +1,12 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 import { ShoppingCart } from "lucide-react";
 // 1. IMPORT USER DROPDOWN
 
+import AnimatedLogo from "@/components/common/AnimatedLogo";
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import { STUDENT_NAV_ITEMS } from "@/components/constants/student_navigation";
 import UserDropdown from "@/header/UserDropdown";
@@ -19,12 +19,7 @@ export default function StudentNavbar() {
       <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 sm:px-6">
         {/* Logo & Brand */}
         <Link href="/dashboard/student" className="flex items-center gap-2">
-          <Image
-            src="/images/logo/logo.svg"
-            alt="Logo"
-            width={110}
-            height={28}
-          />
+          <AnimatedLogo className="h-[28px] w-[110px]" ariaLabel="Student logo" />
           <span className="hidden border-l border-slate-200 pl-2 text-xs font-bold text-pink-500 sm:block">
             Edutech
           </span>
