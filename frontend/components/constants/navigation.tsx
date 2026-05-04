@@ -37,6 +37,7 @@ export const CenterItems: NavItem[] = [
     subItems: [
       { name: "Tin tức", path: "/admin/News" },
       { name: "Quản lý thông báo", path: "/admin/business-notifications" },
+      { name: "Quản lý user", path: "/admin/user" },
     ],
   },
   {
