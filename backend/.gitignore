@@ -33,3 +33,7 @@ build/
 .vscode/
 
 .env
+### Java Runner Files ###
+**/PasswordEncoderRunner.java
+**/TestBcrypt.java
+**/TestRunner.java

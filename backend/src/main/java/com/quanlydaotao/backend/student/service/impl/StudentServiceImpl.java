@@ -28,7 +28,7 @@ public class StudentServiceImpl implements StudentService {
         }
         Person person = personRepository.findById(request.getPersonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
-        if (studentRepository.findByPersonId(person.getId()).isPresent()) {
+        if (studentRepository.findByPersonPersonId(person.getPersonId()).isPresent()) {
             throw new RuntimeException("Person is already a student.");
         }
         Student student = new Student();
@@ -79,8 +79,8 @@ public class StudentServiceImpl implements StudentService {
     }
     private StudentDto mapToDto(Student student) {
         StudentDto dto = new StudentDto();
-        dto.setId(student.getId());
-        dto.setPersonId(student.getPerson().getId());
+        dto.setId(student.getStudentId());
+        dto.setPersonId(student.getPerson().getPersonId());
         dto.setStudentCode(student.getStudentCode());
         dto.setNote(student.getNote());
         dto.setTrainingProgramId(student.getTrainingProgramId());

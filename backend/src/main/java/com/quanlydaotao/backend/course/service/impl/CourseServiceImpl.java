@@ -88,7 +88,7 @@ public class CourseServiceImpl implements CourseService {
 
         // Check if code is being changed and if new code already exists
         if (!course.getCode().equals(courseDto.getCode()) &&
-            courseRepository.findByCodeAndIdNot(courseDto.getCode(), id).isPresent()) {
+            courseRepository.findByCodeAndCourseIdNot(courseDto.getCode(), id).isPresent()) {
             throw new BusinessException("Course code already exists: " + courseDto.getCode());
         }
 
@@ -123,7 +123,7 @@ public class CourseServiceImpl implements CourseService {
 
     private CourseDto mapToDto(Course course) {
         CourseDto dto = new CourseDto();
-        dto.setId(course.getId());
+        dto.setId(course.getCourseId());
         dto.setDepartmentId(course.getDepartmentId());
         dto.setCode(course.getCode());
         dto.setName(course.getName());

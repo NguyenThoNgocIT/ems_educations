@@ -12,18 +12,16 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
+/**
+ * Base Entity class - tất cả entities đều inherit từ đây
+ * Chứa các common fields: Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
+ */
 @Getter
 @Setter
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {
 
-    @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private UUID id;
 
     @Column(name = "IsActive", nullable = false)
     private Boolean isActive = true;
