@@ -32,4 +32,12 @@ build/
 ### VS Code ###
 .vscode/
 
+<<<<<<< HEAD
 .env
+=======
+.env
+### Java Runner Files ###
+**/PasswordEncoderRunner.java
+**/TestBcrypt.java
+**/TestRunner.java
+>>>>>>> origin/develop

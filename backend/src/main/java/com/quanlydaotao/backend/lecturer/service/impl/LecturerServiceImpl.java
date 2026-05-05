@@ -28,7 +28,11 @@ public class LecturerServiceImpl implements LecturerService {
         }
         Employee employee = employeeRepository.findById(request.getEmployeeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+<<<<<<< HEAD
         if (lecturerRepository.findByEmployeeId(employee.getId()).isPresent()) {
+=======
+        if (lecturerRepository.findByEmployeeEmployeeId(employee.getEmployeeId()).isPresent()) {
+>>>>>>> origin/develop
             throw new RuntimeException("Employee is already an instructor.");
         }
         LecturerProfile lecturer = new LecturerProfile();
@@ -81,13 +85,22 @@ public class LecturerServiceImpl implements LecturerService {
     }
     private LecturerProfileDto mapToDto(LecturerProfile lecturer) {
         LecturerProfileDto dto = new LecturerProfileDto();
+<<<<<<< HEAD
         dto.setId(lecturer.getId());
         dto.setEmployeeId(lecturer.getEmployee().getId());
+=======
+        dto.setId(lecturer.getInstructorId());
+        dto.setEmployeeId(lecturer.getEmployee().getEmployeeId());
+>>>>>>> origin/develop
         dto.setInstructorCode(lecturer.getInstructorCode());
         dto.setDepartmentId(lecturer.getDepartmentId());
         dto.setDegreeId(lecturer.getDegreeId());
         dto.setEmployeeCode(lecturer.getEmployee().getEmployeeCode());
+<<<<<<< HEAD
         dto.setPersonId(lecturer.getEmployee().getPerson().getId());
+=======
+        dto.setPersonId(lecturer.getEmployee().getPerson().getPersonId());
+>>>>>>> origin/develop
         dto.setIsActive(lecturer.getIsActive());
         return dto;
     }

@@ -111,7 +111,11 @@ public class CourseClassServiceImpl implements CourseClassService {
 
     private CourseClassDto mapToDto(CourseClass courseClass) {
         CourseClassDto dto = new CourseClassDto();
+<<<<<<< HEAD
         dto.setId(courseClass.getId());
+=======
+        dto.setId(courseClass.getCourseClassId());
+>>>>>>> origin/develop
         dto.setClassCode(courseClass.getClassCode());
         dto.setMaxStudent(courseClass.getMaxStudent());
         dto.setCurrentStudent(courseClass.getCurrentStudent());

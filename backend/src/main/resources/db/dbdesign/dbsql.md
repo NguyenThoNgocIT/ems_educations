@@ -445,7 +445,10 @@ SemesterId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Semesters_SemesterId DEFAULT 
 Code VARCHAR(30) NOT NULL,
 Name VARCHAR(150) NOT NULL,
 SchoolYearId UNIQUEIDENTIFIER NOT NULL,
+<<<<<<< HEAD
 SchoolYearName NVARCHAR(100) NULL,
+=======
+>>>>>>> origin/develop
 StartDate DATE NOT NULL,
 EndDate DATE NOT NULL,
 Status BIT NULL,
@@ -987,7 +990,11 @@ RoomId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Rooms_RoomId DEFAULT NEWID(),
 Code NVARCHAR(100) NOT NULL,
 Name NVARCHAR(255) NULL,
 BuildingId UNIQUEIDENTIFIER NOT NULL,
+<<<<<<< HEAD
 FloorFloorNumber INT NULL,
+=======
+FloorNumber INT NULL,
+>>>>>>> origin/develop
 Capacity INT NULL,
 Type NVARCHAR(50) NULL,
 Status NVARCHAR(50) NULL,
@@ -1176,7 +1183,11 @@ IsActive BIT NOT NULL CONSTRAINT DF_TuitionFees_IsActive DEFAULT 1,
 CreatedAt DATETIME NOT NULL CONSTRAINT DF_TuitionFees_CreatedAt DEFAULT GETDATE(),
 UpdatedAt DATETIME NULL,
 CreatedBy INT NULL,
+<<<<<<< HEAD
 UpdatedBy INT NULL,
+=======
+UpdatedBy UNIQUEIDENTIFIER NULL,
+>>>>>>> origin/develop
 DeletedAt DATETIME NULL,
 DeletedBy INT NULL,
 CONSTRAINT PK_TuitionFees PRIMARY KEY (TuitionFeeId),
@@ -1203,7 +1214,11 @@ Note TEXT NULL,
 IsActive BIT NOT NULL CONSTRAINT DF_StudentTuition_IsActive DEFAULT 1,
 CreatedAt DATETIME NOT NULL CONSTRAINT DF_StudentTuition_CreatedAt DEFAULT GETDATE(),
 UpdatedAt DATETIME NULL,
+<<<<<<< HEAD
 CreatedBy INT NULL,
+=======
+CreatedBy UNIQUEIDENTIFIER NULL,
+>>>>>>> origin/develop
 UpdatedBy INT NULL,
 DeletedAt DATETIME NULL,
 DeletedBy INT NULL,
@@ -1232,7 +1247,11 @@ Note TEXT NULL,
 IsActive BIT NOT NULL CONSTRAINT DF_Payments_IsActive DEFAULT 1,
 CreatedAt DATETIME NOT NULL CONSTRAINT DF_Payments_CreatedAt DEFAULT GETDATE(),
 UpdatedAt DATETIME NULL,
+<<<<<<< HEAD
 CreatedBy INT NULL,
+=======
+CreatedBy UNIQUEIDENTIFIER NULL,
+>>>>>>> origin/develop
 UpdatedBy INT NULL,
 DeletedAt DATETIME NULL,
 DeletedBy INT NULL,

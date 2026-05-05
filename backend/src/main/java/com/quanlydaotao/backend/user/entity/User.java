@@ -23,6 +23,15 @@ import java.util.UUID;
 @AllArgsConstructor
 public class User extends SoftDeleteEntity {
 
+<<<<<<< HEAD
+=======
+    @jakarta.persistence.Id
+    @jakarta.persistence.GeneratedValue(generator = "UUID")
+    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @jakarta.persistence.Column(name = "UserId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private java.util.UUID userId;
+
+>>>>>>> origin/develop
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PersonId", nullable = false, unique = true)
     private Person person;
@@ -49,3 +58,7 @@ public class User extends SoftDeleteEntity {
     private String lockReason;
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/develop

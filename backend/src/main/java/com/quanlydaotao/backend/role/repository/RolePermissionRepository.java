@@ -10,6 +10,10 @@ import java.util.UUID;
 
 @Repository
 public interface RolePermissionRepository extends JpaRepository<RolePermissions, RolePermissionId> {
+<<<<<<< HEAD
     List<RolePermissions> findByRoleId(UUID roleId);
+=======
+    List<RolePermissions> findByRoleRoleId(UUID roleId);
+>>>>>>> origin/develop
 }
 

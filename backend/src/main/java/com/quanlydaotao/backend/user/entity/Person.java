@@ -19,6 +19,15 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class Person extends SoftDeleteEntity {
 
+<<<<<<< HEAD
+=======
+    @jakarta.persistence.Id
+    @jakarta.persistence.GeneratedValue(generator = "UUID")
+    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @jakarta.persistence.Column(name = "PersonId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private java.util.UUID personId;
+
+>>>>>>> origin/develop
     @Column(name = "FullName", nullable = false, length = 150)
     private String fullName;
 
@@ -65,3 +74,7 @@ public class Person extends SoftDeleteEntity {
     private String note;
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/develop
