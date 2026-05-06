@@ -35,7 +35,7 @@ const NewsContent = () => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
 
-  // --- 2. LOGIC API: Tự động bóc tách data từ cổng 7001 ---
+  // --- 2. LOGIC API: Tự động bóc tách data từ backend ---
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -53,7 +53,7 @@ const NewsContent = () => {
         }
       } catch (error) {
         console.error(
-          "Lỗi kết nối Backend 7001, dùng data tĩnh để test:",
+          "Lỗi kết nối Backend, dùng data tĩnh để test:",
           error,
         );
         filterStaticData(groupId);
@@ -164,7 +164,7 @@ const NewsContent = () => {
               <div className="flex flex-col items-center justify-center gap-3 py-14 text-indigo-500">
                 <Loader2 className="animate-spin" size={36} />
                 <span className="text-sm font-bold">
-                  Đang lấy tin mới từ server 7001...
+                  Đang lấy tin mới từ server backend...
                 </span>
               </div>
             ) : (

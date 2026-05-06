@@ -36,21 +36,21 @@ export default function SignInForm() {
   const [verifyCode, setVerifyCode] = useState("");
 
   // Lấy baseUrl từ biến môi trường trong component
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
   console.log("[DEBUG] API_BASE_URL:", API_BASE_URL);
   // Lấy captcha khi mount hoặc refresh
   const fetchCaptcha = async () => {
+    // Disabled because backend does not implement captcha yet
+    /*
     try {
       const res = await getCaptchaImg(API_BASE_URL);
-      console.log("[DEBUG] Captcha API response:", res);
       setCaptchaId(res.data.id);
-      setCaptchaImg(res.data.img); // img là base64 hoặc url
-      console.log("[DEBUG] captchaImg:", res.img);
+      setCaptchaImg(res.data.img);
     } catch (e) {
       setCaptchaId("");
       setCaptchaImg("");
-      console.error("[DEBUG] Captcha API error:", e);
     }
+    */
   };
   React.useEffect(() => {
     fetchCaptcha();
@@ -125,49 +125,48 @@ export default function SignInForm() {
 
     setIsLoading(true);
     try {
-      // 1. Chuẩn bị dữ liệu đúng theo Swagger cổng 7001
+      // 1. Chuẩn bị dữ liệu đúng theo API backend đã cấu hình
 
       const loginData = {
         username: username.trim(),
         password: password,
-        captchaId,
-        verifyCode: verifyCode.trim(),
       };
       console.log("[DEBUG] loginData gửi lên:", loginData);
 
       // 2. Gọi API thông qua Proxy đã cấu hình trong next.config.ts
       const response = await authLogin(loginData);
       console.log("[DEBUG] login API response:", response);
-      // 3. Kiểm tra phản hồi (Swagger: Success code 200)
-      if (
-        response &&
-        response.data &&
-        response.data.code === 200 &&
-        response.data.data?.token
-      ) {
-        const { token } = response.data;
+      // 3. Kiểm tra phản hồi (ApiResponse: success, data: LoginResponse)
+      if (response && response.success && response.data) {
+        const { accessToken, roles } = response.data;
+        
         // XỬ LÝ VAI TRÒ (ROLE):
-        const userRole = "admin"; // hoặc response.data.role nếu backend trả về
+        if (!roles || roles.length === 0) {
+          alert("Tài khoản của bạn chưa được gán vai trò. Vui lòng liên hệ quản trị viên.");
+          return;
+        }
+        const userRole = roles[0].toLowerCase();
+        
         const maxAge = isChecked ? 7 * 86400 : 86400;
-        document.cookie = `user-token=${token}; path=/; max-age=${maxAge}`;
+        document.cookie = `user-token=${accessToken}; path=/; max-age=${maxAge}`;
         document.cookie = `user-role=${userRole}; path=/; max-age=${maxAge}`;
-        router.push(`/dashboard/${userRole}`);
+        
+        router.push(`/${userRole}`);
         router.refresh();
       } else {
         // Thông báo lỗi cụ thể từ Server
-        const msg =
-          response && response.data && response.data.message
-            ? response.data.message
-            : "Tên đăng nhập, mật khẩu hoặc mã xác thực không đúng.";
+        const msg = response?.message || "Tên đăng nhập hoặc mật khẩu không đúng.";
         alert(msg);
-        fetchCaptcha(); // reset captcha khi lỗi
       }
     } catch (error: any) {
-      // Xử lý lỗi hệ thống hoặc mất kết nối Localhost 7001
+      // Xử lý lỗi hệ thống hoặc mất kết nối backend
       console.error("SignIn API Error:", error);
-      alert(
-        "Không thể kết nối tới máy chủ. Công hãy kiểm tra Backend cổng 7001 đã bật chưa nhé!",
-      );
+      
+      // Lấy message lỗi từ Server nếu có
+      const serverMessage = error.response?.data?.message;
+      const finalMsg = serverMessage || "Không thể kết nối tới máy chủ. Hãy kiểm tra Backend đã bật chưa nhé!";
+      
+      alert(finalMsg);
       fetchCaptcha();
     } finally {
       // Kết thúc trạng thái chờ
@@ -306,6 +305,8 @@ export default function SignInForm() {
               </span>
             </div>
           </div>
+          {/* Captcha disabled because backend does not implement it */}
+          {/*
           <div>
             <Label className="font-semibold font-Inter text-slate-700 dark:text-slate-300">
               Mã xác thực <span className="text-rose-500">*</span>
@@ -334,6 +335,7 @@ export default function SignInForm() {
               )}
             </div>
           </div>
+          */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Checkbox checked={isChecked} onChange={setIsChecked} />

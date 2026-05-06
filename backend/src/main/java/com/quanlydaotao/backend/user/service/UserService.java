@@ -71,8 +71,8 @@ public class UserService {
                     .orElseThrow(() -> new RuntimeException("Role not found: " + request.getRole()));
             
             UserRoleId userRoleId = new UserRoleId();
-            userRoleId.setUserId(user.getId());
-            userRoleId.setRoleId(role.getId());
+            userRoleId.setUserId(user.getUserId());
+            userRoleId.setRoleId(role.getRoleId());
             
             UserRole userRole = new UserRole();
             userRole.setId(userRoleId);
@@ -104,15 +104,15 @@ public class UserService {
         // Update role if provided
         if (request.getRole() != null && !request.getRole().isEmpty()) {
             // Remove old roles
-            userRoleRepository.deleteByUserId(user.getId());
+            userRoleRepository.deleteByUserId(user.getUserId());
             
             // Assign new role
             Role role = roleRepository.findByCode(request.getRole())
                     .orElseThrow(() -> new RuntimeException("Role not found: " + request.getRole()));
             
             UserRoleId userRoleId = new UserRoleId();
-            userRoleId.setUserId(user.getId());
-            userRoleId.setRoleId(role.getId());
+            userRoleId.setUserId(user.getUserId());
+            userRoleId.setRoleId(role.getRoleId());
             
             UserRole userRole = new UserRole();
             userRole.setId(userRoleId);
@@ -170,7 +170,7 @@ public class UserService {
     // Helper method to convert User to UserResponse
     private UserResponse convertToResponse(User user) {
         UserResponse response = new UserResponse();
-        response.setUserId(user.getId());
+        response.setUserId(user.getUserId());
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setLastLogin(user.getLastLoginAt());
@@ -190,7 +190,7 @@ public class UserService {
         }
 
         // Get roles
-        List<String> roles = userRoleRepository.findByUserId(user.getId()).stream()
+        List<String> roles = userRoleRepository.findByUserId(user.getUserId()).stream()
                 .map(ur -> ur.getRole().getCode())
                 .collect(Collectors.toList());
         response.setRoles(roles);

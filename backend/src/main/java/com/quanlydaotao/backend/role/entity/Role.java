@@ -20,7 +20,7 @@ public class Role extends SoftDeleteEntity {
     @jakarta.persistence.Id
     @jakarta.persistence.GeneratedValue(generator = "UUID")
     @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "RoleId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @jakarta.persistence.Column(name = "id", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
     private java.util.UUID roleId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 50)

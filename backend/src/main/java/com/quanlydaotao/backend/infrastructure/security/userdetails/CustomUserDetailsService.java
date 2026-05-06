@@ -31,7 +31,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + username));
+                .or(() -> userRepository.findByEmail(username))
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với Username hoặc Email: " + username));
 
         if (!user.getIsActive()) {
             throw new UsernameNotFoundException("Tài khoản đã bị vô hiệu hóa.");
@@ -44,8 +45,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         return new CustomUserDetails(
                 user.getUserId().toString(),
-                user.getUsername(),
-                user.getPasswordHash(),
+                user.getUsername().trim(),
+                user.getPasswordHash().trim(),
                 authorities
         );
     }

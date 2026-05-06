@@ -26,7 +26,7 @@ public class User extends SoftDeleteEntity {
     @jakarta.persistence.Id
     @jakarta.persistence.GeneratedValue(generator = "UUID")
     @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "UserId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @jakarta.persistence.Column(name = "id", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
     private java.util.UUID userId;
 
     @OneToOne(fetch = FetchType.LAZY)

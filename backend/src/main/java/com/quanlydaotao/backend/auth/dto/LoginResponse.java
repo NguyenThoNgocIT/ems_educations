@@ -13,9 +13,9 @@ import java.util.List;
 @AllArgsConstructor
 public class LoginResponse {
     private String accessToken;
+    @Builder.Default
     private String tokenType = "Bearer";
     private String username;
     private String fullName;
     private List<String> roles;
 }
-
