@@ -7,10 +7,6 @@ import java.util.UUID;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     Optional<Employee> findByEmployeeCode(String employeeCode);
-<<<<<<< HEAD
-    Optional<Employee> findByPersonId(UUID personId);
-=======
     Optional<Employee> findByPersonPersonId(UUID personId);
->>>>>>> origin/develop
 }
 

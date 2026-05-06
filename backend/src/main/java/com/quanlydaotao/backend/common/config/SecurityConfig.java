@@ -46,11 +46,7 @@ public class SecurityConfig {
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-<<<<<<< HEAD
-                .requestMatchers("/api/auth/**", "/api/v1/users/**").permitAll()
-=======
                 .requestMatchers("/api/auth/**").permitAll()
->>>>>>> origin/develop
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             );

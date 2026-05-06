@@ -11,11 +11,8 @@ spring:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     show-sql: true
-<<<<<<< HEAD
-=======
   profiles:
     active: @spring.profiles.active@
->>>>>>> origin/develop
 
 # .\mvnw.cmd clean package -DskipTests -P dev
 #  java -jar .\target\backend-0.0.1-SNAPSHOT.jar

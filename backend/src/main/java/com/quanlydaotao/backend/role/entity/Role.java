@@ -17,15 +17,12 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Role extends SoftDeleteEntity {
 
-<<<<<<< HEAD
-=======
     @jakarta.persistence.Id
     @jakarta.persistence.GeneratedValue(generator = "UUID")
     @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @jakarta.persistence.Column(name = "RoleId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
     private java.util.UUID roleId;
 
->>>>>>> origin/develop
     @Column(name = "Code", nullable = false, unique = true, length = 50)
     private String code;
 
@@ -48,7 +45,3 @@ public class Role extends SoftDeleteEntity {
     private String color;
 }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/develop

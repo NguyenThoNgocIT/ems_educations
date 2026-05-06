@@ -17,15 +17,12 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Permission extends SoftDeleteEntity {
 
-<<<<<<< HEAD
-=======
     @jakarta.persistence.Id
     @jakarta.persistence.GeneratedValue(generator = "UUID")
     @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @jakarta.persistence.Column(name = "PermissionId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
     private java.util.UUID permissionId;
 
->>>>>>> origin/develop
     @Column(name = "Code", nullable = false, unique = true, length = 100)
     private String code;
 
@@ -39,7 +36,3 @@ public class Permission extends SoftDeleteEntity {
     private String module;
 }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/develop

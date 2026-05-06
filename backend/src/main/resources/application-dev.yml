@@ -1,9 +1,5 @@
 server:
-<<<<<<< HEAD
-  port: 8081
-=======
   port: 8080
->>>>>>> origin/develop
 spring:
   config:
     activate:
@@ -15,11 +11,7 @@ spring:
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   jpa:
     hibernate:
-<<<<<<< HEAD
-      ddl-auto: update
-=======
       ddl-auto: none
->>>>>>> origin/develop
     show-sql: true
     properties:
       hibernate:

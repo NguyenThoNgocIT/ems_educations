@@ -20,15 +20,12 @@ import java.util.UUID;
 @NoArgsConstructor
 public class Menus extends SoftDeleteEntity {
 
-<<<<<<< HEAD
-=======
     @jakarta.persistence.Id
     @jakarta.persistence.GeneratedValue(generator = "UUID")
     @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @jakarta.persistence.Column(name = "MenuId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
     private java.util.UUID menuId;
 
->>>>>>> origin/develop
     @Column(name = "ParentId", columnDefinition = "uniqueidentifier")
     private UUID parentId;
 
@@ -52,7 +49,3 @@ public class Menus extends SoftDeleteEntity {
     private Permission permission;
 }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/develop

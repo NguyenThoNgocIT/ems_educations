@@ -20,15 +20,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Course extends SoftDeleteEntity {
 
-<<<<<<< HEAD
-=======
     @jakarta.persistence.Id
     @jakarta.persistence.GeneratedValue(generator = "UUID")
     @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @jakarta.persistence.Column(name = "CourseId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
     private java.util.UUID courseId;
 
->>>>>>> origin/develop
     @Column(name = "DepartmentId")
     private UUID departmentId;
 
@@ -62,7 +59,3 @@ public class Course extends SoftDeleteEntity {
     @Column(name = "Description", length = 1000)
     private String description;
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/develop

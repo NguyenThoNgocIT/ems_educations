@@ -11,10 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-<<<<<<< HEAD
-=======
 import org.springframework.transaction.annotation.Transactional;
->>>>>>> origin/develop
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,10 +24,7 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final UserRepository userRepository;
 
-<<<<<<< HEAD
-=======
     @Transactional(readOnly = true)
->>>>>>> origin/develop
     public LoginResponse authenticateUser(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
@@ -55,7 +49,3 @@ public class AuthService {
                 .build();
     }
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/develop

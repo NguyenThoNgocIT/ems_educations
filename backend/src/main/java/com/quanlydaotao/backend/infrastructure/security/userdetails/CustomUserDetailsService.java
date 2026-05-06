@@ -37,21 +37,13 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("Tài khoản đã bị vô hiệu hóa.");
         }
 
-<<<<<<< HEAD
-        List<UserRole> activeRoles = userRoleRepository.findActiveRolesByUserId(user.getId());
-=======
         List<UserRole> activeRoles = userRoleRepository.findActiveRolesByUserId(user.getUserId());
->>>>>>> origin/develop
         List<SimpleGrantedAuthority> authorities = activeRoles.stream()
                 .map(userRole -> new SimpleGrantedAuthority("ROLE_" + userRole.getRole().getCode()))
                 .collect(Collectors.toList());
 
         return new CustomUserDetails(
-<<<<<<< HEAD
-                user.getId().toString(),
-=======
                 user.getUserId().toString(),
->>>>>>> origin/develop
                 user.getUsername(),
                 user.getPasswordHash(),
                 authorities
