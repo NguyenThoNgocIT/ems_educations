@@ -32,10 +32,13 @@ export default function UserManagement() {
       const url = `${API_URL}/api/v1/users`;
       console.log("Fetching users from:", url);
       
+      const token = document.cookie.split("; ").find(row => row.startsWith("user-token="))?.split("=")[1];
+      
       const response = await fetch(url, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
       });
       
@@ -74,8 +77,13 @@ export default function UserManagement() {
     if (!confirm("Bạn có chắc muốn xóa tài khoản này?")) return;
 
     try {
+      const token = document.cookie.split("; ").find(row => row.startsWith("user-token="))?.split("=")[1];
+      
       const response = await fetch(`${API_URL}/api/v1/users/${userId}`, {
         method: "DELETE",
+        headers: {
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
       });
 
       if (!response.ok) throw new Error("Failed to delete user");

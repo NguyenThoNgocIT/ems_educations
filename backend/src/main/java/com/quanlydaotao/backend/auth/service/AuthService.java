@@ -29,6 +29,21 @@ public class AuthService {
     private final com.quanlydaotao.backend.role.repository.RoleRepository roleRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
+    @jakarta.annotation.PostConstruct
+    public void initRoles() {
+        String[] basicRoles = {"ADMIN", "STUDENT", "TEACHER", "STAFF"};
+        for (String roleCode : basicRoles) {
+            if (roleRepository.findByCode(roleCode).isEmpty()) {
+                log.info("[INIT] Tạo mới role: {}", roleCode);
+                com.quanlydaotao.backend.role.entity.Role role = new com.quanlydaotao.backend.role.entity.Role();
+                role.setCode(roleCode);
+                role.setName("Role " + roleCode);
+                role.setIsSystem(true);
+                roleRepository.save(role);
+            }
+        }
+    }
+
     @Transactional
     public LoginResponse authenticateUser(LoginRequest loginRequest) {
         try {

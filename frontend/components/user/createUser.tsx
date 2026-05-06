@@ -83,9 +83,14 @@ export default function CreateUserModal({
 
       const method = editingUser ? "PUT" : "POST";
 
+      const token = document.cookie.split("; ").find(row => row.startsWith("user-token="))?.split("=")[1];
+
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           fullName: form.fullName,
           username: form.username,
@@ -159,11 +164,10 @@ export default function CreateUserModal({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Student">Student (Học sinh)</SelectItem>
-                <SelectItem value="Giảng viên">Giảng viên</SelectItem>
-                <SelectItem value="Giáo vụ">Giáo vụ</SelectItem>
-                <SelectItem value="Nhân sự">Nhân sự</SelectItem>
-                <SelectItem value="Super Admin">Super Admin</SelectItem>
+                <SelectItem value="STUDENT">Student (Học sinh)</SelectItem>
+                <SelectItem value="TEACHER">Giảng viên (Teacher)</SelectItem>
+                <SelectItem value="STAFF">Giáo vụ / Nhân sự (Staff)</SelectItem>
+                <SelectItem value="ADMIN">Quản trị viên (Admin)</SelectItem>
               </SelectContent>
             </Select>
           </div>
