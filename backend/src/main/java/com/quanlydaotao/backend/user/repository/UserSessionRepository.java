@@ -4,11 +4,11 @@ import com.quanlydaotao.backend.user.entity.UserSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.UUID;
+import java.util.List;
 
 @Repository
 public interface UserSessionRepository extends JpaRepository<UserSession, UUID> {
-    List<UserSession> findByUserUserIdAndRevokedAtIsNull(UUID userId);
+    List<UserSession> findAllByUser_UserId(UUID userId);
 }
 
