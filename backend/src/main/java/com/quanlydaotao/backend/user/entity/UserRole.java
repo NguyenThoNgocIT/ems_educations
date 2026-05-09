@@ -52,4 +52,3 @@ public class UserRole {
     @Column(name = "CreatedBy", columnDefinition = "uniqueidentifier", updatable = false)
     private UUID createdBy;
 }
-

@@ -1,15 +1,15 @@
 package com.quanlydaotao.backend.user.entity;
 
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Table(name = "Persons")
@@ -19,11 +19,11 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class Person extends SoftDeleteEntity {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "id", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private java.util.UUID personId;
+    @Id
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "PersonId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private UUID personId;
 
     @Column(name = "FullName", nullable = false, length = 150)
     private String fullName;
@@ -40,13 +40,13 @@ public class Person extends SoftDeleteEntity {
     @Column(name = "Ethnicity", length = 100)
     private String ethnicity;
 
-    @Column(name = "PersonalIdentificationNumber", length = 20)
+    @Column(name = "personal_identification_number", length = 20)
     private String personalIdentificationNumber;
 
-    @Column(name = "DateOfIssue")
+    @Column(name = "date_of_issue")
     private LocalDate dateOfIssue;
 
-    @Column(name = "CardPlace", length = 100)
+    @Column(name = "card_place", length = 100)
     private String cardPlace;
 
     @Column(name = "Nationality", length = 100)
@@ -69,5 +69,7 @@ public class Person extends SoftDeleteEntity {
 
     @Column(name = "Note", length = 255)
     private String note;
-}
 
+    @Column(name = "IsActive", nullable = false)
+    private Boolean isActive = true;
+}
