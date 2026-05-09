@@ -53,5 +53,11 @@ public class User extends SoftDeleteEntity {
 
     @Column(name = "LockReason", length = 255)
     private String lockReason;
-}
 
+    @Column(name = "RequirePasswordChange")
+    private Boolean requirePasswordChange = true;
+}
+<<<<<<< HEAD
+
+=======
+>>>>>>> 77034c08695de3ba383fb22296ff45b296a406d0
