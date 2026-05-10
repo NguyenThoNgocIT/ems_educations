@@ -3,7 +3,6 @@ package com.quanlydaotao.backend.infrastructure.persistence.base;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.GenericGenerator;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -41,5 +40,12 @@ public abstract class BaseEntity {
     @LastModifiedBy
     @Column(name = "UpdatedBy", columnDefinition = "uniqueidentifier")
     private UUID updatedBy;
-}
 
+    // ===== THÊM MỚI: Soft Delete fields =====
+    
+    @Column(name = "DeletedAt")
+    private LocalDateTime deletedAt;
+    
+    @Column(name = "DeletedBy", columnDefinition = "uniqueidentifier")
+    private UUID deletedBy;
+}

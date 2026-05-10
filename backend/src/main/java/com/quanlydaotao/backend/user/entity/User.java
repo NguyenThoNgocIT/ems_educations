@@ -1,16 +1,12 @@
 package com.quanlydaotao.backend.user.entity;
 
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -23,11 +19,11 @@ import java.util.UUID;
 @AllArgsConstructor
 public class User extends SoftDeleteEntity {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "id", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private java.util.UUID userId;
+    @Id
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "UserId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)  // ← SỬA "id" -> "UserId"
+    private UUID userId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PersonId", nullable = false, unique = true)
