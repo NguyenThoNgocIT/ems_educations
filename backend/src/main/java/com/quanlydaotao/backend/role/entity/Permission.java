@@ -3,11 +3,16 @@ package com.quanlydaotao.backend.role.entity;
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.UUID;
 
 @Entity
 @Table(name = "Permissions")
@@ -17,11 +22,10 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Permission extends SoftDeleteEntity {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "PermissionId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private java.util.UUID permissionId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "PermissionId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private UUID permissionId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 100)
     private String code;

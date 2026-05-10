@@ -15,11 +15,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public class LecturerProfile extends SoftDeleteEntity {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "InstructorId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private java.util.UUID instructorId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "InstructorId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private UUID instructorId;
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "EmployeeId", nullable = false, unique = true)
     private Employee employee;
