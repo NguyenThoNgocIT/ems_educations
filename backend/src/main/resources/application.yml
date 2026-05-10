@@ -7,12 +7,17 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.SQLServerDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     show-sql: true
   profiles:
-    active: @spring.profiles.active@
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
 
 # .\mvnw.cmd clean package -DskipTests -P dev
 #  java -jar .\target\backend-0.0.1-SNAPSHOT.jar

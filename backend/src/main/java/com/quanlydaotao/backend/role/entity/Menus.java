@@ -4,6 +4,9 @@ import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -20,11 +23,10 @@ import java.util.UUID;
 @NoArgsConstructor
 public class Menus extends SoftDeleteEntity {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "MenuId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private java.util.UUID menuId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "MenuId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private UUID menuId;
 
     @Column(name = "ParentId", columnDefinition = "uniqueidentifier")
     private UUID parentId;

@@ -4,6 +4,9 @@ import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -23,11 +26,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public class User extends SoftDeleteEntity {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "UserId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private java.util.UUID userId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "UserId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private UUID userId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PersonId", nullable = false, unique = true)
