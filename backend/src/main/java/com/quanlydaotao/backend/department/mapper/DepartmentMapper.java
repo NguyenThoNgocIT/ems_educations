@@ -7,6 +7,8 @@ import com.quanlydaotao.backend.department.dto.response.DepartmentResponse;
 import com.quanlydaotao.backend.department.entity.Department;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class DepartmentMapper {
 
@@ -33,7 +35,7 @@ public class DepartmentMapper {
         if (department == null) return null;
         
         return DepartmentResponse.builder()
-                .departmentId(department.getDepartmentId())
+                .departmentId(department.getDepartmentId() != null ? department.getDepartmentId().toString() : null)
                 .code(department.getCode())
                 .name(department.getName())
                 .description(department.getDescription())
@@ -45,7 +47,7 @@ public class DepartmentMapper {
         if (department == null) return null;
         
         return DepartmentDetailResponse.builder()
-                .departmentId(department.getDepartmentId())
+                .departmentId(department.getDepartmentId() != null ? department.getDepartmentId().toString() : null)
                 .code(department.getCode())
                 .name(department.getName())
                 .description(department.getDescription())

@@ -8,15 +8,17 @@ import com.quanlydaotao.backend.department.dto.response.DepartmentResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.UUID;
+
 public interface DepartmentService {
     
     DepartmentResponse createDepartment(CreateDepartmentRequest request);
     
-    DepartmentResponse updateDepartment(String departmentId, UpdateDepartmentRequest request);
+    DepartmentResponse updateDepartment(UUID id, UpdateDepartmentRequest request);
     
-    DepartmentDetailResponse getDepartmentById(String departmentId);
+    DepartmentDetailResponse getDepartmentById(UUID id);
     
     Page<DepartmentResponse> searchDepartments(DepartmentSearchRequest request, Pageable pageable);
     
-    void deleteDepartment(String departmentId);
+    void deleteDepartment(UUID id);
 }

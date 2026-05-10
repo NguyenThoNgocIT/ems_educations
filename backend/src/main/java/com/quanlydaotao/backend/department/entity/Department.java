@@ -4,6 +4,8 @@ import com.quanlydaotao.backend.infrastructure.persistence.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "Departments", uniqueConstraints = {
     @UniqueConstraint(name = "UK_Department_Code", columnNames = "Code")
@@ -17,8 +19,8 @@ public class Department extends BaseEntity {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "DepartmentId", length = 36)
-    private String departmentId;
+    @Column(name = "DepartmentId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private UUID departmentId;  // ← SỬA: String → UUID
     
     @Column(name = "Code", nullable = false, unique = true, length = 50)
     private String code;

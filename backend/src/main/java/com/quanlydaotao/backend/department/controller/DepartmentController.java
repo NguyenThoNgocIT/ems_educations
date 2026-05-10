@@ -19,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/departments")
 @RequiredArgsConstructor
@@ -37,7 +39,7 @@ public class DepartmentController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get department by ID")
-    public ResponseEntity<ApiResponse<DepartmentDetailResponse>> getDepartmentById(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<DepartmentDetailResponse>> getDepartmentById(@PathVariable UUID id) {
         DepartmentDetailResponse response = departmentService.getDepartmentById(id);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -54,7 +56,7 @@ public class DepartmentController {
     @PutMapping("/{id}")
     @Operation(summary = "Update department")
     public ResponseEntity<ApiResponse<DepartmentResponse>> updateDepartment(
-            @PathVariable String id,
+            @PathVariable UUID id,
             @Valid @RequestBody UpdateDepartmentRequest request) {
         DepartmentResponse response = departmentService.updateDepartment(id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật khoa thành công", response));
@@ -62,7 +64,7 @@ public class DepartmentController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete department (soft delete)")
-    public ResponseEntity<ApiResponse<Void>> deleteDepartment(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<Void>> deleteDepartment(@PathVariable UUID id) {
         departmentService.deleteDepartment(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa khoa thành công", null));
     }

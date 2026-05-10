@@ -42,9 +42,9 @@ public class MajorServiceImpl implements MajorService {
 
     @Override
     @Transactional
-    public MajorResponse updateMajor(String majorId, UpdateMajorRequest request) {
-        Major major = majorRepository.findById(UUID.fromString(majorId))
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên ngành với ID: " + majorId));
+    public MajorResponse updateMajor(UUID id, UpdateMajorRequest request) {
+        Major major = majorRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên ngành với ID: " + id));
         
         majorValidator.validateUpdateMajor(major, request);
         majorMapper.updateEntity(request, major);
@@ -55,9 +55,9 @@ public class MajorServiceImpl implements MajorService {
 
     @Override
     @Transactional(readOnly = true)
-    public MajorDetailResponse getMajorById(String majorId) {
-        Major major = majorRepository.findById(UUID.fromString(majorId))
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên ngành với ID: " + majorId));
+    public MajorDetailResponse getMajorById(UUID id) {
+        Major major = majorRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên ngành với ID: " + id));
         
         return majorMapper.toDetailResponse(major);
     }
@@ -72,9 +72,9 @@ public class MajorServiceImpl implements MajorService {
 
     @Override
     @Transactional
-    public void deleteMajor(String majorId) {
-        Major major = majorRepository.findById(UUID.fromString(majorId))
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên ngành với ID: " + majorId));
+    public void deleteMajor(UUID id) {
+        Major major = majorRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên ngành với ID: " + id));
         
         majorValidator.validateBeforeDelete(major);
         

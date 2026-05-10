@@ -1,6 +1,5 @@
 package com.quanlydaotao.backend.department.service.impl;
 
-import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.department.dto.request.CreateDepartmentRequest;
 import com.quanlydaotao.backend.department.dto.request.DepartmentSearchRequest;
@@ -43,9 +42,9 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     @Override
     @Transactional
-    public DepartmentResponse updateDepartment(String departmentId, UpdateDepartmentRequest request) {
-        Department department = departmentRepository.findById(UUID.fromString(departmentId))
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khoa với ID: " + departmentId));
+    public DepartmentResponse updateDepartment(UUID id, UpdateDepartmentRequest request) {
+        Department department = departmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khoa với ID: " + id));
         
         departmentValidator.validateUpdateDepartment(department, request);
         departmentMapper.updateEntity(request, department);
@@ -56,9 +55,9 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public DepartmentDetailResponse getDepartmentById(String departmentId) {
-        Department department = departmentRepository.findById(UUID.fromString(departmentId))
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khoa với ID: " + departmentId));
+    public DepartmentDetailResponse getDepartmentById(UUID id) {
+        Department department = departmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khoa với ID: " + id));
         
         return departmentMapper.toDetailResponse(department);
     }
@@ -73,9 +72,9 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     @Override
     @Transactional
-    public void deleteDepartment(String departmentId) {
-        Department department = departmentRepository.findById(UUID.fromString(departmentId))
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khoa với ID: " + departmentId));
+    public void deleteDepartment(UUID id) {
+        Department department = departmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khoa với ID: " + id));
         
         departmentValidator.validateBeforeDelete(department);
         

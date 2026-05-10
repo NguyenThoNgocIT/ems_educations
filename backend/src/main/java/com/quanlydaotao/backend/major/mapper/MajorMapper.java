@@ -35,7 +35,7 @@ public class MajorMapper {
         if (major == null) return null;
         
         return MajorResponse.builder()
-                .majorId(major.getMajorId())
+                .majorId(major.getMajorId() != null ? major.getMajorId().toString() : null)
                 .code(major.getCode())
                 .name(major.getName())
                 .departmentId(major.getDepartmentId())
@@ -48,7 +48,7 @@ public class MajorMapper {
         if (major == null) return null;
         
         return MajorDetailResponse.builder()
-                .majorId(major.getMajorId())
+                .majorId(major.getMajorId() != null ? major.getMajorId().toString() : null)
                 .code(major.getCode())
                 .name(major.getName())
                 .departmentId(major.getDepartmentId())

@@ -19,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/majors")
 @RequiredArgsConstructor
@@ -37,7 +39,7 @@ public class MajorController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get major by ID")
-    public ResponseEntity<ApiResponse<MajorDetailResponse>> getMajorById(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<MajorDetailResponse>> getMajorById(@PathVariable UUID id) {
         MajorDetailResponse response = majorService.getMajorById(id);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -54,7 +56,7 @@ public class MajorController {
     @PutMapping("/{id}")
     @Operation(summary = "Update major")
     public ResponseEntity<ApiResponse<MajorResponse>> updateMajor(
-            @PathVariable String id,
+            @PathVariable UUID id,
             @Valid @RequestBody UpdateMajorRequest request) {
         MajorResponse response = majorService.updateMajor(id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật chuyên ngành thành công", response));
@@ -62,7 +64,7 @@ public class MajorController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete major (soft delete)")
-    public ResponseEntity<ApiResponse<Void>> deleteMajor(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<Void>> deleteMajor(@PathVariable UUID id) {
         majorService.deleteMajor(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa chuyên ngành thành công", null));
     }
