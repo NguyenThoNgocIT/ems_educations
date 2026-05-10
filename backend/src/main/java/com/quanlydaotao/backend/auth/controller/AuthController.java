@@ -2,12 +2,17 @@ package com.quanlydaotao.backend.auth.controller;
 
 import com.quanlydaotao.backend.auth.dto.LoginRequest;
 import com.quanlydaotao.backend.auth.dto.LoginResponse;
+import com.quanlydaotao.backend.auth.dto.RegisterRequest;
 import com.quanlydaotao.backend.auth.dto.ChangePasswordRequest;
 import com.quanlydaotao.backend.auth.dto.AuthMeResponse;
 import com.quanlydaotao.backend.auth.service.AuthService;
 import com.quanlydaotao.backend.common.dto.ApiResponse;
+
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -76,5 +81,13 @@ public class AuthController {
         // Admin goị API này (sau khi xác nhận), hệ thống tự gen mật khẩu, gửi email, và set requirePasswordChange = true
         // Lưu ý: Cần phân quyền Admin cho API này
         return ResponseEntity.ok(ApiResponse.success("Admin đã reset mật khẩu thành công. Mật khẩu mới đã gửi vào email.", null));
+    }
+
+    @PostMapping("/register")
+    @Operation(summary = "Register new user")
+    public ResponseEntity<ApiResponse<LoginResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        LoginResponse response = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success("Đăng ký thành công", response));
     }
 }
