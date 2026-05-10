@@ -20,10 +20,10 @@ spring:
 # 📝 LOGGING CONFIGURATION
 logging:
   level:
-    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: ERROR
-    com.quanlydaotao.backend: DEBUG
-    org.hibernate.SQL: INFO
-    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+    "[org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver]": ERROR
+    "[com.quanlydaotao.backend]": DEBUG
+    "[org.hibernate.SQL]": INFO
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": INFO
 open:
   api:
     title: API Quản lý Đào tạo

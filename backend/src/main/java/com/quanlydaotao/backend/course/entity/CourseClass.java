@@ -1,13 +1,7 @@
 package com.quanlydaotao.backend.course.entity;
 
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -47,6 +41,10 @@ public class CourseClass extends SoftDeleteEntity {
 
     @Column(name = "SemesterId", nullable = false)
     private UUID semesterId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "CourseId", nullable = false, insertable = false, updatable = false)
+    private Course course;
 
     @Column(name = "CourseId", nullable = false)
     private UUID courseId;

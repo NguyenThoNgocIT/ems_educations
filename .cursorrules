@@ -36,7 +36,13 @@ Chào mừng AI Assistant! Đây là hướng dẫn tiêu chuẩn cho dự án U
 ## 🧪 6. Coding Style
 - Ưu tiên sử dụng `Constructor Injection` (Lombok `@RequiredArgsConstructor`).
 - Xử lý lỗi tập trung qua `GlobalExceptionHandler`. Không sử dụng `try-catch` bừa bãi trong Controller.
-- Sử dụng `MapStruct` (nếu có) hoặc Map thủ công trong Service để chuyển đổi giữa Entity và DTO.
+- Sử dụng `MapStruct` cho tất cả các việc chuyển đổi dữ liệu Entity <-> DTO.
+
+## 🛡 7. Quy trình Kiểm thử & Bàn giao (Mệnh lệnh Tối cao)
+- **TỰ KIỂM TRA:** Sau khi viết code, AI **BẮT BUỘC** phải tự chạy lệnh `.\mvnw.cmd compile` để kiểm tra lỗi biên dịch.
+- **KHÔNG BÀN GIAO LỖI:** Tuyệt đối không bàn giao code khi vẫn còn lỗi đỏ (error) trong IDE hoặc lỗi build Maven.
+- **LẶP LẠI (ITERATE):** Nếu build thất bại, AI phải tự phân tích lỗi, sửa lại code và build lại cho đến khi **BUILD SUCCESS** mới được thông báo cho người dùng.
+- **LOGIC CHECK:** Phải rà soát logic chống trùng, kiểm tra null và các ràng buộc dữ liệu trước khi hoàn tất task.
 
 ---
 *Lưu ý: Luôn kiểm tra sự tồn tại của dữ liệu và ném ra ResourceNotFoundException nếu không tìm thấy.*
