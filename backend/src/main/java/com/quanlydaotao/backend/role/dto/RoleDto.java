@@ -1,4 +1,4 @@
-﻿package com.quanlydaotao.backend.role.dto;
+package com.quanlydaotao.backend.role.dto;
 import lombok.Data;
 import java.util.UUID;
 @Data
