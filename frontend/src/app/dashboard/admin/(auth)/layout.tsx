@@ -16,22 +16,19 @@ export default function AuthLayout({
       <ThemeProvider>
         <div className="relative flex h-screen w-full flex-col justify-center sm:p-0 lg:flex-row dark:bg-slate-900">
           {children}
-          <div className="bg-brand-950 hidden h-full w-full items-center lg:grid lg:w-1/2 dark:bg-white/5">
-            <div className="relative z-1 flex items-center justify-center">
-              {/* <!-- ===== Common Grid Shape Start ===== --> */}
+          <div className="relative hidden h-full w-full items-center justify-center overflow-hidden lg:flex lg:w-1/2 bg-slate-50 dark:bg-slate-950">
+            <div className="absolute inset-0 z-0 opacity-20">
               <GridShape />
-              <div className="flex max-w-xs flex-col items-center">
-                <Link href="/" className="mb-4 block">
-                  <Image
-                    width={231}
-                    height={48}
-                    src="./images/logo/auth-logo.svg"
-                    alt="Logo"
-                  />
-                </Link>
-                <p className="text-center text-slate-400 dark:text-white/60 leading-relaxed">
-                  Free and Open-Source Tailwind CSS Admin Dashboard Template
-                </p>
+            </div>
+            <div className="relative z-10 w-full h-full p-12 flex items-center justify-center">
+              <div className="relative w-full h-full max-w-lg aspect-square">
+                <Image
+                  src="/images/education-auth.png"
+                  alt="Education Illustration"
+                  fill
+                  className="object-contain animate-float"
+                  priority
+                />
               </div>
             </div>
           </div>

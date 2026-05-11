@@ -1,11 +1,8 @@
 package com.quanlydaotao.backend.role.service;
 
-import com.quanlydaotao.backend.role.dto.request.CreateRoleRequest;
-import com.quanlydaotao.backend.role.dto.request.UpdateRoleRequest;
-import com.quanlydaotao.backend.role.dto.response.RoleResponse;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
+import com.quanlydaotao.backend.role.dto.RoleDto;
+import java.util.List;
+import java.util.UUID;
 public interface RoleService {
     
     RoleResponse createRole(CreateRoleRequest request);
