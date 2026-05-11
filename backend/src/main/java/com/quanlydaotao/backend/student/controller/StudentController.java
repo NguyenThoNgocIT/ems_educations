@@ -1,4 +1,5 @@
 package com.quanlydaotao.backend.student.controller;
+import com.quanlydaotao.backend.common.dto.ApiResponse;
 import com.quanlydaotao.backend.student.dto.CreateStudentRequest;
 import com.quanlydaotao.backend.student.dto.EnrollStudentRequest;
 import com.quanlydaotao.backend.student.dto.StudentDto;
@@ -23,16 +24,18 @@ public class StudentController {
 
     @PostMapping
     @Operation(summary = "Tạo mới sinh viên", description = "Lưu thông tin một sinh viên mới vào hệ thống")
-    public ResponseEntity<StudentDto> createStudent(@RequestBody CreateStudentRequest request) {
-        return new ResponseEntity<>(studentService.createStudent(request), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<StudentDto>> createStudent(@RequestBody CreateStudentRequest request) {
+        return new ResponseEntity<>(ApiResponse.success("Tạo sinh viên thành công", studentService.createStudent(request)), HttpStatus.CREATED);
     }
 
     @PostMapping("/enroll")
+    @Operation(summary = "Nhập học sinh viên", description = "Tạo thông tin cá nhân, mã sinh viên và tài khoản đăng nhập")
     public ResponseEntity<ApiResponse<StudentDto>> enrollStudent(@RequestBody EnrollStudentRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Sinh viên đã được nhập học và tạo tài khoản thành công", studentService.enrollStudent(request)));
     }
 
     @PostMapping("/import")
+    @Operation(summary = "Import sinh viên", description = "Import danh sách sinh viên từ file Excel")
     public ResponseEntity<ApiResponse<String>> importStudents() {
         // FIXME: Use MultipartFile file, parse excel, and call enrollStudent in a loop
         return ResponseEntity.ok(ApiResponse.success("Import danh sách sinh viên thành công", null));
@@ -40,26 +43,26 @@ public class StudentController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết sinh viên", description = "Tìm kiếm và trả về thông tin chi tiết của một sinh viên dựa trên UUID")
-    public ResponseEntity<StudentDto> getStudentById(@PathVariable UUID id) {
-        return ResponseEntity.ok(studentService.getStudentById(id));
+    public ResponseEntity<ApiResponse<StudentDto>> getStudentById(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin sinh viên thành công", studentService.getStudentById(id)));
     }
 
     @GetMapping
     @Operation(summary = "Danh sách sinh viên", description = "Lấy toàn bộ danh sách sinh viên hiện có")
-    public ResponseEntity<List<StudentDto>> getAllStudents() {
-        return ResponseEntity.ok(studentService.getAllStudents());
+    public ResponseEntity<ApiResponse<List<StudentDto>>> getAllStudents() {
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sinh viên thành công", studentService.getAllStudents()));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật sinh viên", description = "Thay đổi thông tin của sinh viên đã tồn tại")
-    public ResponseEntity<StudentDto> updateStudent(@PathVariable UUID id, @RequestBody UpdateStudentRequest request) {
-        return ResponseEntity.ok(studentService.updateStudent(id, request));
+    public ResponseEntity<ApiResponse<StudentDto>> updateStudent(@PathVariable UUID id, @RequestBody UpdateStudentRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật sinh viên thành công", studentService.updateStudent(id, request)));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa sinh viên", description = "Xóa (ẩn) thông tin sinh viên khỏi hệ thống")
-    public ResponseEntity<Void> deleteStudent(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteStudent(@PathVariable UUID id) {
         studentService.deleteStudent(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success("Xóa sinh viên thành công", null));
     }
 }

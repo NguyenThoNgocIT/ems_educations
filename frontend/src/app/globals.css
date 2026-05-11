@@ -764,3 +764,17 @@ span.flatpickr-weekday,
 .animate-\[shimmer_2s_infinite\] {
   animation: shimmer 2s infinite linear;
 }
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@utility animate-float {
+  animation: float 6s ease-in-out infinite;
+}
