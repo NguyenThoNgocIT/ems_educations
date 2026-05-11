@@ -1,10 +1,7 @@
 package com.quanlydaotao.backend.course.entity;
 
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,11 +19,10 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CourseClass extends SoftDeleteEntity {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "CourseClassId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private java.util.UUID courseClassId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "CourseClassId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private UUID courseClassId;
 
     @Column(name = "ClassCode", nullable = false, length = 50)
     private String classCode;
@@ -45,6 +41,10 @@ public class CourseClass extends SoftDeleteEntity {
 
     @Column(name = "SemesterId", nullable = false)
     private UUID semesterId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "CourseId", nullable = false, insertable = false, updatable = false)
+    private Course course;
 
     @Column(name = "CourseId", nullable = false)
     private UUID courseId;
