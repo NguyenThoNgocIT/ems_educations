@@ -3,6 +3,9 @@ package com.quanlydaotao.backend.user.entity;
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,6 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Table(name = "Persons")
@@ -19,11 +23,10 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class Person extends SoftDeleteEntity {
 
-    @jakarta.persistence.Id
-    @jakarta.persistence.GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @jakarta.persistence.Column(name = "PersonId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private java.util.UUID personId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "PersonId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private UUID personId;
 
     @Column(name = "FullName", nullable = false, length = 150)
     private String fullName;
