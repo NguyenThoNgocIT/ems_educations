@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}  
+      - MSSQL_PID=Developer
+    # KHÔNG cần ports - Railway tự xử lý networking
+    # KHÔNG cần container_name - Railway tự đặt tên
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+ 
+volumes:
+  sqlserver_data:

@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver_db
+    env_file:
+      - ../.env
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Nguyenthongoc123@
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+volumes:
+  sqlserver_data:
+# hướng dẫn sử dụng đây nha mấy má công đen:
+# chạy container:
+#   - docker-compose up -d
+# kiểm tra container:
+#   - docker ps
+# kiểm tra logs:
+#   - docker logs sqlserver_db
+# dừng container:
+#   - docker-compose down
