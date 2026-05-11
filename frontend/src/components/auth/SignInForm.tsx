@@ -7,6 +7,7 @@ import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { authLogin } from "@/api/auth";
 import {
   School,
   Headphones,
@@ -88,40 +89,28 @@ export default function SignInForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8081/api/v1/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: username.trim(),
-          password: password,
-        }),
+      const data = await authLogin({
+        username: username.trim(),
+        password: password,
       });
 
-      const contentType = response.headers.get("content-type");
-      let data;
-
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        throw new Error(`Invalid response format: ${text.substring(0, 100)}`);
+      if (!data.success) {
+        throw new Error(data.message || "Login failed");
       }
 
-      if (!response.ok) {
-        throw new Error(data.message || data.error || `Login failed (${response.status})`);
-      }
+      const authData = data.data;
 
-      if (data.access_token) {
-        localStorage.setItem("access_token", data.access_token);
-        if (data.refresh_token) {
-          localStorage.setItem("refresh_token", data.refresh_token);
+      if (authData.accessToken) {
+        localStorage.setItem("access_token", authData.accessToken);
+        if (authData.refreshToken) {
+          localStorage.setItem("refresh_token", authData.refreshToken);
         }
 
-        const userRole = (data.role || "student").toLowerCase();
+        // Get the first role from the roles list, default to "student"
+        const userRole = (authData.roles && authData.roles.length > 0 ? authData.roles[0] : "student").toLowerCase();
+        
         const maxAge = isChecked ? 7 * 86400 : 86400;
-        document.cookie = `user-token=${data.access_token}; path=/; max-age=${maxAge}`;
+        document.cookie = `user-token=${authData.accessToken}; path=/; max-age=${maxAge}`;
         document.cookie = `user-role=${userRole}; path=/; max-age=${maxAge}`;
 
         const roleMap: Record<string, string> = {
@@ -140,7 +129,8 @@ export default function SignInForm() {
         throw new Error("No access token received");
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred. Please try again.");
+      const errorMessage = err.response?.data?.message || err.message || "An error occurred. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
