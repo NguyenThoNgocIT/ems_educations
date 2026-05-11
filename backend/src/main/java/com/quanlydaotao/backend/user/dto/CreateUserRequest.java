@@ -1,4 +1,15 @@
 package com.quanlydaotao.backend.user.dto;
+
 import lombok.Data;
-import java.util.UUID;
-@Data public class CreateUserRequest { private UUID personId; private String username; private String email; }
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+public class CreateUserRequest {
+    private String fullName;
+    private String username;
+    private String password;
+    private String email;
+    private String phoneNumber;
+    private String role; // role code like "STUDENT", "LECTURER"
+}

@@ -31,7 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
-
 .env
 ### Java Runner Files ###
 **/PasswordEncoderRunner.java

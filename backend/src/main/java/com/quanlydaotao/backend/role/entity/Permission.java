@@ -40,4 +40,3 @@ public class Permission extends SoftDeleteEntity {
     private String module;
 }
 
-

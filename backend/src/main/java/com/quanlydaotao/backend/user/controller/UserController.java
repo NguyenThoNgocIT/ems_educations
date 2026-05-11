@@ -1,71 +1,88 @@
 package com.quanlydaotao.backend.user.controller;
-import com.quanlydaotao.backend.common.dto.ApiResponse;
-import com.quanlydaotao.backend.user.dto.*;
+
+import com.quanlydaotao.backend.user.dto.CreateUserRequest;
+import com.quanlydaotao.backend.user.dto.UpdateUserRequest;
+import com.quanlydaotao.backend.user.dto.UserResponse;
 import com.quanlydaotao.backend.user.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.UUID;
+
 import java.util.List;
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
+    
     private final UserService userService;
+
+    /**
+     * Get all users
+     */
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<UserDto>>> searchUsers(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Boolean isActive,
-            @RequestParam(required = false) Boolean isLocked,
-            Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(userService.searchUsers(keyword, isActive, isLocked, pageable)));
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        List<UserResponse> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
     }
+
+    /**
+     * Get user by ID
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserDto>> getUser(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.success(userService.getUserById(id)));
+    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
+        UserResponse user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
     }
+
+    /**
+     * Create new user
+     */
     @PostMapping
-    public ResponseEntity<ApiResponse<UserDto>> createUser(@RequestBody CreateUserRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(userService.createUser(request)));
+    public ResponseEntity<UserResponse> createUser(@RequestBody CreateUserRequest request) {
+        UserResponse user = userService.createUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
+
+    /**
+     * Update user
+     */
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserDto>> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(userService.updateUser(id, request)));
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable UUID id,
+            @RequestBody UpdateUserRequest request) {
+        UserResponse user = userService.updateUser(id, request);
+        return ResponseEntity.ok(user);
     }
+
+    /**
+     * Delete user
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
         userService.deleteUser(id);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.noContent().build();
     }
-    @PutMapping("/{id}/lock")
-    public ResponseEntity<ApiResponse<Void>> lockUser(@PathVariable UUID id, @RequestBody LockUserRequest request) {
-        userService.lockUser(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Khóa tài khoản thành công", null));
+
+    /**
+     * Lock user account
+     */
+    @PostMapping("/{id}/lock")
+    public ResponseEntity<UserResponse> lockUser(
+            @PathVariable UUID id,
+            @RequestParam(required = false, defaultValue = "Account locked by admin") String reason) {
+        UserResponse user = userService.lockUser(id, reason);
+        return ResponseEntity.ok(user);
     }
-    @PutMapping("/{id}/unlock")
-    public ResponseEntity<ApiResponse<Void>> unlockUser(@PathVariable UUID id) {
-        userService.unlockUser(id);
-        return ResponseEntity.ok(ApiResponse.success("Mở khóa tài khoản thành công", null));
-    }
-    @PutMapping("/{id}/restore")
-    public ResponseEntity<ApiResponse<Void>> restoreUser(@PathVariable UUID id) {
-        userService.restoreUser(id);
-        return ResponseEntity.ok(ApiResponse.success("Khôi phục tài khoản thành công", null));
-    }
-    @PutMapping("/{id}/reset-password")
-    public ResponseEntity<ApiResponse<Void>> adminResetPassword(@PathVariable UUID id, @RequestBody AdminResetPasswordRequest request) {
-        userService.adminResetPassword(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Admin reset mật khẩu thành công", null));
-    }
-    @GetMapping("/{id}/sessions")
-    public ResponseEntity<ApiResponse<List<com.quanlydaotao.backend.user.entity.UserSession>>> getUserSessions(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.success(userService.getUserSessions(id)));
-    }
-    @DeleteMapping("/{id}/sessions")
-    public ResponseEntity<ApiResponse<Void>> revokeAllUserSessions(@PathVariable UUID id) {
-        userService.revokeAllUserSessions(id);
-        return ResponseEntity.ok(ApiResponse.success("Thu hồi các phiên thành công", null));
+
+    /**
+     * Unlock user account
+     */
+    @PostMapping("/{id}/unlock")
+    public ResponseEntity<UserResponse> unlockUser(@PathVariable UUID id) {
+        UserResponse user = userService.unlockUser(id);
+        return ResponseEntity.ok(user);
     }
 }

@@ -35,10 +35,12 @@ DeletedAt DATETIME2(3) NULL,
 DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_Persons PRIMARY KEY (PersonId)
 );
+
 CREATE INDEX IX_Persons_FullName ON Persons(FullName);
 CREATE INDEX IX_Persons_PhoneNumber ON Persons(PhoneNumber);
 CREATE INDEX IX_Persons_CreatedAt ON Persons(CreatedAt);
 CREATE INDEX IX_Persons_UpdatedAt ON Persons(UpdatedAt);
+
 -- ============================================
 -- USERS TABLE
 -- ============================================
@@ -52,7 +54,6 @@ LastLoginAt DATETIME2(3) NULL,
 AccessFailedCount INT NOT NULL CONSTRAINT DF_Users_AccessFailedCount DEFAULT 0,
 LockoutEndAt DATETIME2(3) NULL,
 LockReason NVARCHAR(255) NULL,
-RequirePasswordChange BIT NOT NULL CONSTRAINT DF_Users_RequirePasswordChange DEFAULT 1,
 IsActive BIT NOT NULL CONSTRAINT DF_Users_IsActive DEFAULT 1,
 CreatedAt DATETIME2(3) NOT NULL CONSTRAINT DF_Users_CreatedAt DEFAULT SYSDATETIME(),
 CreatedBy UNIQUEIDENTIFIER NULL,
@@ -66,6 +67,7 @@ CONSTRAINT UQ_Users_Username UNIQUE (Username),
 CONSTRAINT UQ_Users_Email UNIQUE (Email),
 CONSTRAINT UQ_Users_PersonId UNIQUE (PersonId)
 );
+
 CREATE INDEX IX_Users_IsActive ON Users(IsActive);
 CREATE INDEX IX_Users_LastLoginAt ON Users(LastLoginAt);
 CREATE INDEX IX_Users_CreatedAt ON Users(CreatedAt);
@@ -92,11 +94,13 @@ DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_Roles PRIMARY KEY (RoleId),
 CONSTRAINT UQ_Roles_Code UNIQUE (Code)
 );
+
 CREATE INDEX IX_Roles_IsActive ON Roles(IsActive);
 CREATE INDEX IX_Roles_CreatedAt ON Roles(CreatedAt);
 -- ============================================
 -- PERMISSIONS TABLE
 -- ============================================
+
 CREATE TABLE Permissions (
 PermissionId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
 Code NVARCHAR(100) NOT NULL,
@@ -114,6 +118,7 @@ DeletedBy UNIQUEIDENTIFIER NULL,
     CONSTRAINT PK_Permissions PRIMARY KEY (PermissionId),
     CONSTRAINT UQ_Permissions_Code UNIQUE (Code)
 );
+
 CREATE INDEX IX_Permissions_Module ON Permissions(Module);
 CREATE INDEX IX_Permissions_CreatedAt ON Permissions(CreatedAt);
 -- ============================================
@@ -160,6 +165,7 @@ DeletedBy UNIQUEIDENTIFIER NULL,
     CONSTRAINT FK_PermissionApis_Permission FOREIGN KEY (PermissionId)
         REFERENCES Permissions(PermissionId)
 );
+
 -- ============================================
 -- USER ROLES
 -- ============================================
@@ -173,7 +179,9 @@ CONSTRAINT PK_UserRoles PRIMARY KEY (UserId, RoleId),
 CONSTRAINT FK_UserRoles_Users FOREIGN KEY (UserId) REFERENCES Users(UserId),
 CONSTRAINT FK_UserRoles_Roles FOREIGN KEY (RoleId) REFERENCES Roles(RoleId)
 );
+
 CREATE INDEX IX_UserRoles_RoleId ON UserRoles(RoleId);
+
 -- ============================================
 -- ROLE PERMISSIONS
 -- ============================================
@@ -187,10 +195,12 @@ CONSTRAINT PK_RolePermissions PRIMARY KEY (RoleId, PermissionId),
 CONSTRAINT FK_RolePermissions_Roles FOREIGN KEY (RoleId) REFERENCES Roles(RoleId),
 CONSTRAINT FK_RolePermissions_Permissions FOREIGN KEY (PermissionId) REFERENCES Permissions(PermissionId)
 );
+
 CREATE INDEX IX_RolePermissions_PermissionId ON RolePermissions(PermissionId);
 -- ============================================
 -- USERSESSIONS
 -- ============================================
+
 CREATE TABLE UserSessions (
 SessionId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
 UserId UNIQUEIDENTIFIER NOT NULL,
@@ -213,6 +223,7 @@ UserId UNIQUEIDENTIFIER NOT NULL,
     CONSTRAINT PK_UserSessions PRIMARY KEY (SessionId),
     CONSTRAINT FK_UserSessions_User FOREIGN KEY (UserId) REFERENCES Users(UserId)
 );
+
 CREATE INDEX IX_UserSessions_UserId_Revoked
 ON UserSessions(UserId, RevokedAt);
 -- ============================================
@@ -231,6 +242,7 @@ DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_Departments PRIMARY KEY (DepartmentId),
 CONSTRAINT UQ_Departments_Code UNIQUE (Code)
 );
+
 -- ============================================
 -- ACADEMIC COHORTS
 -- ============================================
@@ -254,6 +266,7 @@ CONSTRAINT PK_AcademicCohorts PRIMARY KEY (AcademicCohortId),
 CONSTRAINT UQ_AcademicCohorts_Code UNIQUE (Code),
 CONSTRAINT CK_AcademicCohorts_Years CHECK (StartYear < EndYear)
 );
+
 -- ============================================
 -- MAJORS
 -- ============================================
@@ -274,7 +287,9 @@ CONSTRAINT PK_Majors PRIMARY KEY (MajorId),
 CONSTRAINT FK_Majors_Departments FOREIGN KEY (DepartmentId) REFERENCES Departments(DepartmentId),
 CONSTRAINT UQ_Majors_Code UNIQUE (Code)
 );
+
 CREATE INDEX IX_Majors_IsActive ON Majors(IsActive);
+
 -- ============================================
 -- TRAINING PROGRAMS
 -- ============================================
@@ -316,8 +331,10 @@ CONSTRAINT FK_TrainingPrograms_Departments FOREIGN KEY (DepartmentId) REFERENCES
 CONSTRAINT FK_TrainingPrograms_AcademicCohorts FOREIGN KEY (AcademicCohortId) REFERENCES AcademicCohorts(AcademicCohortId),
 CONSTRAINT UQ_TrainingPrograms_Code UNIQUE (Code)
 );
+
 CREATE INDEX IX_TrainingPrograms_MajorId ON TrainingPrograms(MajorId);
 CREATE INDEX IX_TrainingPrograms_AcademicCohortId ON TrainingPrograms(AcademicCohortId);
+
 -- ============================================
 -- STUDENTS
 -- ============================================
@@ -340,6 +357,7 @@ CONSTRAINT FK_Students_TrainingPrograms FOREIGN KEY (TrainingProgramId) REFERENC
 CONSTRAINT UQ_Students_PersonId UNIQUE (PersonId),
 CONSTRAINT UQ_Students_StudentCode UNIQUE (StudentCode)
 );
+
 CREATE INDEX IX_Students_TrainingProgramId ON Students(TrainingProgramId);
 CREATE INDEX IX_Students_CreatedAt ON Students(CreatedAt);
 -- ============================================
@@ -361,7 +379,9 @@ DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_StudentStatusCatalog PRIMARY KEY (StudentStatusId),
 CONSTRAINT UQ_StudentStatusCatalog_Code UNIQUE (Code)
 );
+
 CREATE INDEX IX_StudentStatusCatalog_IsActive ON StudentStatusCatalog(IsActive);
+
 -- ============================================
 -- STUDENT STATUS HISTORIES
 -- ============================================
@@ -390,9 +410,11 @@ CONSTRAINT FK_SSH_Students FOREIGN KEY (StudentId) REFERENCES Students(StudentId
 CONSTRAINT FK_SSH_StudentStatusCatalog FOREIGN KEY (StudentStatusId) REFERENCES StudentStatusCatalog(StudentStatusId),
 CONSTRAINT CK_SSH_DateRange CHECK (EndDate IS NULL OR StartDate <= EndDate)
 );
+
 CREATE INDEX IX_SSH_StudentId ON StudentStatusHistories(StudentId);
 CREATE INDEX IX_SSH_StatusId ON StudentStatusHistories(StudentStatusId);
 CREATE INDEX IX_SSH_IsCurrent ON StudentStatusHistories(StudentId, IsCurrent);
+
 -- ============================================
 -- SCHOOL YEARS
 -- ============================================
@@ -414,6 +436,7 @@ CONSTRAINT PK_SchoolYears PRIMARY KEY (SchoolYearId),
 CONSTRAINT UQ_SchoolYears_Code UNIQUE (Code),
 CONSTRAINT CK_SchoolYears_Dates CHECK (StartDate < EndDate)
 );
+
 -- ============================================
 -- SEMESTERS
 -- ============================================
@@ -422,6 +445,7 @@ SemesterId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Semesters_SemesterId DEFAULT 
 Code VARCHAR(30) NOT NULL,
 Name VARCHAR(150) NOT NULL,
 SchoolYearId UNIQUEIDENTIFIER NOT NULL,
+SchoolYearName NVARCHAR(100) NULL,
 StartDate DATE NOT NULL,
 EndDate DATE NOT NULL,
 Status BIT NULL,
@@ -437,6 +461,7 @@ CONSTRAINT PK_Semesters PRIMARY KEY (SemesterId),
 CONSTRAINT FK_Semesters_SchoolYears FOREIGN KEY (SchoolYearId) REFERENCES SchoolYears(SchoolYearId),
 CONSTRAINT UQ_Semesters_SchoolYear_Code UNIQUE (SchoolYearId, Code)
 );
+
 -- ============================================
 -- COURSES
 -- ============================================
@@ -464,11 +489,13 @@ CONSTRAINT PK_Courses PRIMARY KEY (CourseId),
 CONSTRAINT FK_Courses_Departments FOREIGN KEY (DepartmentId) REFERENCES Departments(DepartmentId),
 CONSTRAINT UQ_Courses_Code UNIQUE (Code)
 );
+
 CREATE INDEX IX_Courses_IsActive ON Courses(IsActive);
 CREATE INDEX IX_Courses_CreatedAt ON Courses(CreatedAt);
 -- ============================================
 -- TRAINING PROGRAM COURSES
 -- ============================================
+
 CREATE TABLE TrainingProgramCourses (
 TrainingProgramId UNIQUEIDENTIFIER NOT NULL,
 CourseId UNIQUEIDENTIFIER NOT NULL,
@@ -493,7 +520,9 @@ CONSTRAINT FK_TPC_TrainingPrograms FOREIGN KEY (TrainingProgramId) REFERENCES Tr
 CONSTRAINT FK_TPC_Courses FOREIGN KEY (CourseId) REFERENCES Courses(CourseId),
 CONSTRAINT FK_TPC_Semesters FOREIGN KEY (SemesterId) REFERENCES Semesters(SemesterId)
 );
+
 CREATE INDEX IX_TPC_CourseId ON TrainingProgramCourses(CourseId);
+
 -- ============================================
 -- COURSE PREREQUISITES
 -- ============================================
@@ -512,7 +541,9 @@ CONSTRAINT FK_CP_Course FOREIGN KEY (CourseId) REFERENCES Courses(CourseId),
 CONSTRAINT FK_CP_PrerequisiteCourse FOREIGN KEY (PrerequisiteCourseId) REFERENCES Courses(CourseId),
 CONSTRAINT CK_NoSelfPrerequisite CHECK (CourseId <> PrerequisiteCourseId)
 );
+
 CREATE INDEX IX_CoursePrerequisites_Prereq ON CoursePrerequisites(PrerequisiteCourseId);
+
 -- ============================================
 -- CLASSES
 -- ============================================
@@ -537,6 +568,7 @@ CONSTRAINT FK_Classes_Departments FOREIGN KEY (DepartmentId) REFERENCES Departme
 CONSTRAINT FK_Classes_AcademicCohorts FOREIGN KEY (AcademicCohortId) REFERENCES AcademicCohorts(AcademicCohortId),
 CONSTRAINT CK_Classes_MaxSize CHECK (MaxSize IS NULL OR MaxSize > 0),
 );
+
 -- ============================================
 -- COURSE CLASSES
 -- ============================================
@@ -561,6 +593,7 @@ CONSTRAINT FK_CourseClasses_Semesters FOREIGN KEY (SemesterId) REFERENCES Semest
 CONSTRAINT FK_CourseClasses_Courses FOREIGN KEY (CourseId) REFERENCES Courses(CourseId),
 CONSTRAINT UQ_CourseClasses UNIQUE (SemesterId, CourseId, ClassCode)
 );
+
 -- ============================================
 -- STUDENT CLASSES
 -- ============================================
@@ -585,7 +618,9 @@ CONSTRAINT FK_StudentClasses_Classes FOREIGN KEY (ClassId) REFERENCES Classes(Cl
 CONSTRAINT FK_StudentClasses_Semesters FOREIGN KEY (SemesterId) REFERENCES Semesters(SemesterId),
 CONSTRAINT UQ_StudentClasses UNIQUE (StudentId, ClassId, SemesterId)
 );
+
 CREATE INDEX IX_StudentClasses_ClassId ON StudentClasses(ClassId);
+
 -- ============================================
 -- EMPLOYEES
 -- ============================================
@@ -607,6 +642,7 @@ CONSTRAINT FK_Employees_Persons FOREIGN KEY (PersonId) REFERENCES Persons(Person
 CONSTRAINT UQ_Employees_PersonId UNIQUE (PersonId),
 CONSTRAINT UQ_Employees_EmployeeCode UNIQUE (EmployeeCode)
 );
+
 -- ============================================
 -- DEGREES
 -- ============================================
@@ -623,6 +659,7 @@ DeletedAt DATETIME2(3) NULL,
 DeletedBy UNIQUEIDENTIFIER NULL
 CONSTRAINT PK_Degrees PRIMARY KEY (DegreeId)
 );
+
 -- ============================================
 -- INSTRUCTORS
 -- ============================================
@@ -682,6 +719,7 @@ DeletedBy UNIQUEIDENTIFIER NULL,
 CONSTRAINT PK_Divisions PRIMARY KEY (DivisionId),
 CONSTRAINT UQ_Divisions_Code UNIQUE (Code)
 );
+
 -- ============================================
 -- STAFFS
 -- ============================================
@@ -1027,3 +1065,534 @@ CONSTRAINT FK_Schedules_Employees FOREIGN KEY (EmployeeId) REFERENCES Employees(
 );
 CREATE INDEX IX_Schedules_CreatedAt ON Schedules(CreatedAt);
 CREATE INDEX IX_Schedules_UpdatedAt ON Schedules(UpdatedAt)
+-- ============================================
+-- GRADE COMPONENTS
+-- ============================================
+CREATE TABLE GradeComponents (
+GradeComponentId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_GradeComponents_GradeComponentId DEFAULT NEWID(),
+CourseId UNIQUEIDENTIFIER NOT NULL,
+ComponentCode VARCHAR(20) NOT NULL,
+ComponentName VARCHAR(100) NOT NULL,
+WeightPercentage DECIMAL(5,2) NULL,
+MinScore DECIMAL(4,2) NULL,
+MaxScore DECIMAL(4,2) NULL,
+IsRequired BIT NULL,
+InputOrder INT NULL,
+Description VARCHAR(255) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_GradeComponents_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_GradeComponents_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+DeleteAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeleteBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_GradeComponents PRIMARY KEY (GradeComponentId),
+CONSTRAINT FK_GradeComponents_Courses FOREIGN KEY (CourseId) REFERENCES Courses(CourseId),
+CONSTRAINT UQ_GradeComponents_Course_Code UNIQUE (CourseId, ComponentCode)
+);
+
+CREATE INDEX IX_GradeComponents_CourseId ON GradeComponents(CourseId);
+
+-- ============================================
+-- STUDENT GRADES
+-- ============================================
+CREATE TABLE StudentGrades (
+CourseRegistrationId UNIQUEIDENTIFIER NOT NULL,
+GradeComponentId UNIQUEIDENTIFIER NOT NULL,
+Score DECIMAL(4,2) NULL,
+IsLocked BIT NULL,
+Note NVARCHAR(255) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_StudentGrades_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_StudentGrades_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+DeleteAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeleteBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_StudentGrades PRIMARY KEY (CourseRegistrationId, GradeComponentId),
+CONSTRAINT FK_SG_CourseRegistrations FOREIGN KEY (CourseRegistrationId) REFERENCES CourseRegistrations(CourseRegistrationId),
+CONSTRAINT FK_SG_GradeComponents FOREIGN KEY (GradeComponentId) REFERENCES GradeComponents(GradeComponentId)
+);
+
+-- ============================================
+-- GRADE SCALES
+-- ============================================
+CREATE TABLE GradeScales (
+GradeScaleId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_GradeScales_GradeScaleId DEFAULT NEWID(),
+ScaleName VARCHAR(100) NOT NULL,
+MinScore DECIMAL(4,2) NOT NULL,
+MaxScore DECIMAL(4,2) NOT NULL,
+LetterGrade VARCHAR(2) NOT NULL,
+GpaValue DECIMAL(3,2) NOT NULL,
+Description VARCHAR(255) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_GradeScales_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_GradeScales_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+DeleteAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeleteBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_GradeScales PRIMARY KEY (GradeScaleId),
+CONSTRAINT CK_GradeScales_MinMax CHECK (MinScore <= MaxScore)
+);
+
+-- ============================================
+-- STUDENT SUMMARIES
+-- ============================================
+CREATE TABLE StudentSummaries (
+CourseRegistrationId UNIQUEIDENTIFIER NOT NULL,
+TotalScore DECIMAL(4,2) NULL,
+GradeScaleId UNIQUEIDENTIFIER NULL,
+LetterGrade VARCHAR(2) NULL,
+GpaValue DECIMAL(3,2) NULL,
+Result VARCHAR(10) NULL,
+IsFinalized BIT NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_StudentSummaries_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_StudentSummaries_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_StudentSummaries PRIMARY KEY (CourseRegistrationId),
+CONSTRAINT FK_SS_CourseRegistrations FOREIGN KEY (CourseRegistrationId) REFERENCES CourseRegistrations(CourseRegistrationId),
+CONSTRAINT FK_SS_GradeScales FOREIGN KEY (GradeScaleId) REFERENCES GradeScales(GradeScaleId)
+);
+
+-- ============================================
+-- TUITION FEES
+-- ============================================
+CREATE TABLE TuitionFees (
+TuitionFeeId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_TuitionFees_TuitionFeeId DEFAULT NEWID(),
+TrainingProgramId UNIQUEIDENTIFIER NOT NULL,
+TrainingProgramCode VARCHAR(20) NULL,
+TrainingProgramName VARCHAR(255) NULL,
+CreditFee DECIMAL(10,2) NULL,
+TotalFee DECIMAL(12,2) NULL,
+TrainingType VARCHAR(50) NULL,
+AcademicYear VARCHAR(20) NULL,
+EffectiveDate DATE NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_TuitionFees_IsActive DEFAULT 1,
+CreatedAt DATETIME NOT NULL CONSTRAINT DF_TuitionFees_CreatedAt DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+CreatedBy INT NULL,
+UpdatedBy INT NULL,
+DeletedAt DATETIME NULL,
+DeletedBy INT NULL,
+CONSTRAINT PK_TuitionFees PRIMARY KEY (TuitionFeeId),
+CONSTRAINT FK_TuitionFees_TrainingPrograms FOREIGN KEY (TrainingProgramId) REFERENCES TrainingPrograms(TrainingProgramId)
+);
+
+-- ============================================
+-- STUDENT TUITION
+-- ============================================
+CREATE TABLE StudentTuition (
+StudentTuitionId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_StudentTuition_StudentTuitionId DEFAULT NEWID(),
+StudentId UNIQUEIDENTIFIER NOT NULL,
+SemesterId UNIQUEIDENTIFIER NOT NULL,
+TuitionFeeId UNIQUEIDENTIFIER NOT NULL,
+TotalCredits INT NULL,
+Discount DECIMAL(10,2) NULL,
+RawAmount DECIMAL(15,2) NULL,
+PayableAmount DECIMAL(12,2) NULL,
+PaidAmount DECIMAL(12,2) NULL,
+DebtAmount DECIMAL(15,2) NULL,
+PaymentStatus VARCHAR(30) NULL,
+DueDate DATE NULL,
+Note TEXT NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_StudentTuition_IsActive DEFAULT 1,
+CreatedAt DATETIME NOT NULL CONSTRAINT DF_StudentTuition_CreatedAt DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+CreatedBy INT NULL,
+UpdatedBy INT NULL,
+DeletedAt DATETIME NULL,
+DeletedBy INT NULL,
+CONSTRAINT PK_StudentTuition PRIMARY KEY (StudentTuitionId),
+CONSTRAINT FK_ST_Students FOREIGN KEY (StudentId) REFERENCES Students(StudentId),
+CONSTRAINT FK_ST_Semesters FOREIGN KEY (SemesterId) REFERENCES Semesters(SemesterId),
+CONSTRAINT FK_ST_TuitionFees FOREIGN KEY (TuitionFeeId) REFERENCES TuitionFees(TuitionFeeId),
+CONSTRAINT UQ_StudentTuitions UNIQUE (StudentId, SemesterId)
+);
+
+CREATE INDEX IX_StudentTuitions_SemesterId ON StudentTuition(SemesterId);
+CREATE INDEX IX_StudentTuition_CreatedAt ON StudentTuition(CreatedAt);
+-- ============================================
+-- PAYMENTS
+-- ============================================
+CREATE TABLE Payments (
+PaymentId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Payments_PaymentId DEFAULT NEWID(),
+StudentTuitionId UNIQUEIDENTIFIER NOT NULL,
+PaymentDate DATETIME NOT NULL,
+Amount DECIMAL(12,2) NOT NULL,
+PaymentMethod VARCHAR(50) NULL,
+TransactionCode VARCHAR(100) NULL,
+PaymentStatus VARCHAR(30) NULL,
+Cashier VARCHAR(100) NULL,
+Note TEXT NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_Payments_IsActive DEFAULT 1,
+CreatedAt DATETIME NOT NULL CONSTRAINT DF_Payments_CreatedAt DEFAULT GETDATE(),
+UpdatedAt DATETIME NULL,
+CreatedBy INT NULL,
+UpdatedBy INT NULL,
+DeletedAt DATETIME NULL,
+DeletedBy INT NULL,
+CONSTRAINT PK_Payments PRIMARY KEY (PaymentId),
+CONSTRAINT FK_Payments_StudentTuition FOREIGN KEY (StudentTuitionId) REFERENCES StudentTuition(StudentTuitionId),
+CONSTRAINT CK_Payments_Amount CHECK (Amount > 0)
+);
+
+CREATE INDEX IX_Payments_StudentTuitionId ON Payments(StudentTuitionId);
+CREATE INDEX IX_Payments_CreatedAt ON Payments(CreatedAt);
+CREATE INDEX IX_Payments_UpdatedAt ON Payments(UpdatedAt);
+-- ============================================
+-- EXAM TYPES
+-- ============================================
+CREATE TABLE ExamTypes (
+ExamTypeId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ExamTypes_ExamTypeId DEFAULT NEWID(),
+Name NVARCHAR(100) NOT NULL,
+Description NVARCHAR(MAX) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_ExamTypes_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_ExamTypes_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_ExamTypes PRIMARY KEY (ExamTypeId)
+);
+
+-- ============================================
+-- EXAMS
+-- ============================================
+CREATE TABLE Exams (
+ExamId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Exams_ExamId DEFAULT NEWID(),
+ExamTypeId UNIQUEIDENTIFIER NOT NULL,
+CourseClassId UNIQUEIDENTIFIER NOT NULL,
+SemesterId UNIQUEIDENTIFIER NOT NULL,
+ExamDate DATE NOT NULL,
+StartTime TIME NOT NULL,
+DurationMinutes SMALLINT NULL,
+EndTime TIME NULL,
+ExamFormat VARCHAR(20) NULL,
+ExamStatus VARCHAR(20) NULL,
+SupervisorCount TINYINT NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_Exams_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_Exams_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_Exams PRIMARY KEY (ExamId),
+CONSTRAINT FK_Exams_ExamTypes FOREIGN KEY (ExamTypeId) REFERENCES ExamTypes(ExamTypeId),
+CONSTRAINT FK_Exams_CourseClasses FOREIGN KEY (CourseClassId) REFERENCES CourseClasses(CourseClassId),
+CONSTRAINT FK_Exams_Semesters FOREIGN KEY (SemesterId) REFERENCES Semesters(SemesterId)
+);
+CREATE INDEX IX_Exams_CreatedAt ON Exams(CreatedAt);
+CREATE INDEX IX_Exams_UpdatedAt ON Exams(UpdatedAt);
+-- ============================================
+-- EXAM ROOMS
+-- ============================================
+CREATE TABLE ExamRooms (
+ExamRoomId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ExamRooms_ExamRoomId DEFAULT NEWID(),
+ExamId UNIQUEIDENTIFIER NOT NULL,
+RoomId UNIQUEIDENTIFIER NOT NULL,
+Capacity INT NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_ExamRooms_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_ExamRooms_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_ExamRooms PRIMARY KEY (ExamRoomId),
+CONSTRAINT FK_ExamRooms_Exams FOREIGN KEY (ExamId) REFERENCES Exams(ExamId),
+CONSTRAINT FK_ExamRooms_Rooms FOREIGN KEY (RoomId) REFERENCES Rooms(RoomId)
+);
+
+-- ============================================
+-- EXAM REGISTRATIONS
+-- ============================================
+CREATE TABLE ExamRegistrations (
+ExamRegistrationId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ExamRegistrations_ExamRegistrationId DEFAULT NEWID(),
+ExamId UNIQUEIDENTIFIER NOT NULL,
+ExamRoomId UNIQUEIDENTIFIER NOT NULL,
+StudentId UNIQUEIDENTIFIER NOT NULL,
+RollNumber VARCHAR(20) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_ExamRegistrations_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_ExamRegistrations_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_ExamRegistrations PRIMARY KEY (ExamRegistrationId),
+CONSTRAINT FK_ER_Exams FOREIGN KEY (ExamId) REFERENCES Exams(ExamId),
+CONSTRAINT FK_ER_ExamRooms FOREIGN KEY (ExamRoomId) REFERENCES ExamRooms(ExamRoomId),
+CONSTRAINT FK_ER_Students FOREIGN KEY (StudentId) REFERENCES Students(StudentId)
+);
+
+-- ============================================
+-- EXAM PAPERS
+-- ============================================
+CREATE TABLE ExamPapers (
+ExamPaperId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ExamPapers_ExamPaperId DEFAULT NEWID(),
+ExamId UNIQUEIDENTIFIER NOT NULL,
+PaperCode VARCHAR(20) NULL,
+FileUrl NVARCHAR(500) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_ExamPapers_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_ExamPapers_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_ExamPapers PRIMARY KEY (ExamPaperId),
+CONSTRAINT FK_ExamPapers_Exams FOREIGN KEY (ExamId) REFERENCES Exams(ExamId)
+);
+
+-- ============================================
+-- EXAM RESULTS
+-- ============================================
+CREATE TABLE ExamResults (
+ExamResultId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ExamResults_ExamResultId DEFAULT NEWID(),
+RegistrationId UNIQUEIDENTIFIER NOT NULL,
+Score DECIMAL(4,2) NULL,
+Status NVARCHAR(50) NULL,
+GradedByUserId UNIQUEIDENTIFIER NULL,
+GradedAt DATETIME NULL,
+IsLocked BIT NULL,
+AppealStatus VARCHAR(20) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_ExamResults_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_ExamResults_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_ExamResults PRIMARY KEY (ExamResultId),
+CONSTRAINT FK_ExamResults_ExamRegistrations FOREIGN KEY (RegistrationId) REFERENCES ExamRegistrations(ExamRegistrationId),
+CONSTRAINT FK_ExamResults_Instructors FOREIGN KEY (GradedByUserId) REFERENCES Users(UserId)
+);
+
+-- ============================================
+-- GRADUATION CONDITIONS
+-- ============================================
+CREATE TABLE GraduationConditions (
+GraduationConditionId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_GraduationConditions_GraduationConditionId DEFAULT NEWID(),
+TrainingProgramId UNIQUEIDENTIFIER NOT NULL,
+AcademicCohortId UNIQUEIDENTIFIER NULL,
+ConditionCode NVARCHAR(50) NOT NULL,
+ConditionName NVARCHAR(200) NOT NULL,
+MinCredits INT NULL,
+MinGpa FLOAT NULL,
+MaxFailedCourses INT NULL,
+EnglishRequirement NVARCHAR(100) NULL,
+ItRequirement NVARCHAR(100) NULL,
+ConductRequired NVARCHAR(50) NULL,
+Description NVARCHAR(255) NULL,
+StartDate DATE NULL,
+DueDate DATE NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_GraduationConditions_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_GraduationConditions_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_GraduationConditions PRIMARY KEY (GraduationConditionId),
+CONSTRAINT FK_GC_TrainingPrograms FOREIGN KEY (TrainingProgramId) REFERENCES TrainingPrograms(TrainingProgramId),
+CONSTRAINT FK_GC_AcademicCohorts FOREIGN KEY (AcademicCohortId) REFERENCES AcademicCohorts(AcademicCohortId)
+);
+
+-- ============================================
+-- GRADUATION SESSIONS
+-- ============================================
+CREATE TABLE GraduationSessions (
+GraduationSessionId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_GraduationSessions_GraduationSessionId DEFAULT NEWID(),
+SessionCode NVARCHAR(50) NOT NULL,
+SessionName NVARCHAR(200) NOT NULL,
+AcademicCohortId UNIQUEIDENTIFIER NULL,
+SemesterId UNIQUEIDENTIFIER NULL,
+StartDate DATE NULL,
+DueDate DATE NULL,
+Description NVARCHAR(255) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_GraduationSessions_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_GraduationSessions_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_GraduationSessions PRIMARY KEY (GraduationSessionId),
+CONSTRAINT FK_GS_AcademicCohorts FOREIGN KEY (AcademicCohortId) REFERENCES AcademicCohorts(AcademicCohortId),
+CONSTRAINT FK_GS_Semesters FOREIGN KEY (SemesterId) REFERENCES Semesters(SemesterId)
+);
+
+-- ============================================
+-- GRADUATION COUNCILS
+-- ============================================
+CREATE TABLE GraduationCouncils (
+GraduationCouncilId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_GraduationCouncils_GraduationCouncilId DEFAULT NEWID(),
+CouncilCode NVARCHAR(50) NOT NULL,
+CouncilName NVARCHAR(200) NOT NULL,
+AcademicCohortId UNIQUEIDENTIFIER NULL,
+SemesterId UNIQUEIDENTIFIER NULL,
+DecisionNumber NVARCHAR(50) NULL,
+DecisionDate DATE NULL,
+ChairmanId UNIQUEIDENTIFIER NULL,
+SecretaryId UNIQUEIDENTIFIER NULL,
+Description NVARCHAR(255) NULL,
+StartDate DATE NULL,
+EndDate DATE NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_GraduationCouncils_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_GraduationCouncils_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_GraduationCouncils PRIMARY KEY (GraduationCouncilId),
+CONSTRAINT FK_GradCouncil_AcademicCohorts FOREIGN KEY (AcademicCohortId) REFERENCES AcademicCohorts(AcademicCohortId),
+CONSTRAINT FK_GradCouncil_Semesters FOREIGN KEY (SemesterId) REFERENCES Semesters(SemesterId)
+);
+
+-- ============================================
+-- GRADUATION RESULTS
+-- ============================================
+CREATE TABLE GraduationResults (
+GraduationResultId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_GraduationResults_GraduationResultId DEFAULT NEWID(),
+StudentId UNIQUEIDENTIFIER NOT NULL,
+GraduationConditionId UNIQUEIDENTIFIER NOT NULL,
+TotalCredits INT NULL,
+Gpa FLOAT NULL,
+FailedCourses INT NULL,
+GraduationStatus NVARCHAR(50) NULL,
+GraduationRank NVARCHAR(50) NULL,
+DecisionNumber NVARCHAR(50) NULL,
+GraduationCouncilId UNIQUEIDENTIFIER NULL,
+DecisionDate DATE NULL,
+StartDate DATE NULL,
+DueDate DATE NULL,
+Note NVARCHAR(MAX) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_GraduationResults_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_GraduationResults_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_GraduationResults PRIMARY KEY (GraduationResultId),
+CONSTRAINT FK_GR_Students FOREIGN KEY (StudentId) REFERENCES Students(StudentId),
+CONSTRAINT FK_GR_GraduationConditions FOREIGN KEY (GraduationConditionId) REFERENCES GraduationConditions(GraduationConditionId),
+CONSTRAINT FK_GR_GraduationCouncils FOREIGN KEY (GraduationCouncilId) REFERENCES GraduationCouncils(GraduationCouncilId)
+);
+CREATE INDEX IX_GraduationResults_CreatedAt ON GraduationResults(CreatedAt);
+-- ============================================
+-- GRADUATION PROFILES
+-- ============================================
+CREATE TABLE GraduationProfiles (
+GraduationProfileId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_GraduationProfiles_GraduationProfileId DEFAULT NEWID(),
+StudentId UNIQUEIDENTIFIER NOT NULL,
+CouncilId UNIQUEIDENTIFIER NOT NULL,
+GraduationConditionId UNIQUEIDENTIFIER NOT NULL,
+ProfileCode NVARCHAR(50) NOT NULL,
+SubmissionDate DATE NULL,
+Status NVARCHAR(50) NULL,
+ReviewerId UNIQUEIDENTIFIER NULL,
+ReviewDate DATE NULL,
+Note NVARCHAR(255) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_GraduationProfiles_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_GraduationProfiles_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_GraduationProfiles PRIMARY KEY (GraduationProfileId),
+CONSTRAINT FK_GP_Students FOREIGN KEY (StudentId) REFERENCES Students(StudentId),
+CONSTRAINT FK_GP_GraduationCouncils FOREIGN KEY (CouncilId) REFERENCES GraduationCouncils(GraduationCouncilId),
+CONSTRAINT FK_GP_GraduationConditions FOREIGN KEY (GraduationConditionId) REFERENCES GraduationConditions(GraduationConditionId)
+);
+
+-- ============================================
+-- NOTIFICATIONS
+-- ============================================
+CREATE TABLE Notifications (
+NotificationId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Notifications_NotificationId DEFAULT NEWID(),
+Title NVARCHAR(255) NOT NULL,
+Content NVARCHAR(MAX) NOT NULL,
+TypeId VARCHAR(50) NULL,
+Priority VARCHAR(20) NULL,
+TargetRoleId UNIQUEIDENTIFIER NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_Notifications_IsActive DEFAULT 1,
+CreatedAt DATETIME NOT NULL CONSTRAINT DF_Notifications_CreatedAt DEFAULT GETDATE(),
+UpdateAt DATETIME NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_Notifications PRIMARY KEY (NotificationId),
+CONSTRAINT FK_Notifications_Roles FOREIGN KEY (TargetRoleId) REFERENCES Roles(RoleId),
+CONSTRAINT FK_Notifications_Users_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserId)
+);
+
+-- ============================================
+-- USER NOTIFICATIONS
+-- ============================================
+CREATE TABLE UserNotifications (
+UserNotificationId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_UserNotifications_UserNotificationId DEFAULT NEWID(),
+UserId UNIQUEIDENTIFIER NOT NULL,
+NotificationId UNIQUEIDENTIFIER NOT NULL,
+IsRead BIT NOT NULL CONSTRAINT DF_UserNotifications_IsRead DEFAULT 0,
+ReadAt DATETIME2 NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_UserNotifications_IsActive DEFAULT 1,
+CreatedAt DATETIME NOT NULL CONSTRAINT DF_UserNotifications_CreatedAt DEFAULT GETDATE(),
+UpdateAt DATETIME NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_UserNotifications PRIMARY KEY (UserNotificationId),
+CONSTRAINT FK_UN_Users FOREIGN KEY (UserId) REFERENCES Users(UserId),
+CONSTRAINT FK_UN_Notifications FOREIGN KEY (NotificationId) REFERENCES Notifications(NotificationId),
+CONSTRAINT FK_UserNotifications_Users_UpdatedBy FOREIGN KEY (UpdatedBy) REFERENCES Users(UserId)
+);
+
+-- ============================================
+-- LOGS
+-- ============================================
+CREATE TABLE Logs (
+LogId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Logs_LogId DEFAULT NEWID(),
+UserId UNIQUEIDENTIFIER NULL,
+Action VARCHAR(50) NOT NULL,
+TableName VARCHAR(100) NULL,
+RecordId UNIQUEIDENTIFIER NULL,
+Description NVARCHAR(MAX) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_Logs_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_Logs_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_Logs PRIMARY KEY (LogId),
+CONSTRAINT FK_Logs_Users FOREIGN KEY (UserId) REFERENCES Users(UserId)
+);
+CREATE INDEX IX_Logs_CreatedAt ON Logs(CreatedAt);
+-- ============================================
+-- SETTINGS
+-- ============================================
+CREATE TABLE Settings (
+SettingId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Settings_SettingId DEFAULT NEWID(),
+SettingKey NVARCHAR(100) NOT NULL,
+SettingValue NVARCHAR(MAX) NULL,
+Description NVARCHAR(255) NULL,
+IsActive BIT NOT NULL CONSTRAINT DF_Settings_IsActive DEFAULT 1,
+CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_Settings_CreatedAt DEFAULT SYSDATETIME(),
+UpdatedAt DATETIME2 NULL,
+CreatedBy UNIQUEIDENTIFIER NULL,
+UpdatedBy UNIQUEIDENTIFIER NULL,
+DeletedAt DATETIME2 NULL,
+DeletedBy UNIQUEIDENTIFIER NULL,
+CONSTRAINT PK_Settings PRIMARY KEY (SettingId),
+CONSTRAINT UQ_Settings_Key UNIQUE (SettingKey)
+);

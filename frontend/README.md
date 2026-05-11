@@ -1,73 +1,36 @@
-mona_web - Hệ thống Quản lý Đào tạo Tín chỉ
-Đồ án Tốt nghiệp - Xây dựng hệ thống phần mềm quản lý đào tạo cho trường Đại học.
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-📌 Giới thiệu dự án
-mona_web là giải pháp phần mềm quản lý giáo dục (LMS) hiện đại, tập trung vào việc tối ưu hóa quy trình quản lý tín chỉ, tài chính và tương tác khách hàng cho các trung tâm đào tạo hoặc trường đại học. Hệ thống được thiết kế với giao diện quản trị (Admin Dashboard) mạnh mẽ, tập trung vào trải nghiệm người dùng và khả năng tùy biến cao.
+## Getting Started
 
-✨ Tính năng nổi bật
+First, run the development server:
 
-1. Quản lý Tài chính & Hoa hồng
-   Theo dõi doanh thu thực tế và quản lý hoa hồng cho nhân viên tư vấn.
-
-Hệ thống thẻ thống kê (Stats Cards) trực quan về dòng tiền.
-
-2. Cấu hình Học tập (Core Logic)
-   Quản lý chuyên môn, chương trình học đa cấp và ca học linh hoạt.
-
-Tích hợp cấu hình Zoom cho các lớp học trực tuyến (Add-on).
-
-Bảng điểm mẫu và các gói học phí ưu đãi.
-
-3. Hệ thống & Bảo mật
-   Quản lý đa trung tâm (Multi-centers) và lịch nghỉ lễ.
-
-Phân quyền thanh toán và kiểm duyệt thiết bị đăng nhập của học viên.
-
-Kho mẫu hợp đồng và câu hỏi thường gặp (FAQs) chuyên nghiệp.
-
-4. Danh mục & CRM (Marketing)
-   Phân loại nhu cầu học, nguồn khách hàng và trạng thái chăm sóc (Lead Status).
-
-Hệ thống Popup thông báo tùy chỉnh thời gian và độ trễ để tăng tương tác.
-
-🛠 Công nghệ sử dụng
-Hệ thống được phát triển dựa trên mô hình Web API hiện đại:
-
-Frontend: React.js / Next.js (App Router), Tailwind CSS, Lucide Icons.
-
-Backend: Spring Boot (Java), RESTful API.
-
-Database: Microsoft SQL Server.
-
-Tools: Git, npm/yarn.
-
-🚀 Hướng dẫn cài đặt
-Frontend (mona_web)
-Bash
-
-# Di chuyển vào thư mục dự án
-
-cd mona_web
-
-# Cài đặt các thư viện
-
-npm install
-
-# Chạy dự án ở chế độ phát triển
-
+```bash
 npm run dev
-Backend (Spring Boot)
-Cấu hình kết nối SQL Server trong file application.properties.
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-Chạy ứng dụng thông qua IDE (IntelliJ/Eclipse) hoặc sử dụng Maven:
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Bash
-mvn spring-boot:run
-📂 Cấu trúc thư mục chính (Frontend)
-/app: Chứa các Route và Page chính của hệ thống Next.js.
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-/components: Các thành phần giao diện tái sử dụng (Tables, Modals, Nav, v.v.).
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-/public: Chứa tài nguyên tĩnh (Images, Icons).
+## Learn More
 
-/utils: Các hàm bổ trợ và cấu hình API.
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

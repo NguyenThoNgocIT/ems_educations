@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+
 /**
  * Base Entity class - tất cả entities đều inherit từ đây
  * Chứa các common fields: Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
@@ -20,7 +21,6 @@ import java.util.UUID;
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {
-
 
     @Column(name = "IsActive", nullable = false)
     private Boolean isActive = true;
@@ -40,5 +40,12 @@ public abstract class BaseEntity {
     @LastModifiedBy
     @Column(name = "UpdatedBy", columnDefinition = "uniqueidentifier")
     private UUID updatedBy;
-}
 
+    // ===== THÊM MỚI: Soft Delete fields =====
+    
+    @Column(name = "DeletedAt")
+    private LocalDateTime deletedAt;
+    
+    @Column(name = "DeletedBy", columnDefinition = "uniqueidentifier")
+    private UUID deletedBy;
+}

@@ -1,16 +1,12 @@
 package com.quanlydaotao.backend.user.entity;
 
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -24,7 +20,8 @@ import java.util.UUID;
 public class Person extends SoftDeleteEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "PersonId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
     private UUID personId;
 
@@ -43,13 +40,13 @@ public class Person extends SoftDeleteEntity {
     @Column(name = "Ethnicity", length = 100)
     private String ethnicity;
 
-    @Column(name = "PersonalIdentificationNumber", length = 20)
+    @Column(name = "personal_identification_number", length = 20)
     private String personalIdentificationNumber;
 
-    @Column(name = "DateOfIssue")
+    @Column(name = "date_of_issue")
     private LocalDate dateOfIssue;
 
-    @Column(name = "CardPlace", length = 100)
+    @Column(name = "card_place", length = 100)
     private String cardPlace;
 
     @Column(name = "Nationality", length = 100)
@@ -72,6 +69,7 @@ public class Person extends SoftDeleteEntity {
 
     @Column(name = "Note", length = 255)
     private String note;
+
+    @Column(name = "IsActive", nullable = false)
+    private Boolean isActive = true;
 }
-
-

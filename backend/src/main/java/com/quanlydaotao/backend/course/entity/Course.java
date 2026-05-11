@@ -61,4 +61,3 @@ public class Course extends SoftDeleteEntity {
     @Column(name = "Description", length = 1000)
     private String description;
 }
-

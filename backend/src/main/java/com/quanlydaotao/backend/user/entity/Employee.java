@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDate;
-import java.util.UUID;
 @Entity
 @Table(name = "Employees")
 @Getter
@@ -15,10 +14,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Employee extends SoftDeleteEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "EmployeeId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private UUID employeeId;
+    @jakarta.persistence.Id
+    @jakarta.persistence.GeneratedValue(generator = "UUID")
+    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @jakarta.persistence.Column(name = "EmployeeId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private java.util.UUID employeeId;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PersonId", nullable = false, unique = true)
     private Person person;
@@ -29,5 +30,4 @@ public class Employee extends SoftDeleteEntity {
     @Column(name = "Status", length = 50)
     private String status;
 }
-
 

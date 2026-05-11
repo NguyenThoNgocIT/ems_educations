@@ -51,4 +51,3 @@ public class Menus extends SoftDeleteEntity {
     private Permission permission;
 }
 
-

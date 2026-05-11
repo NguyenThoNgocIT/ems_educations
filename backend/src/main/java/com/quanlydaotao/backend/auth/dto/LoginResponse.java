@@ -19,4 +19,6 @@ public class LoginResponse {
     private String fullName;
     private List<String> roles;
     private boolean requirePasswordChange;
+    @Builder.Default
+    private boolean success = true;
 }

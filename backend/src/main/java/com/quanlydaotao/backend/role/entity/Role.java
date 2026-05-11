@@ -3,16 +3,11 @@ package com.quanlydaotao.backend.role.entity;
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.UUID;
 
 @Entity
 @Table(name = "Roles")
@@ -22,10 +17,11 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Role extends SoftDeleteEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "RoleId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private UUID roleId;
+    @jakarta.persistence.Id
+    @jakarta.persistence.GeneratedValue(generator = "UUID")
+    @org.hibernate.annotations.GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @jakarta.persistence.Column(name = "RoleId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)  // ← ĐỔI "id" -> "RoleId"
+    private java.util.UUID roleId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 50)
     private String code;
@@ -48,5 +44,3 @@ public class Role extends SoftDeleteEntity {
     @Column(name = "Color", length = 20)
     private String color;
 }
-
-

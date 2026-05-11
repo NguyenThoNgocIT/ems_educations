@@ -49,4 +49,3 @@ public class CourseClass extends SoftDeleteEntity {
     @Column(name = "CourseId", nullable = false)
     private UUID courseId;
 }
-

@@ -1,36 +1,40 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
-  // 1. Lấy token và role từ Cookie
-  const token = request.cookies.get("user-token")?.value;
-  const role = request.cookies.get("user-role")?.value;
-  const { pathname } = request.nextUrl;
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-  // 2. Nếu chưa đăng nhập mà cố vào /dashboard/... -> Đá về trang chủ
-  if (!token && pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
+  // Allowlist: public and static routes
+  const isPublicPath =
+    pathname === "/" ||
+    pathname === "/signin" ||
+    pathname === "/signup" ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/static") ||
+    pathname.startsWith("/public") ||
+    pathname === "/favicon.ico";
 
-  // 3. Nếu ĐÃ đăng nhập mà cố vào trang Login (/) -> Đẩy vào đúng dashboard của role đó
-  if (token && pathname === "/") {
-    return NextResponse.redirect(new URL(`/dashboard/${role}`, request.url));
-  }
+  // Allow direct requests for files in the `public/` folder (e.g. `/vercel.svg`, `/next.svg`)
+  const isStaticFile = /\.[0-9a-z]+$/i.test(pathname);
 
-  // 4. CHỐNG VÀO NHẦM ROLE: Ví dụ giáo viên cố vào /dashboard/admin
-  if (token && role && pathname.startsWith("/dashboard")) {
-    const rootFolder = pathname.split("/")[2]; // Lấy chữ 'admin' hoặc 'teacher' trong /dashboard/admin
+  if (isStaticFile) return NextResponse.next();
 
-    // Nếu role trong cookie không khớp với folder đang vào -> Đẩy về đúng chỗ
-    if (rootFolder && rootFolder !== role) {
-      return NextResponse.redirect(new URL(`/dashboard/${role}`, request.url));
-    }
+  if (isPublicPath) return NextResponse.next();
+
+  // Check auth cookie `user-token`
+  const token = req.cookies.get("user-token")?.value;
+  if (!token) {
+    const signInUrl = req.nextUrl.clone();
+    signInUrl.pathname = "/signin";
+    // preserve original path so sign-in can redirect back
+    signInUrl.search = `redirect=${encodeURIComponent(req.nextUrl.pathname)}`;
+    return NextResponse.redirect(signInUrl);
   }
 
   return NextResponse.next();
 }
 
-// Chỉ chạy Middleware cho các đường dẫn Dashboard
 export const config = {
-  matcher: ["/", "/dashboard/:path*"],
+  matcher: "/:path*",
 };
