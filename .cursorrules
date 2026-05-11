@@ -1,0 +1,48 @@
+# UEMS Project AI Rules & Standards
+
+Chào mừng AI Assistant! Đây là hướng dẫn tiêu chuẩn cho dự án UEMS (University Education Management System). Hãy tuân thủ các quy tắc này để viết code đồng nhất và chất lượng cao.
+
+## 🚀 1. Tổng quan Dự án
+- **Công nghệ:** Java 17, Spring Boot 3.3.5, MS SQL Server, Spring Data JPA.
+- **Quản lý DB:** Flyway (tất cả thay đổi DB phải qua file migration `.sql`).
+- **Phân quyền:** JWT + Spring Security (RBAC).
+
+## 🛠 2. Tiêu chuẩn viết Entity
+- **ID:** Luôn sử dụng `UUID` cho tất cả các Primary Key.
+- **Kế thừa:** Mọi Entity (trừ bảng trung gian) phải kế thừa `com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity`.
+- **Annotation:**
+  - Sử dụng `@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor` từ Lombok.
+  - Sử dụng `@Table(name = "TableName")` (tên bảng số nhiều, PascalCase).
+  - Không viết tiền tố `jakarta.persistence.*` trực tiếp trong annotation (hãy import ở đầu file).
+- **Audit:** Luôn đảm bảo các trường `CreatedAt`, `UpdatedAt`, `IsDeleted` được xử lý tự động qua Base Entity.
+
+## 📡 3. Tiêu chuẩn API & Controller
+- **Response:** Luôn bọc dữ liệu trả về trong class `com.quanlydaotao.backend.common.dto.ApiResponse<T>`.
+- **Swagger Documentation:**
+  - Luôn thêm `@Tag` ở cấp Controller (Tiếng Việt có dấu).
+  - Luôn thêm `@Operation` cho mỗi method để mô tả chức năng bằng tiếng Việt.
+- **Path:** 
+  - Auth: `/api/auth/**`
+  - Nghiệp vụ: `/api/v1/**` (Ví dụ: `/api/v1/students`).
+
+## 🏗 4. Cấu trúc Thư mục (Feature-based)
+- Tuân thủ cấu trúc: `com.quanlydaotao.backend.[feature]`.
+- Trong mỗi feature gồm: `controller`, `service`, `service.impl`, `repository`, `entity`, `dto`.
+
+## 🗄 5. Database & Flyway
+- **CẤM:** Không sử dụng `hibernate.ddl-auto: update` hoặc `create`.
+- **QUY TRÌNH:** Nếu thêm trường/bảng mới, hãy tạo file migration mới trong `src/main/resources/db/migration/V[Timestamp]__Description.sql`.
+
+## 🧪 6. Coding Style
+- Ưu tiên sử dụng `Constructor Injection` (Lombok `@RequiredArgsConstructor`).
+- Xử lý lỗi tập trung qua `GlobalExceptionHandler`. Không sử dụng `try-catch` bừa bãi trong Controller.
+- Sử dụng `MapStruct` cho tất cả các việc chuyển đổi dữ liệu Entity <-> DTO.
+
+## 🛡 7. Quy trình Kiểm thử & Bàn giao (Mệnh lệnh Tối cao)
+- **TỰ KIỂM TRA:** Sau khi viết code, AI **BẮT BUỘC** phải tự chạy lệnh `.\mvnw.cmd compile` để kiểm tra lỗi biên dịch.
+- **KHÔNG BÀN GIAO LỖI:** Tuyệt đối không bàn giao code khi vẫn còn lỗi đỏ (error) trong IDE hoặc lỗi build Maven.
+- **LẶP LẠI (ITERATE):** Nếu build thất bại, AI phải tự phân tích lỗi, sửa lại code và build lại cho đến khi **BUILD SUCCESS** mới được thông báo cho người dùng.
+- **LOGIC CHECK:** Phải rà soát logic chống trùng, kiểm tra null và các ràng buộc dữ liệu trước khi hoàn tất task.
+
+---
+*Lưu ý: Luôn kiểm tra sự tồn tại của dữ liệu và ném ra ResourceNotFoundException nếu không tìm thấy.*

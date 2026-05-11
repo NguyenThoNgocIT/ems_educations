@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 spring:
   config:
     activate:
@@ -12,11 +12,18 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.SQLServerDialect
+# 📝 LOGGING CONFIGURATION
+logging:
+  level:
+    "[org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver]": ERROR
+    "[com.quanlydaotao.backend]": DEBUG
+    "[org.hibernate.SQL]": INFO
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": INFO
 open:
   api:
     title: API Quản lý Đào tạo
