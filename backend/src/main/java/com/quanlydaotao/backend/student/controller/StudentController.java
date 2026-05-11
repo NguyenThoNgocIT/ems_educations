@@ -1,4 +1,4 @@
-    package com.quanlydaotao.backend.student.controller;
+package com.quanlydaotao.backend.student.controller;
 import com.quanlydaotao.backend.student.dto.CreateStudentRequest;
 import com.quanlydaotao.backend.student.dto.EnrollStudentRequest;
 import com.quanlydaotao.backend.student.dto.StudentDto;
