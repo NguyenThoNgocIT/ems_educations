@@ -40,13 +40,13 @@ public class Person extends SoftDeleteEntity {
     @Column(name = "Ethnicity", length = 100)
     private String ethnicity;
 
-    @Column(name = "personal_identification_number", length = 20)
+    @Column(name = "PersonalIdentificationNumber", length = 20)
     private String personalIdentificationNumber;
 
-    @Column(name = "date_of_issue")
+    @Column(name = "DateOfIssue")
     private LocalDate dateOfIssue;
 
-    @Column(name = "card_place", length = 100)
+    @Column(name = "CardPlace", length = 100)
     private String cardPlace;
 
     @Column(name = "Nationality", length = 100)

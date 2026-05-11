@@ -51,31 +51,31 @@ public class TrainingProgram extends BaseEntity {
     @Column(name = "TotalCredits")
     private Integer totalCredits;
     
-    @Column(name = "required_credits", precision = 5, scale = 1)
+    @Column(name = "RequiredCredits", precision = 5, scale = 1)
     private BigDecimal requiredCredits;
     
-    @Column(name = "elective_credits", precision = 5, scale = 1)
+    @Column(name = "ElectiveCredits", precision = 5, scale = 1)
     private BigDecimal electiveCredits;
     
-    @Column(name = "internship_credits", precision = 5, scale = 1)
+    @Column(name = "InternshipCredits", precision = 5, scale = 1)
     private BigDecimal internshipCredits;
     
-    @Column(name = "thesis_credits", precision = 5, scale = 1)
+    @Column(name = "ThesisCredits", precision = 5, scale = 1)
     private BigDecimal thesisCredits;
     
-    @Column(name = "admission_year")
+    @Column(name = "AdmissionYear")
     private LocalDate admissionYear;
     
-    @Column(name = "duration_years", precision = 5, scale = 1)
+    @Column(name = "DurationYears", precision = 5, scale = 1)
     private BigDecimal durationYears;
     
-    @Column(name = "max_duration_years", precision = 5, scale = 1)
+    @Column(name = "MaxDurationYears", precision = 5, scale = 1)
     private BigDecimal maxDurationYears;
     
-    @Column(name = "effective_date")
+    @Column(name = "EffectiveDate")
     private LocalDate effectiveDate;
     
-    @Column(name = "expiry_date")
+    @Column(name = "ExpiryDate")
     private LocalDate expiryDate;
     
     @Column(name = "Description", columnDefinition = "NVARCHAR(MAX)")
