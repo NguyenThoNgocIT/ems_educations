@@ -274,7 +274,7 @@ export default function RBACPage() {
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <Button variant="light" onClick={() => setIsModalOpen(false)}>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
                 Hủy
               </Button>
               <Button type="submit" className="bg-indigo-600 text-white">
@@ -301,7 +301,7 @@ export default function RBACPage() {
             Hành động này không thể hoàn tác và có thể ảnh hưởng đến người dùng thuộc vai trò này.
           </p>
           <div className="flex justify-center gap-3">
-            <Button variant="light" onClick={() => setIsDeleteModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
               Hủy
             </Button>
             <Button className="bg-error-600 hover:bg-error-700 text-white" onClick={handleDeleteRole}>
