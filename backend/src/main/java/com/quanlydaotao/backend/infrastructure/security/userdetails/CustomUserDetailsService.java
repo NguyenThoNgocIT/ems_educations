@@ -12,7 +12,6 @@ import com.quanlydaotao.backend.user.entity.UserRole;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import com.quanlydaotao.backend.user.repository.UserRoleRepository;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
