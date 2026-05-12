@@ -3,7 +3,7 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import { ChevronLeft, EyeOff as EyeCloseIcon, Eye as EyeIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -176,7 +176,7 @@ export default function SignInForm() {
                   Dùng thử nhanh các vai trò
                 </span>
               </div>
-              <ChevronLeftIcon className="relative z-10 rotate-180 text-slate-900/70 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-slate-950" />
+              <ChevronLeft className="relative z-10 rotate-180 text-slate-900/70 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-slate-950" />
             </div>
           </button>
         </div>

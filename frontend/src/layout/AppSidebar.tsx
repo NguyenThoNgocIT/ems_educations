@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
-import { ChevronDownIcon, HorizontaLDots } from "../icons/index";
+import { ChevronDown as ChevronDownIcon, MoreHorizontal as HorizontaLDots } from "lucide-react";
 // 1. IMPORT ICON ROCKET
 import { Rocket } from "lucide-react";
 

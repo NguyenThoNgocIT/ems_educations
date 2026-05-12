@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { PageIcon } from "@/icons/index";
+import { Files as PageIcon } from "lucide-react";
 
 export type NavItem = {
   name: string;

@@ -1,8 +1,8 @@
 "use client";
 import React from "react";
 import {
-  GridIcon,
-} from "../icons/index";
+  LayoutGrid as GridIcon,
+} from "lucide-react";
 
 export type NavItem = {
   name: string;
