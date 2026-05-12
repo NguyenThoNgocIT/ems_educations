@@ -1,53 +1,123 @@
-import PlusIcon from "./plus.svg";
-import CloseIcon from "./close.svg";
-import BoxIcon from "./box.svg";
-import CheckCircleIcon from "./check-circle.svg";
-import AlertIcon from "./alert.svg";
-import InfoIcon from "./info.svg";
-import ErrorIcon from "./info-hexa.svg";
-import BoltIcon from "./bolt.svg";
-import ArrowUpIcon from "./arrow-up.svg";
-import ArrowDownIcon from "./arrow-down.svg";
-import FolderIcon from "./folder.svg";
-import VideoIcon from "./videos.svg";
-import AudioIcon from "./audio.svg";
-import GridIcon from "./grid.svg";
-import FileIcon from "./file.svg";
-import DownloadIcon from "./download.svg";
-import ArrowRightIcon from "./arrow-right.svg";
-import GroupIcon from "./group.svg";
-import BoxIconLine from "./box-line.svg";
-import ShootingStarIcon from "./shooting-star.svg";
-import DollarLineIcon from "./dollar-line.svg";
-import TrashBinIcon from "./trash.svg";
-import AngleUpIcon from "./angle-up.svg";
-import AngleDownIcon from "./angle-down.svg";
-import PencilIcon from "./pencil.svg";
-import CheckLineIcon from "./check-line.svg";
-import CloseLineIcon from "./close-line.svg";
-import ChevronDownIcon from "./chevron-down.svg";
-import ChevronUpIcon from "./chevron-up.svg";
-import PaperPlaneIcon from "./paper-plane.svg";
-import LockIcon from "./lock.svg";
-import EnvelopeIcon from "./envelope.svg";
-import UserIcon from "./user-line.svg";
-import CalenderIcon from "./calender-line.svg";
-import EyeIcon from "./eye.svg";
-import EyeCloseIcon from "./eye-close.svg";
-import TimeIcon from "./time.svg";
-import CopyIcon from "./copy.svg";
-import ChevronLeftIcon from "./chevron-left.svg";
-import UserCircleIcon from "./user-circle.svg";
-import TaskIcon from "./task-icon.svg";
-import ListIcon from "./list.svg";
-import TableIcon from "./table.svg";
-import PageIcon from "./page.svg";
-import PieChartIcon from "./pie-chart.svg";
-import BoxCubeIcon from "./box-cube.svg";
-import PlugInIcon from "./plug-in.svg";
-import DocsIcon from "./docs.svg";
-import MailIcon from "./mail-line.svg";
-import HorizontaLDots from "./horizontal-dots.svg";
+import { 
+  Plus as PlusIcon,
+  X as CloseIcon,
+  Box as BoxIcon,
+  CheckCircle as CheckCircleIcon,
+  AlertCircle as AlertIcon,
+  Info as InfoIcon,
+  AlertHexagon as ErrorIcon,
+  Zap as BoltIcon,
+  ArrowUp as ArrowUpIcon,
+  ArrowDown as ArrowDownIcon,
+  Folder as FolderIcon,
+  Video as VideoIcon,
+  Mic as AudioIcon,
+  LayoutGrid as GridIcon,
+  File as FileIcon,
+  Download as DownloadIcon,
+  ArrowRight as ArrowRightIcon,
+  Users as GroupIcon,
+  Package as BoxIconLine,
+  Star as ShootingStarIcon,
+  CircleDollarSign as DollarLineIcon,
+  Trash2 as TrashBinIcon,
+  ChevronUp as AngleUpIcon,
+  ChevronDown as AngleDownIcon,
+  Pencil as PencilIcon,
+  Check as CheckLineIcon,
+  X as CloseLineIcon,
+  ChevronDown as ChevronDownIcon,
+  ChevronUp as ChevronUpIcon,
+  Send as PaperPlaneIcon,
+  Lock as LockIcon,
+  Mail as EnvelopeIcon,
+  User as UserIcon,
+  Calendar as CalenderIcon,
+  Eye as EyeIcon,
+  EyeOff as EyeCloseIcon,
+  Clock as TimeIcon,
+  Copy as CopyIcon,
+  ChevronLeft as ChevronLeftIcon,
+  UserCircle as UserCircleIcon,
+  ClipboardList as TaskIcon,
+  List as ListIcon,
+  Table as TableIcon,
+  Files as PageIcon,
+  PieChart as PieChartIcon,
+  Cuboid as BoxCubeIcon,
+  PlugZap as PlugInIcon,
+  FileText as DocsIcon,
+  Mail as MailIcon,
+  MoreHorizontal as HorizontaLDots,
+  MoreVertical as MoreDotIcon,
+  Bell as BellIcon,
+  Check as CheckIcon,
+  ChevronRight as AngleRightIcon,
+  ChevronLeft as AngleLeftIcon,
+  MessageSquare as ChatIcon,
+  History as TaskIconSecond
+} from "lucide-react";
+
+export {
+  PlusIcon,
+  CloseIcon,
+  BoxIcon,
+  CheckCircleIcon,
+  AlertIcon,
+  InfoIcon,
+  ErrorIcon,
+  BoltIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  FolderIcon,
+  VideoIcon,
+  AudioIcon,
+  GridIcon,
+  FileIcon,
+  DownloadIcon,
+  ArrowRightIcon,
+  GroupIcon,
+  BoxIconLine,
+  ShootingStarIcon,
+  DollarLineIcon,
+  TrashBinIcon,
+  AngleUpIcon,
+  AngleDownIcon,
+  PencilIcon,
+  CheckLineIcon,
+  CloseLineIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  PaperPlaneIcon,
+  LockIcon,
+  EnvelopeIcon,
+  UserIcon,
+  CalenderIcon,
+  EyeIcon,
+  EyeCloseIcon,
+  TimeIcon,
+  CopyIcon,
+  ChevronLeftIcon,
+  UserCircleIcon,
+  TaskIcon,
+  ListIcon,
+  TableIcon,
+  PageIcon,
+  PieChartIcon,
+  BoxCubeIcon,
+  PlugInIcon,
+  DocsIcon,
+  MailIcon,
+  HorizontaLDots,
+  MoreDotIcon,
+  BellIcon,
+  CheckIcon,
+  AngleRightIcon,
+  AngleLeftIcon,
+  ChatIcon,
+  TaskIconSecond
+};
+
 import ChatIcon from "./chat.svg";
 import MoreDotIcon from "./more-dot.svg";
 import BellIcon from "./bell.svg";
