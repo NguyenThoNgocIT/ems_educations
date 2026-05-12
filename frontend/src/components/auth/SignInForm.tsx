@@ -16,6 +16,7 @@ import {
   Users,
   Zap,
   X,
+  ShieldCheck,
 } from "lucide-react";
 
 export default function SignInForm() {
@@ -31,6 +32,12 @@ export default function SignInForm() {
   const [error, setError] = useState("");
 
   const trialRoles = [
+    {
+      id: "admin",
+      label: "Quản trị viên",
+      icon: <ShieldCheck size={24} />,
+      color: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400",
+    },
     {
       id: "branch-management",
       label: "Quản lý chi nhánh",
@@ -107,7 +114,12 @@ export default function SignInForm() {
         }
 
         // Get the first role from the roles list, default to "student"
-        const userRole = (authData.roles && authData.roles.length > 0 ? authData.roles[0] : "student").toLowerCase();
+        let userRole = (authData.roles && authData.roles.length > 0 ? authData.roles[0] : "student").toLowerCase();
+        
+        // Remove ROLE_ prefix if it exists
+        if (userRole.startsWith("role_")) {
+          userRole = userRole.replace("role_", "");
+        }
         
         const maxAge = isChecked ? 7 * 86400 : 86400;
         document.cookie = `user-token=${authData.accessToken}; path=/; max-age=${maxAge}`;
@@ -115,14 +127,14 @@ export default function SignInForm() {
 
         const roleMap: Record<string, string> = {
           "admin": "/dashboard/admin",
-          "manager": "/dashboard/manager",
+          "branch-management": "/dashboard/branch-management",
           "teacher": "/dashboard/teacher",
           "student": "/dashboard/student",
           "consultant": "/dashboard/consultant",
-          "parent": "/dashboard/parent",
+          "parents": "/dashboard/parents",
         };
 
-        const redirectPath = roleMap[userRole] || "/";
+        const redirectPath = roleMap[userRole] || `/dashboard/${userRole}`;
         router.push(redirectPath);
         router.refresh();
       } else {
