@@ -1,0 +1,30 @@
+# Nhật ký thay đổi hệ thống - 13/05/2026
+
+## Nội dung: Khóa quyền chỉnh sửa ID và Email của User (RBAC Security)
+
+### 1. Mục tiêu
+- Ngăn chặn việc thay đổi định danh người dùng (`UserId`) và địa chỉ liên lạc chính (`Email`) sau khi đã khởi tạo.
+- Đảm bảo tính toàn vẹn dữ liệu cho hệ thống RBAC.
+
+### 2. Các thay đổi đã thực hiện
+
+#### A. Tầng Entity (Database protection)
+- File: `backend/src/main/java/com/quanlydaotao/backend/user/entity/User.java`
+- Hành động: Cấu hình `@Column(updatable = false)` cho các trường:
+    - `userId`: Đảm bảo không bao giờ thay đổi khóa chính.
+    - `email`: Khóa quyền cập nhật email ở mức Hibernate/JPA.
+
+#### B. Tầng DTO (API Request validation)
+- File: `backend/src/main/java/com/quanlydaotao/backend/user/dto/UpdateUserRequest.java`
+- Hành động: Loại bỏ field `email` ra khỏi request body. API sẽ không còn tiếp nhận dữ liệu email khi gọi endpoint cập nhật.
+
+#### C. Tầng Service (Business Logic)
+- File: `backend/src/main/java/com/quanlydaotao/backend/user/service/UserService.java`
+- Hành động: Loại bỏ logic `user.setEmail(request.getEmail())` trong hàm `updateUser`.
+
+### 3. Kết quả
+- Người dùng và quản trị viên không thể thay đổi Email thông qua các API cập nhật thông thường.
+- Mọi nỗ lực thay đổi ID từ code sẽ bị JPA chặn đứng.
+
+
+

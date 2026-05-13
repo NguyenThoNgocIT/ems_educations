@@ -41,7 +41,7 @@ public class User extends SoftDeleteEntity {
     @Column(name = "PasswordHash", nullable = false, length = 255)
     private String passwordHash;
 
-    @Column(name = "Email", unique = true, length = 150)
+    @Column(name = "Email", unique = true, length = 150, updatable = false)
     private String email;
 
     @Column(name = "LastLoginAt")
