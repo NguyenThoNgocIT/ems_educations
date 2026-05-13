@@ -60,7 +60,6 @@ public class UserService {
     @Transactional
     public UserDto updateUser(UUID id, UpdateUserRequest request) {
         User user = userRepository.findById(id).orElseThrow();
-        user.setEmail(request.getEmail());
         if (request.getIsActive() != null) user.setIsActive(request.getIsActive());
         return mapToDto(userRepository.save(user));
     }

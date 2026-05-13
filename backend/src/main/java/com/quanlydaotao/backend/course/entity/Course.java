@@ -1,6 +1,6 @@
 package com.quanlydaotao.backend.course.entity;
 
-import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
+import com.quanlydaotao.backend.infrastructure.persistence.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -21,7 +21,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Course extends SoftDeleteEntity {
+public class Course extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -43,22 +43,49 @@ public class Course extends SoftDeleteEntity {
     @Column(name = "CourseType", length = 20)
     private String courseType;
 
-    @Column(name = "Credits", nullable = false, precision = 5, scale = 1)
-    private BigDecimal credits;
+    @Column(name = "Credits", nullable = false)
+    private Double credits;
 
-    @Column(name = "TheoryHours", precision = 5, scale = 1)
-    private BigDecimal theoryHours;
+    @Column(name = "TheoryHours")
+    private Double theoryHours;
 
-    @Column(name = "PracticeHours", precision = 5, scale = 1)
-    private BigDecimal practiceHours;
+    @Column(name = "PracticeHours")
+    private Double practiceHours;
 
-    @Column(name = "SelfStudyHours", precision = 5, scale = 1)
-    private BigDecimal selfStudyHours;
+    @Column(name = "SelfStudyHours")
+    private Double selfStudyHours;
 
-    @Column(name = "InternshipCredits", precision = 5, scale = 1)
-    private BigDecimal internshipCredits;
+    @Column(name = "InternshipCredits")
+    private Double internshipCredits;
 
     @Column(name = "Description", length = 1000)
     private String description;
+
+    @Column(name = "IsActive")
+    private Boolean isActive;
+
+    // Mapping chính xác cột DeleteAt/DeleteBy từ dbsql.md
+    @Column(name = "DeleteAt")
+    private java.time.LocalDateTime deletedAt;
+
+    @Column(name = "DeleteBy")
+    private UUID deletedBy;
+
+    // Ghi đè các getter/setter để Hibernate không dùng tên mặc định DeletedAt/DeletedBy
+    public java.time.LocalDateTime getDeletedAt() {
+        return this.deletedAt;
+    }
+
+    public void setDeletedAt(java.time.LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public UUID getDeletedBy() {
+        return this.deletedBy;
+    }
+
+    public void setDeletedBy(UUID deletedBy) {
+        this.deletedBy = deletedBy;
+    }
 }
 
