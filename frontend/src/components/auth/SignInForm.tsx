@@ -3,7 +3,7 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import { ChevronLeft, EyeOff as EyeCloseIcon, Eye as EyeIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -16,6 +16,7 @@ import {
   Users,
   Zap,
   X,
+  ShieldCheck,
 } from "lucide-react";
 
 export default function SignInForm() {
@@ -31,6 +32,12 @@ export default function SignInForm() {
   const [error, setError] = useState("");
 
   const trialRoles = [
+    {
+      id: "admin",
+      label: "Quản trị viên",
+      icon: <ShieldCheck size={24} />,
+      color: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400",
+    },
     {
       id: "branch-management",
       label: "Quản lý chi nhánh",
@@ -107,7 +114,12 @@ export default function SignInForm() {
         }
 
         // Get the first role from the roles list, default to "student"
-        const userRole = (authData.roles && authData.roles.length > 0 ? authData.roles[0] : "student").toLowerCase();
+        let userRole = (authData.roles && authData.roles.length > 0 ? authData.roles[0] : "student").toLowerCase();
+        
+        // Remove ROLE_ prefix if it exists
+        if (userRole.startsWith("role_")) {
+          userRole = userRole.replace("role_", "");
+        }
         
         const maxAge = isChecked ? 7 * 86400 : 86400;
         document.cookie = `user-token=${authData.accessToken}; path=/; max-age=${maxAge}`;
@@ -115,14 +127,14 @@ export default function SignInForm() {
 
         const roleMap: Record<string, string> = {
           "admin": "/dashboard/admin",
-          "manager": "/dashboard/manager",
+          "branch-management": "/dashboard/branch-management",
           "teacher": "/dashboard/teacher",
           "student": "/dashboard/student",
           "consultant": "/dashboard/consultant",
-          "parent": "/dashboard/parent",
+          "parents": "/dashboard/parents",
         };
 
-        const redirectPath = roleMap[userRole] || "/";
+        const redirectPath = roleMap[userRole] || `/dashboard/${userRole}`;
         router.push(redirectPath);
         router.refresh();
       } else {
@@ -164,7 +176,7 @@ export default function SignInForm() {
                   Dùng thử nhanh các vai trò
                 </span>
               </div>
-              <ChevronLeftIcon className="relative z-10 rotate-180 text-slate-900/70 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-slate-950" />
+              <ChevronLeft className="relative z-10 rotate-180 text-slate-900/70 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-slate-950" />
             </div>
           </button>
         </div>

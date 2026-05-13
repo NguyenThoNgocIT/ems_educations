@@ -1,8 +1,8 @@
 "use client";
 import React from "react";
 import {
-  GridIcon,
-} from "../icons/index";
+  LayoutGrid as GridIcon,
+} from "lucide-react";
 
 export type NavItem = {
   name: string;
@@ -12,7 +12,13 @@ export type NavItem = {
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
-export const CenterItems: NavItem[] = [];
+export const CenterItems: NavItem[] = [
+  {
+    icon: <GridIcon />,
+    name: "Phân quyền (RBAC)",
+    path: "/dashboard/admin/rbac",
+  },
+];
 
 export const LearingItems: NavItem[] = [
   {
