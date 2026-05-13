@@ -11,4 +11,6 @@ public class CreatePrerequisiteRequest {
     
     @NotNull(message = "Prerequisite Course ID is required")
     private UUID prerequisiteId;
+
+    private String type; // PREREQUISITE, PARALLEL
 }
