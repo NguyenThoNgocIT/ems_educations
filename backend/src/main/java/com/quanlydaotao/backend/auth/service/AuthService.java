@@ -74,8 +74,8 @@ public class AuthService {
                 .collect(Collectors.toList());
 
         boolean requirePassChange = user.getRequirePasswordChange() != null && user.getRequirePasswordChange();
-        // Cố tình bỏ qua yêu cầu đổi mật khẩu đối với tài khoản admin
-        if ("admin".equalsIgnoreCase(user.getUsername())) {
+        // Cố tình bỏ qua yêu cầu đổi mật khẩu đối với tài khoản admin và superadmin
+        if ("admin".equalsIgnoreCase(user.getUsername()) || "superadmin".equalsIgnoreCase(user.getUsername())) {
              requirePassChange = false;
         }
 
@@ -103,11 +103,17 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthMeResponse getMe(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
+
+        boolean requirePassChange = user.getRequirePasswordChange() != null && user.getRequirePasswordChange();
+        if ("admin".equalsIgnoreCase(user.getUsername()) || "superadmin".equalsIgnoreCase(user.getUsername())) {
+             requirePassChange = false;
+        }
+
         return AuthMeResponse.builder()
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .fullName(user.getPerson().getFullName())
-                .requirePasswordChange(user.getRequirePasswordChange() != null && user.getRequirePasswordChange())
+                .requirePasswordChange(requirePassChange)
                 .build();
     }
 
