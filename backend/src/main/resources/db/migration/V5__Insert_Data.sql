@@ -58,7 +58,7 @@ INSERT INTO Users (UserId, PersonId, Username, PasswordHash, Email, AccessFailed
 VALUES (NEWID(), @SuperAdminPersonId, 'superadmin', '$2a$10$ZMnjZS3qB5Vd.RLXYmK/oeCnSXNMaktnK9gFn7Z0zx5jxApLeb7l2', 'superadmin@university.edu.vn', 0, 1, CURRENT_TIMESTAMP);
 END
 
-DECLARE @AdminPersonId UNIQUEIDENTIFIER;
+DECLARE @AdminPersonId UNIQUEIDENTIFIER
 SELECT TOP 1 @AdminPersonId = PersonId FROM Persons WHERE ContactEmail = 'admin@university.edu.vn';
 IF NOT EXISTS (SELECT 1 FROM Users WHERE Username = 'admin') AND @AdminPersonId IS NOT NULL
 BEGIN
