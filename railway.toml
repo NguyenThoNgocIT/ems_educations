@@ -1,0 +1,12 @@
+# This file is used to tell Railway how to build and run the multi-module project
+
+# 1. Build the backend
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd backend && ./mvnw clean package -DskipTests"
+
+# 2. Start the backend
+[deploy]
+startCommand = "java -jar backend/target/*.jar"
+healthcheckPath = "/api/health" # Adjust this to your health check endpoint
+healthcheckTimeout = 100
