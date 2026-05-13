@@ -27,6 +27,9 @@ public class CoursePrerequisite {
     @Column(name = "PrerequisiteCourseId")
     private UUID prerequisiteCourseId;
 
+    @Column(name = "Type")
+    private String type; // PREREQUISITE, PARALLEL
+
     @Column(name = "IsActive", nullable = false)
     private Boolean isActive = true;
 
