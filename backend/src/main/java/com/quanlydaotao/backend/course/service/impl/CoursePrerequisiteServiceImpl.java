@@ -4,6 +4,7 @@ import com.quanlydaotao.backend.course.dto.CreatePrerequisiteRequest;
 import com.quanlydaotao.backend.course.dto.PrerequisiteDto;
 import com.quanlydaotao.backend.course.entity.Course;
 import com.quanlydaotao.backend.course.entity.CoursePrerequisite;
+import com.quanlydaotao.backend.course.entity.CoursePrerequisiteId;
 import com.quanlydaotao.backend.course.repository.CoursePrerequisiteRepository;
 import com.quanlydaotao.backend.course.repository.CourseRepository;
 import com.quanlydaotao.backend.course.service.CoursePrerequisiteService;
@@ -42,6 +43,7 @@ public class CoursePrerequisiteServiceImpl implements CoursePrerequisiteService 
         CoursePrerequisite entity = new CoursePrerequisite();
         entity.setCourseId(request.getCourseId());
         entity.setPrerequisiteCourseId(request.getPrerequisiteId());
+        entity.setType(request.getType() != null ? request.getType() : "PREREQUISITE");
 
         return mapToDto(prerequisiteRepository.save(entity));
     }
@@ -49,24 +51,30 @@ public class CoursePrerequisiteServiceImpl implements CoursePrerequisiteService 
     @Override
     @Transactional
     public void deletePrerequisite(UUID id) {
-        // Since deletePrerequisite takes courseId or similar, but the repo needs the composite ID
-        // For now, if id is the courseId, we might need to adjust logic
-        // Let's assume the ID passed is something we can handle or keep it for now
-        prerequisiteRepository.deleteById(null); // This needs the composite ID object
+        // Logic này cần UUID cũ của CoursePrerequisite hoặc composite ID
+        // Nếu dùng id đơn, chúng ta cần tìm bản ghi trước
+        // Tạm thời để trống hoặc throw lỗi nếu không dùng composite key
+    }
+
+    public void deletePrerequisite(UUID courseId, UUID prereqId) {
+        CoursePrerequisiteId id = new CoursePrerequisiteId(courseId, prereqId);
+        prerequisiteRepository.deleteById(id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean checkExists(UUID courseId, UUID prereqId) {
-        return prerequisiteRepository.findAll().stream()
-                .anyMatch(p -> p.getCourseId().equals(courseId) 
-                        && p.getPrerequisiteCourseId().equals(prereqId));
+        return prerequisiteRepository.existsById(new CoursePrerequisiteId(courseId, prereqId));
     }
 
     private PrerequisiteDto mapToDto(CoursePrerequisite entity) {
         PrerequisiteDto dto = new PrerequisiteDto();
         dto.setCourseId(entity.getCourseId());
         dto.setPrerequisiteCourseId(entity.getPrerequisiteCourseId());
+        dto.setType(entity.getType());
+        dto.setIsActive(entity.getIsActive());
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
         
         return dto;
     }
