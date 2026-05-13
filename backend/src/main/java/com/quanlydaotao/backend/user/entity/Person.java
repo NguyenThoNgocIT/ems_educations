@@ -31,6 +31,9 @@ public class Person extends SoftDeleteEntity {
     @Column(name = "FullName", nullable = false, length = 150)
     private String fullName;
 
+    @Column(name = "FullNameNoAccent", length = 150)
+    private String fullNameNoAccent;
+
     @Column(name = "Gender", length = 20)
     private String gender;
 

@@ -28,6 +28,8 @@ public class Employee extends SoftDeleteEntity {
     private LocalDate startWorkDate;
     @Column(name = "Status", length = 50)
     private String status;
-}
 
+    @Column(name = "EmployeeType", length = 20)
+    private String employeeType;
+}
 
