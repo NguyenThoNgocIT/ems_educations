@@ -17,11 +17,7 @@ public class TrainingManagementApplication {
     @Bean
     public CommandLineRunner initData(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            userRepository.findByUsername("admin").ifPresent(user -> {
-                user.setPasswordHash(passwordEncoder.encode("123456"));
-                userRepository.save(user);
-                System.out.println("✅ [Hệ thống] Đã đặt lại mật khẩu admin là: 123456");
-            });
+            // Initialization logic if any
         };
     }
 }
