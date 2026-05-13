@@ -2,11 +2,15 @@
 
 # 1. Build the backend
 [build]
+nixpkgsArchive = "latest"
 builder = "NIXPACKS"
 buildCommand = "cd backend && chmod +x ./mvnw && ./mvnw clean package -DskipTests"
+
+[build.nixpacks]
+pkgs = ["jdk17", "maven"]
 
 # 2. Start the backend
 [deploy]
 startCommand = "java -jar backend/target/*.jar"
-healthcheckPath = "/api/health" # Adjust this to your health check endpoint
+healthcheckPath = "/api/auth/login"
 healthcheckTimeout = 100
