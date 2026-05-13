@@ -40,7 +40,7 @@ public class CourseController {
     @GetMapping("/code/{code}")
     @Operation(summary = "Lấy môn học theo Mã", description = "Tìm kiếm nhanh môn học bằng mã môn (ví dụ: CS101)")
     public ResponseEntity<CourseDto> getCourseByCode(@PathVariable String code) {
-        return ResponseEntity.ok(courseService.getCourseByCod(code));
+        return ResponseEntity.ok(courseService.getCourseByCode(code));
     }
 
     @GetMapping

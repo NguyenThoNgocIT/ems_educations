@@ -57,7 +57,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public CourseDto getCourseByCod(String code) {
+    public CourseDto getCourseByCode(String code) {
         Course course = courseRepository.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with code: " + code));
         return mapToDto(course);
