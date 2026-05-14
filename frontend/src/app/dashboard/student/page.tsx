@@ -1,160 +1,150 @@
-"use client";
-import React from "react";
-import {
-  Trophy,
-  BookOpen,
-  Brain,
-  Calendar,
-  Clock,
-  ArrowRight,
-} from "lucide-react";
+'use client';
 
-export default function StudentDashboardPage() {
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { GraduationCap, Award, Calendar, BookOpen, TrendingUp, Star } from 'lucide-react';
+
+// Mock data
+const stats = [
+  { label: 'Điểm trung bình (GPA)', value: '3.65', icon: Star, color: 'bg-yellow-500' },
+  { label: 'Tín chỉ tích lũy', value: '72/120', icon: Award, color: 'bg-blue-500' },
+  { label: 'Xếp hạng', value: '12/245', icon: TrendingUp, color: 'bg-green-500' },
+  { label: 'Số môn đang học', value: '6', icon: BookOpen, color: 'bg-purple-500' },
+];
+
+const recentScores = [
+  { id: 1, code: 'INT1001', name: 'Lập trình Web', credits: 3, score: 8.5, grade: 'A' },
+  { id: 2, code: 'INT1002', name: 'Cơ sở dữ liệu', credits: 4, score: 7.8, grade: 'B+' },
+  { id: 3, code: 'INT1003', name: 'Mạng máy tính', credits: 3, score: 8.2, grade: 'B+' },
+  { id: 4, code: 'INT1004', name: 'Trí tuệ nhân tạo', credits: 3, score: 9.0, grade: 'A' },
+];
+
+const todaySchedule = [
+  { time: '07:30 - 09:00', course: 'Lập trình Web', room: 'A101', lecturer: 'TS. Nguyễn Văn An' },
+  { time: '09:15 - 10:45', course: 'Cơ sở dữ liệu', room: 'Lab3', lecturer: 'ThS. Trần Thị Bình' },
+  { time: '13:00 - 14:30', course: 'Mạng máy tính', room: 'B201', lecturer: 'TS. Lê Văn Cường' },
+];
+
+const getGradeColor = (score: number) => {
+  if (score >= 8.5) return 'text-green-600 font-bold';
+  if (score >= 7.0) return 'text-blue-600';
+  if (score >= 5.0) return 'text-yellow-600';
+  return 'text-red-600';
+};
+
+export default function StudentDashboard() {
   return (
-    <div className="animate-in fade-in flex flex-col gap-8 duration-500 lg:flex-row">
-      {/* --- CỘT TRÁI: BIỂU ĐỒ KỸ NĂNG --- */}
-      <div className="w-full space-y-6 lg:w-1/3">
-        <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="mb-8 text-center text-lg text-black leading-normal">
-            Điểm kỹ năng đầu vào
-          </h2>
-
-          {/* Placeholder cho Radar Chart (Công có thể dùng Recharts hoặc SVG) */}
-          <div className="relative mx-auto flex h-64 w-64 items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-[1px] border-dashed border-slate-200 dark:border-slate-700"></div>
-            <svg viewBox="0 0 100 100" className="h-full w-full drop-shadow-xl">
-              <polygon
-                points="50,10 90,50 50,90 10,50"
-                className="fill-blue-500/20 stroke-blue-500 stroke-[1.5]"
-              />
-              <line
-                x1="50"
-                y1="10"
-                x2="50"
-                y2="90"
-                className="stroke-gray-100 dark:stroke-gray-800"
-              />
-              <line
-                x1="10"
-                y1="50"
-                x2="90"
-                y2="50"
-                className="stroke-gray-100 dark:stroke-gray-800"
-              />
-            </svg>
-            <span className="absolute -top-4 text-[10px] font-bold text-slate-400">
-              NaN
-            </span>
-            <span className="absolute -bottom-4 text-[10px] font-bold text-slate-400">
-              NaN
-            </span>
-            <span className="absolute -left-4 text-[10px] font-bold text-slate-400">
-              NaN
-            </span>
-            <span className="absolute -right-4 text-[10px] font-bold text-slate-400">
-              NaN
-            </span>
-          </div>
-
-          <button className="mt-12 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-50 py-4 text-sm font-bold text-blue-600 transition-all hover:bg-blue-100 dark:bg-blue-900/20">
-            Lộ trình của tôi <ArrowRight size={16} />
-          </button>
-        </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Chào mừng, Sinh viên!</h1>
+        <p className="text-muted-foreground">Theo dõi kết quả học tập và lịch học của bạn</p>
       </div>
 
-      {/* --- CỘT PHẢI: NỘI DUNG CHÍNH --- */}
-      <div className="flex-1 space-y-6">
-        {/* Banner Lớp học sắp diễn ra */}
-        <div className="rounded-3xl border border-orange-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="rounded-xl bg-orange-50 px-4 py-2 text-sm font-bold text-orange-600 dark:bg-orange-900/20">
-                PRE-IELTS 11
-              </div>
-              <div className="text-sm font-medium text-slate-5 leading-relaxed00">
-                Buổi 1 •{" "}
-                <span className="font-bold text-orange-500">Online</span>
-              </div>
-              <div className="flex items-center gap-1 text-sm text-slate-4 leading-relaxed00">
-                <Calendar size={14} /> Thứ 2, 12/08
-              </div>
-              <div className="flex items-center gap-1 border-l border-slate-100 pl-4 text-sm text-slate-4 leading-relaxed00">
-                <Clock size={14} /> 18:30 - 20:00
-              </div>
-              <span className="rounded-lg bg-slate-50 px-2 py-1 text-[10px] text-slate-400">
-                Sắp diễn ra
-              </span>
-            </div>
-            <button className="rounded-xl bg-orange-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-orange-200 transition-all hover:bg-orange-600 active:scale-95">
-              Tham gia học ➔
-            </button>
-          </div>
-        </div>
-
-        {/* Khối Thống kê bài tập */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {[
-            {
-              label: "Bài tập đã hoàn thành",
-              color: "bg-blue-50",
-              iconColor: "bg-blue-500",
-              icon: Trophy,
-            },
-            {
-              label: "Bài tập đã hoàn thành",
-              color: "bg-pink-50",
-              iconColor: "bg-pink-500",
-              icon: BookOpen,
-            },
-            {
-              label: "Bài tập đã hoàn thành",
-              color: "bg-purple-50",
-              iconColor: "bg-purple-500",
-              icon: Brain,
-            },
-          ].map((item, i) => (
-            <div
-              key={i}
-              className={`flex flex-col items-center justify-center rounded-3xl p-8 ${item.color} dark:bg-opacity-10`}
-            >
-              <div
-                className={`mb-4 rounded-xl ${item.iconColor} p-3 text-white shadow-md`}
-              >
-                <item.icon size={24} />
-              </div>
-              <p className="mb-2 text-center text-[11px] font-medium text-slate-500 leading-relaxed">
-                {item.label}
-              </p>
-              <p className="text-4xl font-bold text-slate-800 dark:text-white leading-relaxed">
-                0
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Các phần danh sách bên dưới */}
-        <div className="grid grid-cols-1 gap-8 pt-4 md:grid-cols-2">
-          <div className="space-y-4">
-            <h3 className="font-bold text-slate-800 dark:text-white leading-tight leading-snug">
-              Tiến độ học tập của bạn
-            </h3>
-            <div className="flex h-32 items-center justify-center rounded-2xl border-2 border-dashed border-slate-100 text-sm text-slate-3 leading-relaxed00 dark:border-slate-800">
-              Đang cập nhật dữ liệu...
-            </div>
-          </div>
-          <div className="space-y-4">
-            <h3 className="font-bold text-slate-800 dark:text-white leading-tight leading-snug">
-              Bài tập cần làm
-            </h3>
-            <div className="flex h-32 items-center justify-center rounded-2xl border-2 border-dashed border-slate-100 text-sm text-slate-3 leading-relaxed00 dark:border-slate-800">
-              Chưa có bài tập mới
-            </div>
-          </div>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={index} className="relative overflow-hidden">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">{stat.label}</p>
+                    <p className="text-3xl font-bold mb-2">{stat.value}</p>
+                  </div>
+                  <div className={`${stat.color} w-12 h-12 rounded-xl flex items-center justify-center`}>
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
+
+      {/* Recent Scores & Today Schedule */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Scores Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              Kết quả học tập gần đây
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-2 font-semibold text-sm">Mã môn</th>
+                    <th className="text-left py-3 px-2 font-semibold text-sm">Tên môn</th>
+                    <th className="text-center py-3 px-2 font-semibold text-sm">TC</th>
+                    <th className="text-center py-3 px-2 font-semibold text-sm">Điểm</th>
+                    <th className="text-center py-3 px-2 font-semibold text-sm">Xếp loại</th>
+                   </tr>
+                </thead>
+                <tbody>
+                  {recentScores.map((item) => (
+                    <tr key={item.id} className="border-b hover:bg-muted/50">
+                      <td className="py-3 px-2 text-sm font-medium">{item.code}</td>
+                      <td className="py-3 px-2 text-sm">{item.name}</td>
+                      <td className="py-3 px-2 text-sm text-center">{item.credits}</td>
+                      <td className={`py-3 px-2 text-sm text-center ${getGradeColor(item.score)}`}>
+                        {item.score}
+                       </td>
+                      <td className="py-3 px-2 text-sm text-center font-medium">{item.grade}</td>
+                     </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Button variant="link" className="mt-4 w-full">Xem tất cả điểm →</Button>
+          </CardContent>
+        </Card>
+
+        {/* Today Schedule */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Lịch học hôm nay
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {todaySchedule.map((item, index) => (
+                <div key={index} className="flex items-center p-3 bg-muted/30 rounded-lg">
+                  <div className="w-24 text-sm font-medium">{item.time}</div>
+                  <div className="flex-1">
+                    <div className="font-medium">{item.course}</div>
+                    <div className="text-xs text-muted-foreground">Phòng: {item.room} - GV: {item.lecturer}</div>
+                  </div>
+                  <Button variant="outline" size="sm">Chi tiết</Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* GPA Progress Card */}
+      <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 className="font-semibold text-lg">Tiến độ học tập</h3>
+              <p className="text-sm text-muted-foreground">Bạn đã hoàn thành 72/120 tín chỉ (60%)</p>
+              <div className="w-full md:w-96 h-2 bg-gray-200 rounded-full mt-3">
+                <div className="h-2 bg-primary rounded-full" style={{ width: '60%' }}></div>
+              </div>
+            </div>
+            <Button>Xem chi tiết</Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-
-

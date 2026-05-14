@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 public class StudentDto {
     private UUID id;
     private UUID personId;
+    private String fullName;
     private String studentCode;
     private String note;
     private UUID trainingProgramId;
