@@ -70,7 +70,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // ✅ CHỈ THÊM DÒNG NÀY
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/v1/courses/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/courses/**").permitAll()
+                .requestMatchers("/api/v1/courses/**").hasRole("ADMIN")
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             );

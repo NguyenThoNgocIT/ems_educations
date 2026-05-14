@@ -1,0 +1,5 @@
+﻿ALTER TABLE Persons ADD FullNameNoAccent NVARCHAR(150) NULL;
+ALTER TABLE Users ADD EmailConfirmed BIT DEFAULT 0 NOT NULL;
+ALTER TABLE Users ADD ConfirmationToken NVARCHAR(255) NULL;
+ALTER TABLE Students ADD AdmissionDate DATE NULL;
+ALTER TABLE Employees ADD EmployeeType NVARCHAR(20) NULL;

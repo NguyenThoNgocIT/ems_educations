@@ -58,4 +58,10 @@ public class User extends SoftDeleteEntity {
 
     @Column(name = "RequirePasswordChange")
     private Boolean requirePasswordChange = true;
+
+    @Column(name = "EmailConfirmed")
+    private Boolean emailConfirmed = false;
+
+    @Column(name = "ConfirmationToken", length = 255)
+    private String confirmationToken;
 }

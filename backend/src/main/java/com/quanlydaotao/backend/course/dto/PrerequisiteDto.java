@@ -9,6 +9,7 @@ import java.util.UUID;
 public class PrerequisiteDto {
     private UUID courseId;
     private UUID prerequisiteCourseId;
+    private String type;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

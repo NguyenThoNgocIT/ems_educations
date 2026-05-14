@@ -11,6 +11,7 @@ Backend đã áp dụng cơ chế bảo vệ dữ liệu nhạy cảm (Identity 
 - **Yêu cầu FE:** 
     - Chuyển `input` của 2 trường này sang trạng thái `disabled` hoặc `read-only`.
     - Hiển thị tooltip hoặc thông báo: *"Không thể thay đổi Mã định danh và Email sau khi đăng ký"*.
+- **Giới hạn chỉnh sửa Course:** Môn học đã mở lớp (`CourseClass`) sẽ bị khóa trường `code` và `credits`.
 
 ## 2. Chi tiết cấu trúc DTO (Module Môn học)
 
@@ -79,3 +80,19 @@ Dùng cho tính năng thiết lập lộ trình học tập giữa các môn h�
 4. **Module Scheduling:** Module này đã được khôi phục nguyên trạng. Các API lịch học (`/api/v1/schedules`) vẫn giữ nguyên các trường như: `dayOfWeek`, `shift`, `roomCode`.
 
 ---
+## 5. Logic hoạt động hệ thống (Deep Logic)
+
+### 5.1 Đăng ký học phần (Registration)
+- **Kiểm tra Môn tiên quyết (Prerequisite):** Sinh viên phải có điểm đậu ở môn tiên quyết ($\ge 4.0$). Hệ thống truy vấn trực tiếp từ bảng điểm (StudentGrade).
+- **Kiểm tra Môn song hành (Parallel):** Sinh viên phải đang đăng ký môn song hành hoặc đã hoàn thành.
+- **Tự động cập nhật sĩ số:** Tự động tăng currentStudent khi đăng ký thành công.
+- **Kiểm soát sĩ số tối đa:** Ngăn chặn đăng ký nếu currentStudent >= maxStudent.
+
+### 5.2 Xung đột lịch học (Conflict Checker)
+- **Xung đột phòng:** Không cho phép xếp 2 lịch trùng Phòng, Thứ, Ca học.
+- **Xung đột giảng viên:** Giảng viên không thể dạy 2 nơi cùng lúc.
+- **Xung đột lớp học phần:** Ngăn chặn việc xếp trùng giờ cho cùng một lớp.
+
+### 5.3 Tự động hóa môn học (Course Automation)
+- **Tự động tiết tự học:** selfStudyHours tự động được tính bằng credits * 2.
+- **Soft Delete:** Các bản ghi bị xóa sẽ chỉ chuyển trạng thái isActive = false nếu có dữ liệu liên kết.

@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.time.LocalDate;
 import java.util.UUID;
 @Entity
 @Table(name = "Students")
@@ -28,5 +29,7 @@ public class Student extends SoftDeleteEntity {
     private String note;
     @Column(name = "TrainingProgramId", nullable = false)
     private UUID trainingProgramId;
-}
 
+    @Column(name = "AdmissionDate")
+    private java.time.LocalDate admissionDate;
+}
