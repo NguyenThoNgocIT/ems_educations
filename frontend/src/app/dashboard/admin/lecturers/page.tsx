@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Edit, Trash2, FileText, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { lecturerApi } from '@/api/lecturer';
 
 // Định nghĩa type cho Lecturer
 interface Lecturer {
@@ -22,28 +23,28 @@ interface Lecturer {
   isActive: boolean;
 }
 
-// Mock data - sẽ thay bằng API call sau
-const mockLecturers: Lecturer[] = [
-  { id: '1', instructorCode: 'GV001', fullName: 'TS. Nguyễn Văn An', employeeCode: 'NV001', departmentId: 'Khoa CNTT', degreeId: 'Tiến sĩ', isActive: true },
-  { id: '2', instructorCode: 'GV002', fullName: 'ThS. Trần Thị Bình', employeeCode: 'NV002', departmentId: 'Khoa CNTT', degreeId: 'Thạc sĩ', isActive: true },
-  { id: '3', instructorCode: 'GV003', fullName: 'PGS. Lê Văn Cường', employeeCode: 'NV003', departmentId: 'Khoa Kinh tế', degreeId: 'Phó giáo sư', isActive: true },
-  { id: '4', instructorCode: 'GV004', fullName: 'TS. Phạm Thị Dung', employeeCode: 'NV004', departmentId: 'Khoa Ngoại ngữ', degreeId: 'Tiến sĩ', isActive: false },
-  { id: '5', instructorCode: 'GV005', fullName: 'ThS. Hoàng Văn Em', employeeCode: 'NV005', departmentId: 'Khoa CNTT', degreeId: 'Thạc sĩ', isActive: true },
-];
+const mockLecturers: Lecturer[] = [];
 
 export default function LecturersPage() {
   const router = useRouter();
-  const { data: session } = useSession();
-  const userRole = session?.user?.role || 'admin';
+  const { user } = useAuth();
+  const userRole = user?.role || 'admin';
   
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [lecturers, setLecturers] = useState<Lecturer[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
-    // TODO: Gọi API lấy danh sách giảng viên
-    setLecturers(mockLecturers);
+    async function fetchLecturers() {
+      try {
+        const response = await lecturerApi.getAll();
+        setLecturers(response || []);
+      } catch (error) {
+        console.error(error);
+        toast.error('Không thể lấy danh sách giảng viên');
+      }
+    }
+    fetchLecturers();
   }, []);
 
   // Filter lecturers
@@ -57,10 +58,15 @@ export default function LecturersPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleDelete = (id: string, name: string) => {
-    // TODO: Gọi API xóa
-    toast.success(`Đã xóa giảng viên ${name}`);
-    setLecturers(lecturers.filter(l => l.id !== id));
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      await lecturerApi.delete(id);
+      setLecturers((prev) => prev.filter((lecturer) => lecturer.id !== id));
+      toast.success(`Đã xóa giảng viên ${name}`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Xóa giảng viên thất bại');
+    }
   };
 
   return (
@@ -106,7 +112,7 @@ export default function LecturersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value)}>
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>

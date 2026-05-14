@@ -1,7 +1,7 @@
 // TODO: Chuy?n d?i t? code AI Hosting
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,10 +15,11 @@ import {
 } from '@/components/ui/dialog';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { buildingApi } from '@/api/building';
 
 // Định nghĩa type cho Building
 interface Building {
-  id: number;
+  id: string;
   code: string;
   name: string;
   address: string;
@@ -26,17 +27,8 @@ interface Building {
   buildingType: string;
 }
 
-// Mock data - sẽ thay bằng API call sau
-const mockBuildings: Building[] = Array.from({ length: 25 }, (_, i) => ({
-  id: i + 1,
-  code: String.fromCharCode(65 + (i % 26)),
-  name: `Tòa nhà ${String.fromCharCode(65 + (i % 26))}`,
-  address: `Khu ${i % 3 === 0 ? 'A' : i % 3 === 1 ? 'B' : 'C'}, Đại học Đông Á`,
-  totalFloors: 3 + (i % 5),
-  buildingType: ['Giảng đường', 'Phòng thí nghiệm', 'Hành chính'][i % 3]
-}));
-
 export default function BuildingsPage() {
+  const [buildings, setBuildings] = useState<Building[]>([]);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -48,8 +40,21 @@ export default function BuildingsPage() {
     buildingType: 'Giảng đường'
   });
 
+  useEffect(() => {
+    async function fetchBuildings() {
+      try {
+        const response = await buildingApi.getAll();
+        setBuildings(response || []);
+      } catch (error) {
+        console.error(error);
+        toast.error('Không thể lấy danh sách tòa nhà');
+      }
+    }
+    fetchBuildings();
+  }, []);
+
   // Filter buildings
-  const filteredBuildings = mockBuildings.filter(building =>
+  const filteredBuildings = buildings.filter(building =>
     building.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     building.address.toLowerCase().includes(searchTerm.toLowerCase())
@@ -79,14 +84,34 @@ export default function BuildingsPage() {
     setModalOpen(true);
   };
 
-  const handleSave = () => {
-    toast.success(editingBuilding ? 'Cập nhật tòa nhà thành công' : 'Thêm tòa nhà thành công');
-    setModalOpen(false);
-    setEditingBuilding(null);
+  const handleSave = async () => {
+    try {
+      if (editingBuilding) {
+        await buildingApi.update(editingBuilding.id, formData);
+        setBuildings(prev => prev.map(b => b.id === editingBuilding.id ? { ...b, ...formData } : b));
+        toast.success('Cập nhật tòa nhà thành công');
+      } else {
+        const newBuilding = await buildingApi.create(formData);
+        setBuildings(prev => [...prev, newBuilding]);
+        toast.success('Thêm tòa nhà thành công');
+      }
+      setModalOpen(false);
+      setEditingBuilding(null);
+    } catch (error) {
+      console.error(error);
+      toast.error('Lỗi khi lưu tòa nhà');
+    }
   };
 
-  const handleDelete = (name: string) => {
-    toast.success(`Đã xóa tòa nhà ${name}`);
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      await buildingApi.delete(id);
+      setBuildings(prev => prev.filter(b => b.id !== id));
+      toast.success(`Đã xóa tòa nhà ${name}`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Lỗi khi xóa tòa nhà');
+    }
   };
 
   return (
@@ -142,7 +167,7 @@ export default function BuildingsPage() {
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(building)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(building.name)}>
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(building.id, building.name)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

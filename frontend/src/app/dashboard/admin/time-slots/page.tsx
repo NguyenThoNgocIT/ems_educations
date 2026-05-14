@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Edit, Trash2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { timeSlotApi } from '@/api/timeSlot';
 
 // Định nghĩa type cho TimeSlot
 interface TimeSlot {
@@ -28,18 +29,6 @@ interface TimeSlot {
   isActive: boolean;
 }
 
-// Mock data - sẽ thay bằng API call sau
-const mockTimeSlots: TimeSlot[] = [
-  { id: '1', slotCode: 'T1', startTime: '07:30', endTime: '09:00', isActive: true },
-  { id: '2', slotCode: 'T2', startTime: '09:15', endTime: '10:45', isActive: true },
-  { id: '3', slotCode: 'T3', startTime: '11:00', endTime: '12:30', isActive: true },
-  { id: '4', slotCode: 'T4', startTime: '13:00', endTime: '14:30', isActive: true },
-  { id: '5', slotCode: 'T5', startTime: '14:45', endTime: '16:15', isActive: true },
-  { id: '6', slotCode: 'T6', startTime: '16:30', endTime: '18:00', isActive: false },
-  { id: '7', slotCode: 'T7', startTime: '18:30', endTime: '20:00', isActive: true },
-  { id: '8', slotCode: 'T8', startTime: '20:00', endTime: '21:30', isActive: false },
-];
-
 export default function TimeSlotPage() {
   const router = useRouter();
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -47,8 +36,16 @@ export default function TimeSlotPage() {
   const [slotToDelete, setSlotToDelete] = useState<TimeSlot | null>(null);
 
   useEffect(() => {
-    // TODO: Gọi API lấy danh sách ca học
-    setTimeSlots(mockTimeSlots);
+    async function fetchTimeSlots() {
+      try {
+        const response = await timeSlotApi.getAll();
+        setTimeSlots(response || []);
+      } catch (error) {
+        console.error(error);
+        toast.error('Không thể lấy danh sách ca học');
+      }
+    }
+    fetchTimeSlots();
   }, []);
 
   const handleDelete = (slot: TimeSlot) => {
@@ -56,11 +53,16 @@ export default function TimeSlotPage() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (slotToDelete) {
-      // TODO: Gọi API xóa
-      setTimeSlots(timeSlots.filter(s => s.id !== slotToDelete.id));
-      toast.success(`Đã xóa ca học ${slotToDelete.slotCode}`);
+      try {
+        await timeSlotApi.delete(slotToDelete.id);
+        setTimeSlots(timeSlots.filter(s => s.id !== slotToDelete.id));
+        toast.success(`Đã xóa ca học ${slotToDelete.slotCode}`);
+      } catch (error) {
+        console.error(error);
+        toast.error('Lỗi khi xóa ca học');
+      }
     }
     setDeleteDialogOpen(false);
     setSlotToDelete(null);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { courseClassApi } from '@/api/course';
 
 // Định nghĩa type
 interface CourseClass {
-  id: number;
+  id: string;
   classCode: string;
   courseId: string;
   courseName: string;
@@ -26,36 +27,35 @@ interface CourseClass {
   isActive: boolean;
 }
 
-// Mock data
-const mockCourseClasses: CourseClass[] = Array.from({ length: 25 }, (_, i) => ({
-  id: i + 1,
-  classCode: `CNTT${String(101 + i).padStart(3, '0')}-${String(i % 3 + 1).padStart(2, '0')}`,
-  courseId: `course_${i + 1}`,
-  courseName: ['Lập trình Web', 'Cơ sở dữ liệu', 'Mạng máy tính', 'Trí tuệ nhân tạo'][i % 4],
-  semesterId: `sem_${Math.floor(i / 10) + 1}`,
-  semesterName: [`Học kỳ 1 - 2024-2025`, `Học kỳ 2 - 2024-2025`][Math.floor(i / 10) % 2],
-  roomId: `room_${i + 1}`,
-  roomName: ['A101', 'A102', 'B201', 'Lab3', 'C301'][i % 5],
-  maxStudent: 50,
-  currentStudent: 35 + (i % 15),
-  status: i % 10 === 0 ? 'full' : i % 7 === 0 ? 'inactive' : 'active',
-  isActive: i % 7 !== 0
-}));
-
 export default function CourseClassesPage() {
   const router = useRouter();
+  const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterSemester, setFilterSemester] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
+
+  useEffect(() => {
+    async function fetchCourseClasses() {
+      try {
+        const response = await courseClassApi.getAll();
+        setCourseClasses(response || []);
+      } catch (error) {
+        console.error(error);
+        toast.error('Không thể lấy danh sách lớp học phần');
+      }
+    }
+    fetchCourseClasses();
+  }, []);
+
   const [sortColumn, setSortColumn] = useState<keyof CourseClass>('classCode');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Lấy danh sách semester unique cho filter
-  const semesters = [...new Set(mockCourseClasses.map(c => c.semesterName))];
+  const semesters = [...new Set(courseClasses.map(c => c.semesterName))];
 
   // Filter
-  let filteredData = mockCourseClasses.filter(item => {
+  let filteredData = courseClasses.filter(item => {
     const matchesSearch = item.classCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           item.courseName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSemester = filterSemester === 'all' || item.semesterName === filterSemester;
@@ -98,8 +98,15 @@ export default function CourseClassesPage() {
     }
   };
 
-  const handleDelete = (id: number, name: string) => {
-    toast.success(`Đã xóa lớp ${name}`);
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      await courseClassApi.delete(id);
+      setCourseClasses(prev => prev.filter(c => c.id !== id));
+      toast.success(`Đã xóa lớp ${name}`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Lỗi khi xóa lớp học phần');
+    }
   };
 
   return (

@@ -1,7 +1,7 @@
 // TODO: Chuy?n d?i t? code AI Hosting
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,10 +23,11 @@ import {
 } from '@/components/ui/select';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { roomApi } from '@/api/room';
 
 // Định nghĩa type cho Room
 interface Room {
-  id: number;
+  id: string;
   code: string;
   name: string;
   buildingName: string;
@@ -39,25 +40,8 @@ interface Room {
   hasComputer: boolean;
 }
 
-// Mock data - sẽ thay bằng API call sau
-const mockRooms: Room[] = Array.from({ length: 60 }, (_, i) => ({
-  id: i + 1,
-  code: `${String.fromCharCode(65 + (i % 5))}${String(Math.floor(i / 5) + 101)}`,
-  name: `Phòng ${String.fromCharCode(65 + (i % 5))}${String(Math.floor(i / 5) + 101)}`,
-  buildingName: `Tòa ${String.fromCharCode(65 + (i % 5))}`,
-  floorNumber: (i % 5) + 1,
-  capacity: 30 + (i % 20) * 5,
-  type: ['Lý thuyết', 'Thực hành', 'Hội thảo'][i % 3],
-  status: ['Sẵn sàng', 'Đang sử dụng', 'Bảo trì'][i % 3],
-  hasProjector: i % 2 === 0,
-  hasAirConditioner: i % 3 !== 0,
-  hasComputer: i % 4 === 0
-}));
-
-// Lấy danh sách building unique cho filter
-const buildings = [...new Set(mockRooms.map(r => r.buildingName))];
-
 export default function RoomsPage() {
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -76,8 +60,24 @@ export default function RoomsPage() {
     hasComputer: false
   });
 
+  useEffect(() => {
+    async function fetchRooms() {
+      try {
+        const response = await roomApi.getAll();
+        setRooms(response || []);
+      } catch (error) {
+        console.error(error);
+        toast.error('Không thể lấy danh sách phòng học');
+      }
+    }
+    fetchRooms();
+  }, []);
+
+  // Get building list from rooms
+  const buildings = [...new Set(rooms.map(r => r.buildingName))];
+
   // Filter rooms
-  const filteredRooms = mockRooms.filter(room => {
+  const filteredRooms = rooms.filter(room => {
     const matchesSearch = room.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           room.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesBuilding = filterBuilding === 'all' || room.buildingName === filterBuilding;
@@ -118,14 +118,34 @@ export default function RoomsPage() {
     setModalOpen(true);
   };
 
-  const handleSave = () => {
-    toast.success(editingRoom ? 'Cập nhật phòng học thành công' : 'Thêm phòng học thành công');
-    setModalOpen(false);
-    setEditingRoom(null);
+  const handleSave = async () => {
+    try {
+      if (editingRoom) {
+        await roomApi.update(editingRoom.id, formData);
+        setRooms(prev => prev.map(r => r.id === editingRoom.id ? { ...r, ...formData } : r));
+        toast.success('Cập nhật phòng học thành công');
+      } else {
+        const newRoom = await roomApi.create(formData);
+        setRooms(prev => [...prev, newRoom]);
+        toast.success('Thêm phòng học thành công');
+      }
+      setModalOpen(false);
+      setEditingRoom(null);
+    } catch (error) {
+      console.error(error);
+      toast.error('Lỗi khi lưu phòng học');
+    }
   };
 
-  const handleDelete = (name: string) => {
-    toast.success(`Đã xóa phòng ${name}`);
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      await roomApi.delete(id);
+      setRooms(prev => prev.filter(r => r.id !== id));
+      toast.success(`Đã xóa phòng ${name}`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Lỗi khi xóa phòng');
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -220,7 +240,7 @@ export default function RoomsPage() {
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(room)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(room.name)}>
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(room.id, room.name)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

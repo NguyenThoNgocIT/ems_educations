@@ -1,215 +1,169 @@
-// TODO: Chuy?n d?i t? code AI Hosting
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { studentApi } from '@/api/student';
 
-// Định nghĩa type cho Schedule
-interface Schedule {
-  id: string;
-  courseClassId: string;
-  courseClassName: string;
-  courseName: string;
-  instructorId: string;
-  instructorName: string;
-  semesterId: string;
-  roomId: string;
-  roomName: string;
-  dayOfWeek: string;
-  date: string;
-  shift: string;
-  timeSlotId: string;
-  timeSlotName: string;
-  numberOfPeriods: number;
-  status: string;
+interface StudentFormData {
+  personId: string;
+  studentCode: string;
+  trainingProgramId: string;
+  note: string;
 }
 
-// Mock data - sẽ thay bằng API call sau
-const mockSchedules: Schedule[] = [
-  {
-    id: '1',
-    courseClassId: 'class1',
-    courseClassName: 'CNTT101-01',
-    courseName: 'Lập trình Web',
-    instructorId: 'inst1',
-    instructorName: 'TS. Nguyễn Văn An',
-    semesterId: 'HK1-2024',
-    roomId: 'room1',
-    roomName: 'A101',
-    dayOfWeek: 'Thứ 2',
-    date: '2024-01-15',
-    shift: 'Sáng',
-    timeSlotId: 'ts1',
-    timeSlotName: 'T1 (07:30-09:00)',
-    numberOfPeriods: 2,
-    status: 'active'
-  },
-  {
-    id: '2',
-    courseClassId: 'class2',
-    courseClassName: 'CNTT102-01',
-    courseName: 'Cơ sở dữ liệu',
-    instructorId: 'inst2',
-    instructorName: 'ThS. Trần Thị Bình',
-    semesterId: 'HK1-2024',
-    roomId: 'room2',
-    roomName: 'A102',
-    dayOfWeek: 'Thứ 2',
-    date: '2024-01-15',
-    shift: 'Chiều',
-    timeSlotId: 'ts3',
-    timeSlotName: 'T3 (13:00-14:30)',
-    numberOfPeriods: 2,
-    status: 'active'
-  },
-  {
-    id: '3',
-    courseClassId: 'class3',
-    courseClassName: 'CNTT103-01',
-    courseName: 'Mạng máy tính',
-    instructorId: 'inst3',
-    instructorName: 'TS. Lê Văn Cường',
-    semesterId: 'HK1-2024',
-    roomId: 'room3',
-    roomName: 'B201',
-    dayOfWeek: 'Thứ 3',
-    date: '2024-01-16',
-    shift: 'Sáng',
-    timeSlotId: 'ts1',
-    timeSlotName: 'T1 (07:30-09:00)',
-    numberOfPeriods: 2,
-    status: 'active'
-  },
-  {
-    id: '4',
-    courseClassId: 'class4',
-    courseClassName: 'CNTT104-01',
-    courseName: 'Trí tuệ nhân tạo',
-    instructorId: 'inst4',
-    instructorName: 'PGS. Phạm Thị Dung',
-    semesterId: 'HK1-2024',
-    roomId: 'room4',
-    roomName: 'Lab3',
-    dayOfWeek: 'Thứ 4',
-    date: '2024-01-17',
-    shift: 'Sáng',
-    timeSlotId: 'ts2',
-    timeSlotName: 'T2 (09:15-10:45)',
-    numberOfPeriods: 2,
-    status: 'active'
-  },
-  {
-    id: '5',
-    courseClassId: 'class5',
-    courseClassName: 'CNTT101-02',
-    courseName: 'Lập trình Web',
-    instructorId: 'inst1',
-    instructorName: 'TS. Nguyễn Văn An',
-    semesterId: 'HK1-2024',
-    roomId: 'room5',
-    roomName: 'C301',
-    dayOfWeek: 'Thứ 5',
-    date: '2024-01-18',
-    shift: 'Chiều',
-    timeSlotId: 'ts4',
-    timeSlotName: 'T4 (14:45-16:15)',
-    numberOfPeriods: 2,
-    status: 'active'
-  },
+const PROGRAM_OPTIONS = [
+  { value: '40299068-E853-4123-946D-AB9E68D28971', label: '💻 Công nghệ thông tin (CNTT)' },
+  { value: '61C1D31F-C6EC-4D74-A62B-C4B5071608B0', label: '📊 Hệ thống thông tin (HTTT)' },
+  { value: 'F72A21BD-32F0-404D-9ADE-8FEFDDD218E3', label: '⚙️ Kỹ thuật phần mềm (KTPM)' },
+  { value: '0DC1F922-5360-41BF-8EFF-71F5547DA30C', label: '📈 Quản trị kinh doanh (QTKD)' },
+  { value: 'B3982A4C-97A2-4B4F-BE58-B0ECD2C38057', label: '🌐 Ngôn ngữ Anh (NN)' },
 ];
 
-const daysOfWeek = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-
-export default function SchedulePage() {
+export default function CreateStudentPage() {
   const router = useRouter();
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [filterSemester, setFilterSemester] = useState<string>('HK1-2024');
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    personId: '40299068-E853-4123-946D-AB9E68D28971', // Mã ngành tự động điền
+    studentCode: '',
+    trainingProgramId: '40299068-E853-4123-946D-AB9E68D28971', // Công Nghệ Thông Tin
+    note: ''
+  });
 
-  useEffect(() => {
-    // TODO: Gọi API lấy danh sách lịch học
-    setSchedules(mockSchedules);
-  }, []);
-
-  // Group schedules by day
-  const groupedSchedules = daysOfWeek.reduce((acc, day) => {
-    acc[day] = schedules.filter(s => s.dayOfWeek === day && s.semesterId === filterSemester);
-    return acc;
-  }, {} as Record<string, Schedule[]>);
-
-  const handleEdit = (id: string) => {
-    router.push(`/dashboard/admin/schedules/${id}/edit`);
+  // Khi chọn ngành: tự động điền mã ngành vào ô personId
+  const handleProgramChange = (value: string) => {
+    setFormData({
+      ...formData,
+      trainingProgramId: value,
+      personId: value  // tự động điền mã ngành
+    });
   };
 
-  const handleAdd = () => {
-    router.push('/dashboard/admin/schedules/create');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.studentCode.trim()) {
+      toast.error('Vui lòng nhập mã sinh viên');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await studentApi.create(formData);
+      toast.success('Thêm sinh viên thành công');
+      router.push('/dashboard/admin/students');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Thêm sinh viên thất bại');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Lấy tên hiển thị cho ô chương trình đào tạo
+  const getSelectedLabel = () => {
+    const found = PROGRAM_OPTIONS.find(p => p.value === formData.trainingProgramId);
+    return found?.label || 'Công Nghệ Thông Tin';
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            <CalendarIcon className="h-8 w-8 text-primary" />
-            Thời khóa biểu
-          </h1>
-          <p className="text-muted-foreground">Quản lý lịch học theo tuần</p>
-        </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Select value={filterSemester} onValueChange={setFilterSemester}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Chọn học kỳ" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="HK1-2024">Học kỳ 1 - 2024</SelectItem>
-              <SelectItem value="HK2-2024">Học kỳ 2 - 2024</SelectItem>
-              <SelectItem value="HK1-2025">Học kỳ 1 - 2025</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90 whitespace-nowrap">
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm lịch học
-          </Button>
-        </div>
-      </div>
+      <Button variant="ghost" onClick={() => router.back()} className="mb-2">
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Quay lại
+      </Button>
 
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-        {daysOfWeek.map((day) => (
-          <div key={day} className="flex flex-col gap-3">
-            <div className="bg-muted py-2 px-4 rounded-lg text-center font-semibold border border-border">
-              {day}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">➕ Thêm sinh viên mới</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Mã ngành - TỰ ĐỘNG ĐIỀN */}
+            <div>
+              <Label className="font-semibold">
+                Mã ngành <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={formData.personId}
+                className="mt-1.5 bg-gray-100 text-gray-600"
+                placeholder="40299068-E853-4123-946D-AB9E68D28971"
+                readOnly
+              />
             </div>
-            <div className="flex flex-col gap-3 min-h-[200px]">
-              {groupedSchedules[day]?.length > 0 ? (
-                groupedSchedules[day].map((schedule) => (
-                  <Card 
-                    key={schedule.id} 
-                    className="cursor-pointer hover:border-primary transition-colors" 
-                    onClick={() => handleEdit(schedule.id)}
-                  >
-                    <CardContent className="p-3 text-sm">
-                      <div className="font-bold text-primary mb-1">{schedule.courseClassName}</div>
-                      <div className="text-xs text-muted-foreground mb-1">{schedule.timeSlotName}</div>
-                      <div className="text-xs font-medium">{schedule.roomName}</div>
-                      <div className="text-xs text-muted-foreground mt-1 truncate">{schedule.instructorName}</div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <div className="flex-1 border-2 border-dashed border-border rounded-lg flex items-center justify-center p-4 text-muted-foreground text-sm text-center">
-                  Trống
-                </div>
-              )}
+
+            {/* Chương trình đào tạo - HIỂN THỊ TÊN */}
+            <div>
+              <Label className="font-semibold">
+                Chương trình đào tạo <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value="Công Nghệ Thông Tin"
+                className="mt-1.5 bg-gray-100 text-gray-600"
+                readOnly
+              />
             </div>
-          </div>
-        ))}
-      </div>
+
+            {/* Mã sinh viên */}
+            <div>
+              <Label className="font-semibold">
+                Mã sinh viên <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={formData.studentCode}
+                onChange={(e) => setFormData({ ...formData, studentCode: e.target.value })}
+                className="mt-1.5"
+                placeholder="VD: SV20240001"
+              />
+            </div>
+
+            {/* Ghi chú */}
+            <div>
+              <Label>Ghi chú</Label>
+              <Textarea
+                value={formData.note}
+                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                className="mt-1.5"
+                placeholder="Nhập ghi chú (nếu có)"
+                rows={3}
+              />
+            </div>
+
+            {/* Nút bấm */}
+            <div className="flex gap-3 pt-4">
+              <Button 
+                type="submit" 
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-semibold"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Đang xử lý...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Save className="h-4 w-4" />
+                    💾 LƯU & THÊM MỚI
+                  </span>
+                )}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => router.push('/dashboard/admin/students')}
+              >
+                Hủy bỏ
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

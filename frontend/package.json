@@ -7,10 +7,10 @@
     "build": "next build",
     "build:cf": "npx @opennextjs/cloudflare build",
     "preview": "npm run build:cf && wrangler dev .opennext/dist/worker.mjs",
-    "deploy": "npx wrangler deploy --minify --config wrangler.toml",
+    "deploy": "npm run build && npm run start",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
-    "start": "next start -H 0.0.0.0 -p 3000",
-    "lint": "eslint ."
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

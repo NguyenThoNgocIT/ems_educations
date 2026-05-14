@@ -136,16 +136,17 @@ public class StudentServiceImpl implements StudentService {
         student.setDeletedAt(LocalDateTime.now());
         studentRepository.save(student);
     }
-    private StudentDto mapToDto(Student student) {
-        StudentDto dto = new StudentDto();
-        dto.setId(student.getStudentId());
-        dto.setPersonId(student.getPerson().getPersonId());
-        dto.setStudentCode(student.getStudentCode());
-        dto.setNote(student.getNote());
-        dto.setTrainingProgramId(student.getTrainingProgramId());
-        dto.setIsActive(student.getIsActive());
-        dto.setCreatedAt(student.getCreatedAt());
-        dto.setUpdatedAt(student.getUpdatedAt());
-        return dto;
+   private StudentDto mapToDto(Student student) {
+    StudentDto dto = new StudentDto();
+    dto.setId(student.getStudentId());
+    dto.setPersonId(student.getPerson().getPersonId());
+    dto.setFullName(student.getPerson().getFullName());  // ✅ THÊM DÒNG NÀY
+    dto.setStudentCode(student.getStudentCode());
+    dto.setNote(student.getNote());
+    dto.setTrainingProgramId(student.getTrainingProgramId());
+    dto.setIsActive(student.getIsActive());
+    dto.setCreatedAt(student.getCreatedAt());
+    dto.setUpdatedAt(student.getUpdatedAt());
+    return dto;
     }
 }

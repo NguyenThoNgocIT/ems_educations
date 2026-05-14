@@ -120,7 +120,7 @@ importers:
         specifier: ^11.2.10
         version: 11.2.10
       tailwind-merge:
-        specifier: ^2.6.0
+        specifier: ^2.6.1
         version: 2.6.1
       tsparticles:
         specifier: ^3.9.1

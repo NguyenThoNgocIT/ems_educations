@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { courseApi } from '@/api/course';
 
 // Định nghĩa type cho Course
 interface Course {
-  id: number;
+  id: string;
   code: string;
   name: string;
   departmentId: string;
@@ -21,33 +22,42 @@ interface Course {
   isActive: boolean;
 }
 
-// Mock data - sẽ thay bằng API call sau
-const mockCourses: Course[] = Array.from({ length: 40 }, (_, i) => ({
-  id: i + 1,
-  code: `CNTT${String(i + 101).padStart(3, '0')}`,
-  name: ['Lập trình Web', 'Cơ sở dữ liệu', 'Mạng máy tính', 'Trí tuệ nhân tạo', 'Hệ điều hành', 'Cấu trúc dữ liệu'][i % 6],
-  departmentId: ['CNTT', 'KTPM', 'HTTT', 'KHMT', 'Kinh tế'][i % 5],
-  courseType: i % 2 === 0 ? 'Bắt buộc' : 'Tự chọn',
-  credits: [3, 4, 2][i % 3],
-  isActive: true
-}));
-
 export default function CoursesPage() {
   const router = useRouter();
+  const [courses, setCourses] = useState<Course[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
 
+  useEffect(() => {
+    async function fetchCourses() {
+      try {
+        const response = await courseApi.getAll();
+        setCourses(response || []);
+      } catch (error) {
+        console.error(error);
+        toast.error('Không thể lấy danh sách môn học');
+      }
+    }
+    fetchCourses();
+  }, []);
+
   // Filter courses
-  const filteredCourses = mockCourses.filter(course => {
+  const filteredCourses = courses.filter(course => {
     const matchesSearch = course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           course.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = filterDepartment === 'all' || course.departmentId === filterDepartment;
     return matchesSearch && matchesDepartment;
   });
 
-  const handleDelete = (id: number, name: string) => {
-    // TODO: Gọi API xóa
-    toast.success(`Đã xóa môn học ${name}`);
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      await courseApi.delete(id);
+      setCourses(prev => prev.filter(c => c.id !== id));
+      toast.success(`Đã xóa môn học ${name}`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Lỗi khi xóa môn học');
+    }
   };
 
   return (
