@@ -2,11 +2,10 @@
 
 # 1. Build the backend
 [build]
-nixpkgsArchive = "latest"
 builder = "NIXPACKS"
 buildCommand = "cd backend && chmod +x ./mvnw && ./mvnw clean package -DskipTests"
 
-[build.nixpacks]
+[setup]
 pkgs = ["jdk17", "maven"]
 
 # 2. Start the backend
