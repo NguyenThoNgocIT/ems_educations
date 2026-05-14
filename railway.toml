@@ -1,14 +1,15 @@
 # This file is used to tell Railway how to build and run the multi-module project
 
-# 1. Build the backend
+# 1. Setup environment
+[setup]
+pkgs = ["jdk17", "maven"]
+
+# 2. Build the backend
 [build]
 builder = "NIXPACKS"
 buildCommand = "cd backend && chmod +x ./mvnw && ./mvnw clean package -DskipTests"
 
-[setup]
-pkgs = ["jdk17", "maven"]
-
-# 2. Start the backend
+# 3. Start the backend
 [deploy]
 startCommand = "java -jar backend/target/*.jar"
 healthcheckPath = "/api/auth/login"
