@@ -1,14 +1,12 @@
+# stage 1: Build
 FROM maven:3.8.5-openjdk-17-slim AS build
 WORKDIR /app
-# Copy toàn bộ vào /app
 COPY . .
-# Chạy build từ thư mục backend
 RUN cd backend && chmod +x ./mvnw && ./mvnw clean package -DskipTests
 
-# Chạy ứng dụng
-FROM openjdk:17-jdk-slim
+# stage 2: Run
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-# Copy file jar từ stage build
 COPY --from=build /app/backend/target/*.jar app.jar
 EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]
