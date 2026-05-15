@@ -2,8 +2,13 @@ package com.quanlydaotao.backend.course.entity;
 
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -17,6 +22,15 @@ public class TrainingProgram extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "TrainingProgramId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+<<<<<<< HEAD
+    private UUID trainingProgramId;
+
+    @Column(name = "Code", length = 50)
+    private String code;
+
+    @Column(name = "Name", length = 255)
+    private String name;
+=======
     private UUID programId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 50)
@@ -24,11 +38,29 @@ public class TrainingProgram extends SoftDeleteEntity {
 
     @Column(name = "Name", nullable = false, length = 255)
     private String programName;
+>>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MajorId", nullable = false)
-    private Major major;
+    @Column(name = "NameEn", length = 255)
+    private String nameEn;
 
+<<<<<<< HEAD
+    @Column(name = "MajorId")
+    private UUID majorId;
+
+    @Column(name = "DepartmentId")
+    private UUID departmentId;
+
+    @Column(name = "AcademicCohortId")
+    private UUID academicCohortId;
+
+    @Column(name = "DegreeLevel", length = 50)
+    private String degreeLevel;
+
+    @Column(name = "EducationType", length = 50)
+    private String educationType;
+
+    @Column(name = "TotalCredits")
+=======
     @Transient
     private String academicYear;
 
@@ -39,14 +71,56 @@ public class TrainingProgram extends SoftDeleteEntity {
     private UUID academicCohortId;
 
     @Column(name = "TotalCredits", nullable = false)
+>>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
     private Integer totalCredits;
 
-    @Column(name = "Description", columnDefinition = "nvarchar(max)")
+    @Column(name = "RequiredCredits", precision = 5, scale = 1)
+    private BigDecimal requiredCredits;
+
+    @Column(name = "ElectiveCredits", precision = 5, scale = 1)
+    private BigDecimal electiveCredits;
+
+    @Column(name = "InternshipCredits", precision = 5, scale = 1)
+    private BigDecimal internshipCredits;
+
+    @Column(name = "ThesisCredits", precision = 5, scale = 1)
+    private BigDecimal thesisCredits;
+
+    @Column(name = "AdmissionYear")
+    private LocalDate admissionYear;
+
+    @Column(name = "DurationYears", precision = 5, scale = 1)
+    private BigDecimal durationYears;
+
+    @Column(name = "MaxDurationYears", precision = 5, scale = 1)
+    private BigDecimal maxDurationYears;
+
+    @Column(name = "EffectiveDate")
+    private LocalDate effectiveDate;
+
+    @Column(name = "ExpiryDate")
+    private LocalDate expiryDate;
+
+    @Column(name = "Description", columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
+<<<<<<< HEAD
+    @Column(name = "Objectives", columnDefinition = "NVARCHAR(MAX)")
+    private String objectives;
+=======
     @Transient
     private String note;
+>>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
 
-    @Column(name = "Status")
-    private Integer status = 1;
+    @Column(name = "LearningOutcomes", columnDefinition = "NVARCHAR(MAX)")
+    private String learningOutcomes;
+
+    @Column(name = "Version", length = 20)
+    private String version;
+
+    @Column(name = "Status", length = 50)
+    private String status;
+
+    @Column(name = "IsActive")
+    private Boolean isActive;
 }

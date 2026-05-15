@@ -1,7 +1,9 @@
 package com.quanlydaotao.backend.student.dto;
+
 import lombok.Data;
-import java.util.UUID;
 import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Data
 public class StudentDto {
     private UUID id;
@@ -17,5 +19,6 @@ public class StudentDto {
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String phoneNumber;      // ✅ THÊM NẾU CẦN HIỂN THỊ
+    private String contactEmail;     // ✅ THÊM NẾU CẦN HIỂN THỊ
 }
-

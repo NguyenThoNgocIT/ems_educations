@@ -13,7 +13,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,15 +44,21 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .orElseThrow(() -> new RuntimeException("Major not found"));
         
         TrainingProgram program = new TrainingProgram();
+<<<<<<< HEAD
+        program.setCode(request.getProgramCode());
+        program.setName(request.getProgramName());
+        program.setMajorId(major.getMajorId());
+=======
         program.setProgramCode(request.getProgramCode());
         program.setProgramName(request.getProgramName());
         program.setMajor(major);
         program.setDepartmentId(major.getDepartmentId());
         program.setAcademicCohortId(request.getAcademicCohortId());
         program.setAcademicYear(request.getAcademicYear());
+>>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
         program.setTotalCredits(request.getTotalCredits());
         program.setDescription(request.getDescription());
-        program.setNote(request.getNote());
+        program.setIsActive(true);
         
         return mapToDto(trainingProgramRepository.save(program));
     }
@@ -61,6 +69,11 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         TrainingProgram program = trainingProgramRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Training Program not found"));
         
+<<<<<<< HEAD
+        program.setCode(request.getProgramCode());
+        program.setName(request.getProgramName());
+        program.setMajorId(request.getMajorId());
+=======
         Major major = majorRepository.findById(request.getMajorId())
                 .orElseThrow(() -> new RuntimeException("Major not found"));
         
@@ -70,9 +83,9 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         program.setDepartmentId(major.getDepartmentId());
         program.setAcademicCohortId(request.getAcademicCohortId());
         program.setAcademicYear(request.getAcademicYear());
+>>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
         program.setTotalCredits(request.getTotalCredits());
         program.setDescription(request.getDescription());
-        program.setNote(request.getNote());
         
         return mapToDto(trainingProgramRepository.save(program));
     }
@@ -86,16 +99,41 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         trainingProgramRepository.save(program);
     }
 
+    @Override
+    public List<TrainingProgramDto> getAllTrainingProgramsList() {
+        return trainingProgramRepository.findAll().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    // ✅ SỬA LẠI mapToDto - DÙNG ĐÚNG TÊN FIELD
     private TrainingProgramDto mapToDto(TrainingProgram entity) {
         TrainingProgramDto dto = new TrainingProgramDto();
-        dto.setProgramId(entity.getProgramId());
-        dto.setProgramCode(entity.getProgramCode());
-        dto.setProgramName(entity.getProgramName());
-        dto.setMajorId(entity.getMajor().getMajorId());
-        dto.setAcademicYear(entity.getAcademicYear());
+        dto.setTrainingProgramId(entity.getTrainingProgramId());
+        dto.setCode(entity.getCode());
+        dto.setName(entity.getName());
+        dto.setNameEn(entity.getNameEn());
+        dto.setMajorId(entity.getMajorId());
+        dto.setDepartmentId(entity.getDepartmentId());
+        dto.setAcademicCohortId(entity.getAcademicCohortId());
+        dto.setDegreeLevel(entity.getDegreeLevel());
+        dto.setEducationType(entity.getEducationType());
         dto.setTotalCredits(entity.getTotalCredits());
+        dto.setRequiredCredits(entity.getRequiredCredits());
+        dto.setElectiveCredits(entity.getElectiveCredits());
+        dto.setInternshipCredits(entity.getInternshipCredits());
+        dto.setThesisCredits(entity.getThesisCredits());
+        dto.setAdmissionYear(entity.getAdmissionYear());
+        dto.setDurationYears(entity.getDurationYears());
+        dto.setMaxDurationYears(entity.getMaxDurationYears());
+        dto.setEffectiveDate(entity.getEffectiveDate());
+        dto.setExpiryDate(entity.getExpiryDate());
         dto.setDescription(entity.getDescription());
+        dto.setObjectives(entity.getObjectives());
+        dto.setLearningOutcomes(entity.getLearningOutcomes());
+        dto.setVersion(entity.getVersion());
         dto.setStatus(entity.getStatus());
+        dto.setIsActive(entity.getIsActive());
         return dto;
     }
 }

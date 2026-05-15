@@ -5,6 +5,7 @@ import com.quanlydaotao.backend.course.dto.TrainingProgramDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;        // ✅ THÊM DÒNG NÀY
 import java.util.UUID;
 
 public interface TrainingProgramService {
@@ -12,5 +13,6 @@ public interface TrainingProgramService {
     TrainingProgramDto getProgramById(UUID id);
     TrainingProgramDto createProgram(CreateTrainingProgramRequest request);
     TrainingProgramDto updateProgram(UUID id, CreateTrainingProgramRequest request);
+    List<TrainingProgramDto> getAllTrainingProgramsList();  // ✅ DÒNG NÀY CẦN List
     void deleteProgram(UUID id);
 }

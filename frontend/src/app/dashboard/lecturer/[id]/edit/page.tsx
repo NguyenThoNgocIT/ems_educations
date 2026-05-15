@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { gradeApi } from '@/api/grade';
 
 interface GradeFormData {
   id: string;
@@ -19,40 +20,6 @@ interface GradeFormData {
   finalScore: number;
   totalScore: number;
 }
-
-// Mock data - sẽ thay bằng API call sau
-const mockGradeData: Record<string, GradeFormData> = {
-  '1': {
-    id: '1',
-    studentName: 'Nguyễn Văn A',
-    studentCode: 'SV001',
-    courseClassName: 'CNTT101-01 - Lập trình Web',
-    attendanceScore: 9.5,
-    midtermScore: 8.0,
-    finalScore: 8.5,
-    totalScore: 8.4
-  },
-  '2': {
-    id: '2',
-    studentName: 'Trần Thị B',
-    studentCode: 'SV002',
-    courseClassName: 'CNTT101-01 - Lập trình Web',
-    attendanceScore: 8.5,
-    midtermScore: 7.5,
-    finalScore: 8.0,
-    totalScore: 7.9
-  },
-  '3': {
-    id: '3',
-    studentName: 'Lê Văn C',
-    studentCode: 'SV003',
-    courseClassName: 'CNTT101-01 - Lập trình Web',
-    attendanceScore: 7.0,
-    midtermScore: 6.5,
-    finalScore: 7.5,
-    totalScore: 7.2
-  },
-};
 
 export default function EditGradePage() {
   const router = useRouter();
@@ -74,19 +41,22 @@ export default function EditGradePage() {
 
   useEffect(() => {
     if (id) {
-      // TODO: Gọi API lấy chi tiết điểm
-      setTimeout(() => {
-        const data = mockGradeData[id];
-        if (data) {
-          setFormData(data);
-        } else {
-          toast.error('Không tìm thấy bản ghi điểm');
-          router.push('/dashboard/lecturer/enter-grades');
-        }
-        setPageLoading(false);
-      }, 500);
+      fetchGradeDetail();
     }
-  }, [id, router]);
+  }, [id]);
+
+  const fetchGradeDetail = async () => {
+    try {
+      const response = await gradeApi.getById(id);
+      const data = response?.data || response;
+      setFormData(data);
+    } catch (error) {
+      toast.error('Không thể lấy thông tin điểm');
+      router.push('/dashboard/lecturer/enter-grades');
+    } finally {
+      setPageLoading(false);
+    }
+  };
 
   // Auto calculate total score
   useEffect(() => {
@@ -122,12 +92,19 @@ export default function EditGradePage() {
     if (!validateScores()) return;
 
     setLoading(true);
-    // TODO: Gọi API cập nhật điểm
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await gradeApi.update(id, {
+        attendanceScore: formData.attendanceScore,
+        midtermScore: formData.midtermScore,
+        finalScore: formData.finalScore
+      });
       toast.success('Cập nhật điểm thành công');
       router.push('/dashboard/lecturer/enter-grades');
-    }, 1000);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Cập nhật điểm thất bại');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (pageLoading) {
