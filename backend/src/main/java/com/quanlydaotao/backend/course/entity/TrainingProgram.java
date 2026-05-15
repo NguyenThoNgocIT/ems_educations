@@ -29,8 +29,14 @@ public class TrainingProgram extends SoftDeleteEntity {
     @JoinColumn(name = "MajorId", nullable = false)
     private Major major;
 
-    @Column(name = "AcademicYear", nullable = false, length = 20)
+    @Transient
     private String academicYear;
+
+    @Column(name = "DepartmentId", columnDefinition = "uniqueidentifier")
+    private UUID departmentId;
+
+    @Column(name = "AcademicCohortId", columnDefinition = "uniqueidentifier")
+    private UUID academicCohortId;
 
     @Column(name = "TotalCredits", nullable = false)
     private Integer totalCredits;
@@ -38,7 +44,7 @@ public class TrainingProgram extends SoftDeleteEntity {
     @Column(name = "Description", columnDefinition = "nvarchar(max)")
     private String description;
 
-    @Column(name = "Note", length = 500)
+    @Transient
     private String note;
 
     @Column(name = "Status")

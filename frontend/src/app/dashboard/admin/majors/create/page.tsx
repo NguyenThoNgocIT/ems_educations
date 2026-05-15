@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, GraduationCap } from 'lucide-react';
+import { ArrowLeft, Save, GraduationCap, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { majorApi } from '@/api/major';
 import { departmentApi } from '@/api/department';
@@ -111,7 +111,17 @@ export default function CreateMajorPage() {
 
             {/* Khoa */}
             <div className="space-y-2">
-              <Label htmlFor="departmentId">Thuộc Khoa <span className="text-red-500">*</span></Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="departmentId">Thuộc Khoa <span className="text-red-500">*</span></Label>
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  className="p-0 h-auto text-xs text-orange-600 hover:text-orange-700"
+                  onClick={() => router.push('/dashboard/admin/departments/create')}
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Thêm mới khoa
+                </Button>
+              </div>
               <select
                 id="departmentId"
                 value={formData.departmentId}

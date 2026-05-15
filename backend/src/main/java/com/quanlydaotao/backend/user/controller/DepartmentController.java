@@ -21,4 +21,10 @@ public class DepartmentController {
     public ResponseEntity<List<Department>> getAll() {
         return ResponseEntity.ok(departmentRepository.findAll());
     }
+
+    @org.springframework.web.bind.annotation.PostMapping
+    public ResponseEntity<Department> create(
+            @org.springframework.web.bind.annotation.RequestBody Department department) {
+        return ResponseEntity.ok(departmentRepository.save(department));
+    }
 }

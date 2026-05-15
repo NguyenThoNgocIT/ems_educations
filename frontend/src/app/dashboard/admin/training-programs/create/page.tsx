@@ -11,37 +11,55 @@ import { ArrowLeft, Save, BookOpen, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { trainingProgramApi } from '@/api/training-program';
 import { majorApi } from '@/api/major';
+import { academicCohortApi } from '@/api/academic-cohort';
 
 export default function CreateTrainingProgramPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [majors, setMajors] = useState<any[]>([]);
   const [fetchingMajors, setFetchingMajors] = useState(true);
+  const [cohorts, setCohorts] = useState<any[]>([]);
+  const [fetchingCohorts, setFetchingCohorts] = useState(true);
 
   const [formData, setFormData] = useState({
     programCode: '',
     programName: '',
     majorId: '',
+    academicCohortId: '',
     academicYear: '',
     totalCredits: 0,
     description: '',
     note: ''
   });
 
-  // Lấy danh sách ngành học từ BE
+  // Lấy danh sách ngành học và khóa học từ BE
   useEffect(() => {
-    const fetchMajors = async () => {
+    const fetchData = async () => {
       try {
-        const response: any = await majorApi.getAll({ size: 100 });
-        setMajors(response.content || []);
+        const [majorsRes, cohortsRes]: any = await Promise.all([
+          majorApi.getAll({ size: 100 }),
+          academicCohortApi.getAll()
+        ]);
+        
+        setMajors(majorsRes.content || []);
+        setCohorts(cohortsRes || []);
+        
+        if (cohortsRes && cohortsRes.length > 0) {
+          setFormData(prev => ({ 
+            ...prev, 
+            academicCohortId: cohortsRes[0].cohortId,
+            academicYear: `${cohortsRes[0].startYear}-${cohortsRes[0].endYear}`
+          }));
+        }
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách ngành:', error);
-        toast.error('Không thể tải danh sách ngành học');
+        console.error('Lỗi khi lấy dữ liệu:', error);
+        toast.error('Không thể tải dữ liệu từ máy chủ');
       } finally {
         setFetchingMajors(false);
+        setFetchingCohorts(false);
       }
     };
-    fetchMajors();
+    fetchData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,6 +75,10 @@ export default function CreateTrainingProgramPage() {
     }
     if (!formData.majorId) {
       toast.error('Vui lòng chọn ngành học');
+      return;
+    }
+    if (!formData.academicCohortId) {
+      toast.error('Vui lòng chọn khóa học');
       return;
     }
     if (!formData.academicYear.trim()) {
@@ -138,7 +160,43 @@ export default function CreateTrainingProgramPage() {
                 <option value="">{fetchingMajors ? 'Đang tải ngành học...' : '-- Chọn ngành học --'}</option>
                 {majors.map((major) => (
                   <option key={major.majorId} value={major.majorId}>
-                    {major.code} - {major.name}
+                    {major.majorCode} - {major.majorName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Khóa học */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="academicCohortId" className="font-semibold">Khóa học <span className="text-red-500">*</span></Label>
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  className="p-0 h-auto text-xs text-green-600 hover:text-green-700"
+                  onClick={() => router.push('/dashboard/admin/academic-cohorts/create')}
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Thêm mới khóa học
+                </Button>
+              </div>
+              <select
+                id="academicCohortId"
+                value={formData.academicCohortId}
+                onChange={(e) => {
+                  const selected = cohorts.find(c => c.cohortId === e.target.value);
+                  setFormData({ 
+                    ...formData, 
+                    academicCohortId: e.target.value,
+                    academicYear: selected ? `${selected.startYear}-${selected.endYear}` : ''
+                  });
+                }}
+                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-500"
+                disabled={fetchingCohorts}
+              >
+                <option value="">{fetchingCohorts ? 'Đang tải khóa học...' : '-- Chọn khóa học --'}</option>
+                {cohorts.map((cohort) => (
+                  <option key={cohort.cohortId} value={cohort.cohortId}>
+                    {cohort.code} - {cohort.name}
                   </option>
                 ))}
               </select>

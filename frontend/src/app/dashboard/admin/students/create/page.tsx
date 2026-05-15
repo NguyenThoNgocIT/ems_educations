@@ -203,8 +203,8 @@ export default function CreateStudentPage() {
               >
                 <option value="">{fetchingPrograms ? '-- Đang tải... --' : '-- Chọn chương trình --'}</option>
                 {programs.map((program) => (
-                  <option key={program.trainingProgramId} value={program.trainingProgramId}>
-                    {program.code} - {program.name}
+                  <option key={program.programId} value={program.programId}>
+                    {program.programCode} - {program.programName}
                   </option>
                 ))}
               </select>
