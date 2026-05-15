@@ -8,18 +8,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, User, Calendar, Phone, Mail, GraduationCap, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { studentApi } from '@/api/student';
+import { trainingProgramApi } from '@/api/training-program';
 
 interface StudentFormData {
-  personId: string;
+  fullName: string;
+  dateOfBirth: string;
+  gender: string;
+  phoneNumber: string;
+  contactEmail: string;
   studentCode: string;
   trainingProgramId: string;
   note: string;
+  isActive: boolean;
 }
 
 interface FormErrors {
-  personId?: string;
+  fullName?: string;
   studentCode?: string;
   trainingProgramId?: string;
 }
@@ -31,33 +38,57 @@ export default function EditStudentPage() {
   
   const [loading, setLoading] = useState<boolean>(false);
   const [pageLoading, setPageLoading] = useState<boolean>(true);
+  const [programs, setPrograms] = useState<any[]>([]);
   const [formData, setFormData] = useState<StudentFormData>({
-    personId: '',
+    fullName: '',
+    dateOfBirth: '',
+    gender: 'male',
+    phoneNumber: '',
+    contactEmail: '',
     studentCode: '',
     trainingProgramId: '',
-    note: ''
+    note: '',
+    isActive: true
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
   // Load dữ liệu khi có id
   useEffect(() => {
-    if (id) {
-      // TODO: Gọi API lấy chi tiết sinh viên
-      setTimeout(() => {
+    const fetchData = async () => {
+      if (!id) return;
+      try {
+        const [studentRes, programRes]: any = await Promise.all([
+          studentApi.getById(id),
+          trainingProgramApi.getAll({ size: 100 })
+        ]);
+
+        const student = studentRes?.data || studentRes;
+        setPrograms(programRes.content || []);
+        
         setFormData({
-          personId: 'P000001',
-          studentCode: 'SV0001',
-          trainingProgramId: 'CNTT',
-          note: 'Sinh viên năm 3'
+          fullName: student.fullName || '',
+          dateOfBirth: student.dateOfBirth || '',
+          gender: student.gender || 'male',
+          phoneNumber: student.phoneNumber || '',
+          contactEmail: student.contactEmail || '',
+          studentCode: student.studentCode || '',
+          trainingProgramId: student.trainingProgramId || '',
+          note: student.note || '',
+          isActive: student.isActive ?? true
         });
+      } catch (error) {
+        console.error(error);
+        toast.error('Không thể tải dữ liệu sinh viên');
+      } finally {
         setPageLoading(false);
-      }, 500);
-    }
+      }
+    };
+    fetchData();
   }, [id]);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
-    if (!formData.personId.trim()) newErrors.personId = 'Vui lòng nhập mã cá nhân';
+    if (!formData.fullName.trim()) newErrors.fullName = 'Vui lòng nhập họ tên';
     if (!formData.studentCode.trim()) newErrors.studentCode = 'Vui lòng nhập mã sinh viên';
     if (!formData.trainingProgramId) newErrors.trainingProgramId = 'Vui lòng chọn chương trình đào tạo';
     setErrors(newErrors);
@@ -69,12 +100,16 @@ export default function EditStudentPage() {
     if (!validate()) return;
 
     setLoading(true);
-    // TODO: Gọi API cập nhật sinh viên
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await studentApi.update(id, formData);
       toast.success('Cập nhật sinh viên thành công');
       router.push('/dashboard/admin/students');
-    }, 1000);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Cập nhật sinh viên thất bại');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (pageLoading) {
@@ -97,62 +132,158 @@ export default function EditStudentPage() {
           <CardTitle>Chỉnh sửa sinh viên</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <Label htmlFor="personId">Mã cá nhân *</Label>
-                <Input
-                  id="personId"
-                  value={formData.personId}
-                  onChange={(e) => setFormData({ ...formData, personId: e.target.value })}
-                  className="mt-1.5"
-                  placeholder="P000001"
-                />
-                {errors.personId && <p className="text-sm text-destructive mt-1">{errors.personId}</p>}
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Section 1: Thông tin cá nhân */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center border-b pb-2">
+                <User className="mr-2 h-5 w-5 text-blue-600" />
+                Thông tin cá nhân
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <Label htmlFor="fullName">Họ và tên *</Label>
+                  <Input
+                    id="fullName"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    className="mt-1.5"
+                    placeholder="Nguyễn Văn A"
+                  />
+                  {errors.fullName && <p className="text-sm text-destructive mt-1">{errors.fullName}</p>}
+                </div>
 
-              <div>
-                <Label htmlFor="studentCode">Mã sinh viên *</Label>
-                <Input
-                  id="studentCode"
-                  value={formData.studentCode}
-                  onChange={(e) => setFormData({ ...formData, studentCode: e.target.value })}
-                  className="mt-1.5"
-                  placeholder="SV0001"
-                />
-                {errors.studentCode && <p className="text-sm text-destructive mt-1">{errors.studentCode}</p>}
+                <div>
+                  <Label htmlFor="dateOfBirth">Ngày sinh</Label>
+                  <div className="relative mt-1.5">
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    />
+                    <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="gender">Giới tính</Label>
+                  <Select 
+                    value={formData.gender} 
+                    onValueChange={(val) => setFormData({ ...formData, gender: val })}
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue placeholder="Chọn giới tính" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Nam</SelectItem>
+                      <SelectItem value="female">Nữ</SelectItem>
+                      <SelectItem value="other">Khác</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="phoneNumber">Số điện thoại</Label>
+                  <div className="relative mt-1.5">
+                    <Input
+                      id="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                      placeholder="0123456789"
+                    />
+                    <Phone className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="contactEmail">Email liên hệ</Label>
+                  <div className="relative mt-1.5">
+                    <Input
+                      id="contactEmail"
+                      type="email"
+                      value={formData.contactEmail}
+                      onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                      placeholder="example@gmail.com"
+                    />
+                    <Mail className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="trainingProgramId">Chương trình đào tạo *</Label>
-              <Select 
-                value={formData.trainingProgramId} 
-                onValueChange={(val) => setFormData({ ...formData, trainingProgramId: val })}
-              >
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue placeholder="Chọn chương trình" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CNTT">Công nghệ thông tin</SelectItem>
-                  <SelectItem value="KTPM">Kỹ thuật phần mềm</SelectItem>
-                  <SelectItem value="HTTT">Hệ thống thông tin</SelectItem>
-                  <SelectItem value="KHMT">Khoa học máy tính</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.trainingProgramId && <p className="text-sm text-destructive mt-1">{errors.trainingProgramId}</p>}
-            </div>
+            {/* Section 2: Thông tin học tập */}
+            <div className="space-y-4 pt-4">
+              <h3 className="text-lg font-semibold flex items-center border-b pb-2">
+                <GraduationCap className="mr-2 h-5 w-5 text-green-600" />
+                Thông tin học tập
+              </h3>
 
-            <div>
-              <Label htmlFor="note">Ghi chú</Label>
-              <Textarea
-                id="note"
-                value={formData.note}
-                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                className="mt-1.5"
-                placeholder="Nhập ghi chú (nếu có)"
-                rows={4}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <Label htmlFor="studentCode">Mã sinh viên *</Label>
+                  <Input
+                    id="studentCode"
+                    value={formData.studentCode}
+                    onChange={(e) => setFormData({ ...formData, studentCode: e.target.value })}
+                    className="mt-1.5 bg-gray-50"
+                    placeholder="SV0001"
+                    disabled
+                  />
+                  {errors.studentCode && <p className="text-sm text-destructive mt-1">{errors.studentCode}</p>}
+                  <p className="text-[10px] text-gray-500 mt-1">Mã sinh viên không thể thay đổi</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="trainingProgramId">Chương trình đào tạo *</Label>
+                  <Select 
+                    value={formData.trainingProgramId} 
+                    onValueChange={(val) => setFormData({ ...formData, trainingProgramId: val })}
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue placeholder="Chọn chương trình" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {programs.map(p => (
+                        <SelectItem key={p.programId} value={p.programId}>
+                          {p.programName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.trainingProgramId && <p className="text-sm text-destructive mt-1">{errors.trainingProgramId}</p>}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="isActive">Trạng thái sinh viên</Label>
+                <Select 
+                  value={formData.isActive ? 'active' : 'inactive'} 
+                  onValueChange={(val) => setFormData({ ...formData, isActive: val === 'active' })}
+                >
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Đang hoạt động</SelectItem>
+                    <SelectItem value="inactive">Ngừng hoạt động</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="note" className="flex items-center">
+                  <FileText className="mr-1 h-4 w-4" /> Ghi chú
+                </Label>
+                <Textarea
+                  id="note"
+                  value={formData.note}
+                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                  className="mt-1.5"
+                  placeholder="Nhập ghi chú (nếu có)"
+                  rows={3}
+                />
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { studentApi } from '@/api/student';
+import { trainingProgramApi } from '@/api/training-program';
 
 interface Student {
   id: string;
@@ -21,13 +22,7 @@ interface Student {
   createdAt: string;
 }
 
-const PROGRAM_NAMES: Record<string, string> = {
-  '40299068-e853-4123-946d-ab9e68d28971': 'CNTT - Công nghệ thông tin',
-  '61c1d31f-c6ec-4d74-a62b-c4b5071608b0': 'HTTT - Hệ thống thông tin',
-  'f72a21bd-32f0-404d-9ade-8fefddd218e3': 'KTPM - Kỹ thuật phần mềm',
-  '0dc1f922-5360-41bf-8eff-71f5547da30c': 'QTKD - Quản trị kinh doanh',
-  'b3982a4c-97a2-4b4f-be58-b0ecd2c38057': 'NN - Ngôn ngữ Anh',
-};
+// Removed hardcoded PROGRAM_NAMES
 
 export default function StudentsPage() {
   const router = useRouter();
@@ -37,22 +32,28 @@ export default function StudentsPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [programs, setPrograms] = useState<any[]>([]);
 
-  const fetchStudents = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await studentApi.getAll();
-      const data = response?.data || response || [];
-      setStudents(data);
+      const [studentRes, programRes]: any = await Promise.all([
+        studentApi.getAll(),
+        trainingProgramApi.getAll({ size: 100 })
+      ]);
+      
+      const studentData = studentRes?.data || studentRes || [];
+      setStudents(studentData);
+      setPrograms(programRes.content || []);
     } catch (error) {
-      toast.error('Không thể lấy danh sách sinh viên');
+      toast.error('Không thể lấy dữ liệu');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStudents();
+    fetchData();
   }, []);
 
   const filteredStudents = students.filter(student => {
@@ -74,7 +75,7 @@ export default function StudentsPage() {
     try {
       await studentApi.delete(student.id);
       toast.success(`Đã xóa sinh viên ${student.fullName}`);
-      await fetchStudents();
+      await fetchData();
     } catch (error) {
       toast.error('Xóa sinh viên thất bại');
     }
@@ -150,7 +151,7 @@ export default function StudentsPage() {
                         <td className="py-3 px-4 text-sm font-medium">{student.studentCode}</td>
                         <td className="py-3 px-4 text-sm">{student.fullName || 'Chưa cập nhật'}</td>
                         <td className="py-3 px-4 text-sm">
-                          {PROGRAM_NAMES[student.trainingProgramId?.toLowerCase()] || student.trainingProgramId}
+                          {programs.find(p => p.programId === student.trainingProgramId)?.programName || student.trainingProgramId}
                         </td>
                         <td className="py-3 px-4 text-sm">
                           <Badge variant={student.isActive ? 'default' : 'secondary'}>

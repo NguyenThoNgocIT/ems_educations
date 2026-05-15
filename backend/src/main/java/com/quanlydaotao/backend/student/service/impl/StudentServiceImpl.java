@@ -11,6 +11,10 @@ import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.user.repository.PersonRepository;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import com.quanlydaotao.backend.student.dto.EnrollStudentRequest;
+import com.quanlydaotao.backend.user.entity.UserRole;
+import com.quanlydaotao.backend.user.entity.UserRoleId;
+import com.quanlydaotao.backend.role.repository.RoleRepository;
+import com.quanlydaotao.backend.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,8 @@ public class StudentServiceImpl implements StudentService {
     private final StudentRepository studentRepository;
     private final PersonRepository personRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
 
     // Helper method to remove accents (Vietnamese)
@@ -74,7 +80,18 @@ public class StudentServiceImpl implements StudentService {
         user.setEmail(generatedEmail);
         user.setPasswordHash(passwordEncoder.encode(generatedPassword));
         user.setRequirePasswordChange(true);
-        userRepository.save(user);
+        user = userRepository.save(user);
+
+        // 4. Assign STUDENT role
+        final User finalUser = user;
+        roleRepository.findByCode("STUDENT").ifPresent(role -> {
+            UserRole userRole = new UserRole();
+            userRole.setId(new UserRoleId(finalUser.getUserId(), role.getRoleId()));
+            userRole.setUser(finalUser);
+            userRole.setRole(role);
+            userRole.setIsActive(true);
+            userRoleRepository.save(userRole);
+        });
 
         return mapToDto(student);
     }
@@ -118,6 +135,16 @@ public class StudentServiceImpl implements StudentService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
         student.setNote(request.getNote());
+        
+        // Update Person info
+        Person person = student.getPerson();
+        if (request.getFullName() != null) person.setFullName(request.getFullName());
+        if (request.getDateOfBirth() != null) person.setDateOfBirth(request.getDateOfBirth());
+        if (request.getGender() != null) person.setGender(request.getGender());
+        if (request.getPhoneNumber() != null) person.setPhoneNumber(request.getPhoneNumber());
+        if (request.getContactEmail() != null) person.setContactEmail(request.getContactEmail());
+        personRepository.save(person);
+
         if (request.getTrainingProgramId() != null) {
             student.setTrainingProgramId(request.getTrainingProgramId());
         }
@@ -140,7 +167,11 @@ public class StudentServiceImpl implements StudentService {
     StudentDto dto = new StudentDto();
     dto.setId(student.getStudentId());
     dto.setPersonId(student.getPerson().getPersonId());
-    dto.setFullName(student.getPerson().getFullName());  // ✅ THÊM DÒNG NÀY
+    dto.setFullName(student.getPerson().getFullName());
+    dto.setDateOfBirth(student.getPerson().getDateOfBirth());
+    dto.setGender(student.getPerson().getGender());
+    dto.setPhoneNumber(student.getPerson().getPhoneNumber());
+    dto.setContactEmail(student.getPerson().getContactEmail());
     dto.setStudentCode(student.getStudentCode());
     dto.setNote(student.getNote());
     dto.setTrainingProgramId(student.getTrainingProgramId());

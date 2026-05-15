@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 import { courseClassApi } from '@/api/course';
 
@@ -117,10 +117,28 @@ export default function CourseClassesPage() {
           <h1 className="text-3xl font-bold mb-2">Quản lý lớp học phần</h1>
           <p className="text-muted-foreground">Danh sách các lớp học phần theo từng môn học</p>
         </div>
-        <Button onClick={() => router.push('/dashboard/admin/course-classes/create')} className="bg-primary hover:bg-primary/90">
-          <Plus className="h-4 w-4 mr-2" />
-          Thêm lớp học phần
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => router.push('/dashboard/admin/majors/create')} 
+            className="border-blue-600 text-blue-600 hover:bg-blue-50"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm ngành học
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => router.push('/dashboard/admin/training-programs/create')} 
+            className="border-green-600 text-green-600 hover:bg-green-50"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm CT đào tạo
+          </Button>
+          <Button onClick={() => router.push('/dashboard/admin/course-classes/create')} className="bg-primary hover:bg-primary/90">
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm lớp học phần
+          </Button>
+        </div>
       </div>
 
       {/* Filter Card */}

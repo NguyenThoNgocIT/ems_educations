@@ -29,7 +29,7 @@ request.interceptors.response.use(
   (error) => {
     // Xử lý lỗi 401 - Unauthorized
     if (error.response?.status === 401) {
-      console.error('⚠️ Token hết hạn hoặc không hợp lệ');
+      console.error('⚠️ Truy cập bị từ chối hoặc thông tin không chính xác');
       // Có thể redirect về login
       // window.location.href = '/dashboard/admin/signin';
     }

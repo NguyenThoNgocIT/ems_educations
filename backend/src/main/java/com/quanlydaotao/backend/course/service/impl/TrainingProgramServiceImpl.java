@@ -45,6 +45,8 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         program.setProgramCode(request.getProgramCode());
         program.setProgramName(request.getProgramName());
         program.setMajor(major);
+        program.setDepartmentId(major.getDepartmentId());
+        program.setAcademicCohortId(request.getAcademicCohortId());
         program.setAcademicYear(request.getAcademicYear());
         program.setTotalCredits(request.getTotalCredits());
         program.setDescription(request.getDescription());
@@ -65,6 +67,8 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         program.setProgramCode(request.getProgramCode());
         program.setProgramName(request.getProgramName());
         program.setMajor(major);
+        program.setDepartmentId(major.getDepartmentId());
+        program.setAcademicCohortId(request.getAcademicCohortId());
         program.setAcademicYear(request.getAcademicYear());
         program.setTotalCredits(request.getTotalCredits());
         program.setDescription(request.getDescription());

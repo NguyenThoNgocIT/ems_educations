@@ -19,10 +19,10 @@ public class Major extends SoftDeleteEntity {
     @Column(name = "MajorId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
     private UUID majorId;
 
-    @Column(name = "MajorCode", nullable = false, unique = true, length = 20)
+    @Column(name = "Code", nullable = false, unique = true, length = 20)
     private String majorCode;
 
-    @Column(name = "MajorName", nullable = false, length = 255)
+    @Column(name = "Name", nullable = false, length = 255)
     private String majorName;
 
     @Column(name = "Description", columnDefinition = "nvarchar(max)")
