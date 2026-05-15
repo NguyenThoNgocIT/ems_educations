@@ -2,7 +2,6 @@ package com.quanlydaotao.backend.course.service.impl;
 
 import com.quanlydaotao.backend.course.dto.CreatePrerequisiteRequest;
 import com.quanlydaotao.backend.course.dto.PrerequisiteDto;
-import com.quanlydaotao.backend.course.entity.Course;
 import com.quanlydaotao.backend.course.entity.CoursePrerequisite;
 import com.quanlydaotao.backend.course.entity.CoursePrerequisiteId;
 import com.quanlydaotao.backend.course.repository.CoursePrerequisiteRepository;
@@ -75,7 +74,7 @@ public class CoursePrerequisiteServiceImpl implements CoursePrerequisiteService 
         dto.setIsActive(entity.getIsActive());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
-        
+
         return dto;
     }
 }

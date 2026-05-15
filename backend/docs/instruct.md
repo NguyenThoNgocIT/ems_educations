@@ -54,7 +54,7 @@ RBAC & AUTH:
 - Những api nào cũng phải kiểm tra quyền truyền access token hết hạn thì trả về lỗi 401 để FE bắt đăng nhập lại.
 - Tk để test có thể dùng tk `admin` hoặc `user` đã đăng ký trước đó.
 - admin: pass `Admin@123`
-- superadmin: pass `SuperAdmin@123`
+- superadmin: pass `Admin@123`
 Quy trình tạo tài khoản là student, instructor, staff sẽ được tạo bởi admin hoặc superadmin thông qua giao diện quản 
 lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy cập vào các chức năng tương ứng với vai trò của họ trong hệ thống.
 - Tạo CRUD cơ bản cho các đối tượng: Persons, Students, Employees, Instructors, Staffs, Users, UserRoles
@@ -67,7 +67,7 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
   3. Tự động generate username, password, email edu dựa trên quy tắc đã định sẵn
   4. Tạo bản ghi trong bảng Users để quản lý đăng nhập
   5. Gán role tương ứng trong bảng UserRoles
-  6. đã thêm trường mới:
+Đã thêm trường mới:
      Students thêm AdmissionDate DATE NULL (ngày nhập học)
      Users thêm EmailConfirmed BIT DEFAULT 0 và ConfirmationToken NVARCHAR(255) NULL (cho xác thực email sau)
      Persons thêm FullNameNoAccent NVARCHAR(150) NULL (để generate email.edu nhanh hơn, tránh xử lý accent trong code) đôi với tên không dấu của người dùng 
@@ -86,9 +86,10 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
   │
   Form duy nhất (dynamic):
   • Section 1: Thông tin chung (Persons)
-    - Họ tên, Ngày sinh, Giới tính, CCCD, Địa chỉ, SĐT, Email cá nhân, Avatar…
+    - Họ tên,FullNameNoAccent, Ngày sinh, Giới tính, CCCD, Địa chỉ, SĐT, Email cá nhân, Avatar…
       • Section 2: Thông tin sinh viên (Students)
-    - Mã sinh viên (StudentCode) ← BẮT BUỘC auto-gen theo quy tắc (ví dụ: 101292)
+    - Mã sinh viên (StudentCode) ← auto-gen unique theo quy tắc (ví dụ: 101292)
+    - Major (Ngành) ← lấy từ danh sách đã có từ bảng major dạng dropdown có search, Chọn trước (để filter TrainingProgram)
     - TrainingProgram (Ngành/Chuyên ngành) lấy từ danh sách đã có từ bảng TrainingPrograms dạng dropdown có search 
     - AcademicCohort (Khóa học) lấy từ danh sách đã có từ bảng AcademicCohorts dạng dropdown có search
     - Class (Lớp) lấy từ danh sách đã có từ bảng Classes dạng dropdown có search
@@ -97,7 +98,7 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
       ▼
       Backend xử lý **1 API atomic** (trong @Transactional):
         1. INSERT Persons               → personId
-        2. INSERT Students              → studentId, StudentCode, TrainingProgramId, PersonId
+        2. INSERT Students              → studentId, StudentCode,MajorId TrainingProgramId, PersonId
         3. Tự động generate (theo quy tắc bạn đưa):
            • Username     = StudentCode lấy từ bảng Students (ví dụ: 101292)
            • Password     = ddMMyyyy (ngày sinh, ví dụ: 15032005)
@@ -125,13 +126,13 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
   │
   Form duy nhất (dynamic):
   • Section 1: Thông tin chung (Persons)
-    - Họ tên, Ngày sinh, Giới tính, CCCD, Địa chỉ thường trú/tạm trú, SĐT, Email cá nhân, Avatar…
+    - Họ tên,FullNameNoAccent, Ngày sinh, Giới tính, CCCD, Địa chỉ thường trú/tạm trú, SĐT, Email cá nhân, Avatar…
       • Section 2: Thông tin nhân viên (Employees + Staffs)
-    - Mã nhân viên (EmployeeCode)  auto-gen dạng 2024045001
+    - Mã nhân viên (EmployeeCode) ← lấy từ bảng Employees (2024045)" EmployeeCode ở Employees là auto-gen unique"
+    - StaffCode  "NV2024045"  ← prefix "NV" + EmployeeCode
     - Ngày bắt đầu làm việc (StartWorkDate) 
     - Division (Phòng ban) lấy từ danh sách đã có từ bảng Divisions dạng dropdown có search
     - Position (Chức vụ) lấy từ danh sách đã có từ bảng Positions dạng dropdown có search
-    - StaffCode (nếu cần riêng) 
     - Ghi chú
       │
       ▼
@@ -167,8 +168,8 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
   • Section 1: Thông tin chung (Persons)
     - Họ tên, Ngày sinh, Giới tính, CCCD, Nơi sinh, Địa chỉ thường trú/tạm trú, SĐT, Email cá nhân, Avatar…
       • Section 2: Thông tin giảng viên (Employees + Instructors)
-    - Mã giảng viên (InstructorCode) ← BẮT BUỘC auto-gen theo quy tắc (ví dụ: GV2024045)
-    - Mã nhân viên (EmployeeCode) ← lấy từ bảng Employees sau khi insert (2024045)
+    - Mã nhân viên (EmployeeCode) ← lấy từ bảng Employees sau khi insert (2024045)" EmployeeCode ở Employees là auto-gen unique"
+    - Mã giảng viên (InstructorCode) ←  "GV2024045"  ← prefix "GV" + EmployeeCode
     - Ngày bắt đầu làm việc (StartWorkDate)
     - Department (Khoa/Bộ môn) lấy từ danh sách đã có từ bảng Departments dạng dropdown có search
     - Degree (Học vị) lấy từ danh sách đã có từ bảng Degrees dạng dropdown có search
