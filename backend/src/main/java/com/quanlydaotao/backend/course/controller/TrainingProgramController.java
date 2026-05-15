@@ -1,5 +1,6 @@
 package com.quanlydaotao.backend.course.controller;
 
+import com.quanlydaotao.backend.common.dto.ApiResponse;
 import com.quanlydaotao.backend.course.dto.CreateTrainingProgramRequest;
 import com.quanlydaotao.backend.course.dto.TrainingProgramDto;
 import com.quanlydaotao.backend.course.service.TrainingProgramService;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -18,6 +20,13 @@ import java.util.UUID;
 public class TrainingProgramController {
 
     private final TrainingProgramService trainingProgramService;
+
+    // ✅ API cho FE lấy toàn bộ danh sách (không phân trang)
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<TrainingProgramDto>>> getAllTrainingPrograms() {
+        List<TrainingProgramDto> programs = trainingProgramService.getAllTrainingProgramsList();
+        return ResponseEntity.ok(ApiResponse.success("Thành công", programs));
+    }
 
     @GetMapping
     public ResponseEntity<Page<TrainingProgramDto>> getAllPrograms(

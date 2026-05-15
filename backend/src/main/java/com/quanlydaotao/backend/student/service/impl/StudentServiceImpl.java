@@ -112,21 +112,34 @@ public class StudentServiceImpl implements StudentService {
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
-    @Override
-    @Transactional
-    public StudentDto updateStudent(UUID id, UpdateStudentRequest request) {
-        Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
-        student.setNote(request.getNote());
-        if (request.getTrainingProgramId() != null) {
-            student.setTrainingProgramId(request.getTrainingProgramId());
-        }
-        if (request.getIsActive() != null) {
-            student.setIsActive(request.getIsActive());
-        }
-        student = studentRepository.save(student);
-        return mapToDto(student);
+@Override
+@Transactional
+public StudentDto updateStudent(UUID id, UpdateStudentRequest request) {
+    Student student = studentRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+    
+    student.setNote(request.getNote());
+    
+    if (request.getTrainingProgramId() != null) {
+        student.setTrainingProgramId(request.getTrainingProgramId());
     }
+    if (request.getIsActive() != null) {
+        student.setIsActive(request.getIsActive());
+    }
+    
+    // ✅ THÊM CẬP NHẬT SĐT VÀ EMAIL CHO PERSON
+    Person person = student.getPerson();
+    if (request.getPhoneNumber() != null) {
+        person.setPhoneNumber(request.getPhoneNumber());
+    }
+    if (request.getContactEmail() != null) {
+        person.setContactEmail(request.getContactEmail());
+    }
+    personRepository.save(person);
+    
+    student = studentRepository.save(student);
+    return mapToDto(student);
+}
     @Override
     @Transactional
     public void deleteStudent(UUID id) {

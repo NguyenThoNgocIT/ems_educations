@@ -39,6 +39,7 @@ export default function CreateStudentPage() {
 
   // Tạo email tự động từ họ tên
   const generateEmail = (fullName: string) => {
+    if (!fullName.trim()) return '';
     const nameParts = fullName.trim().toLowerCase().split(' ');
     const lastName = nameParts[nameParts.length - 1];
     const firstName = nameParts[0];
@@ -75,8 +76,7 @@ export default function CreateStudentPage() {
 
     setLoading(true);
     try {
-      // Gọi API enroll - tự động tạo Person + Student + User
-      await studentApi.enroll({
+      const enrollData = {
         fullName: formData.fullName,
         studentCode: formData.studentCode,
         trainingProgramId: formData.trainingProgramId,
@@ -85,12 +85,15 @@ export default function CreateStudentPage() {
         phoneNumber: formData.phoneNumber,
         contactEmail: formData.contactEmail || generateEmail(formData.fullName),
         note: formData.note
-      });
-
+      };
+      
+      console.log('📤 Gửi dữ liệu:', enrollData);
+      
+      await studentApi.enroll(enrollData);
       toast.success('Thêm sinh viên thành công');
       router.push('/dashboard/admin/students');
     } catch (error: any) {
-      console.error(error);
+      console.error('❌ Lỗi:', error);
       toast.error(error.response?.data?.message || 'Thêm sinh viên thất bại');
     } finally {
       setLoading(false);
@@ -124,7 +127,9 @@ export default function CreateStudentPage() {
                 className="mt-1.5"
                 placeholder="VD: Nguyễn Văn A"
               />
-              <p className="text-xs text-gray-400 mt-1">Email: {formData.contactEmail || 'tên@donga.edu.vn'}</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Email: {formData.contactEmail || 'tên@donga.edu.vn'}
+              </p>
             </div>
 
             {/* Mã sinh viên */}
@@ -159,7 +164,7 @@ export default function CreateStudentPage() {
               <select
                 value={formData.gender}
                 onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 outline-none focus:border-green-500"
+                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
               >
                 <option value="Nam">Nam</option>
                 <option value="Nữ">Nữ</option>
@@ -175,7 +180,7 @@ export default function CreateStudentPage() {
               <select
                 value={formData.trainingProgramId}
                 onChange={(e) => handleProgramChange(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 outline-none focus:border-green-500"
+                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
               >
                 <option value="">-- Chọn chương trình --</option>
                 {PROGRAM_OPTIONS.map((option) => (
@@ -197,7 +202,7 @@ export default function CreateStudentPage() {
               />
             </div>
 
-            {/* Email (không bắt buộc) */}
+            {/* Email */}
             <div>
               <Label>Email</Label>
               <Input
@@ -221,10 +226,18 @@ export default function CreateStudentPage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={loading}>
+              <Button 
+                type="submit" 
+                className="bg-green-600 hover:bg-green-700"
+                disabled={loading}
+              >
                 {loading ? "Đang xử lý..." : "💾 LƯU & THÊM MỚI"}
               </Button>
-              <Button type="button" variant="outline" onClick={() => router.push('/dashboard/admin/students')}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => router.push('/dashboard/admin/students')}
+              >
                 Hủy bỏ
               </Button>
             </div>
