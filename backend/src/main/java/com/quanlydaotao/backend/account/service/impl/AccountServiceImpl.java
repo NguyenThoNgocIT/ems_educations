@@ -15,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AccountServiceImpl {
