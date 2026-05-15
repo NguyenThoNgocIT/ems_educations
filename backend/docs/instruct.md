@@ -70,7 +70,7 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
 Đã thêm trường mới:
      Students thêm AdmissionDate DATE NULL (ngày nhập học)
      Users thêm EmailConfirmed BIT DEFAULT 0 và ConfirmationToken NVARCHAR(255) NULL (cho xác thực email sau)
-     Persons thêm FullNameNoAccent NVARCHAR(150) NULL (để generate email.edu nhanh hơn, tránh xử lý accent trong code) đôi với tên không dấu của người dùng 
+     Persons thêm FullNameNoAccent NVARCHAR(150) NULL (để generate email.edu nhanh hơn, tránh xử lý accent trong code) đôi với tên không dấu của người dùng ví dụ fullname là Nguyễn Thọ Ngọc thì FullNameNoAccent lưu ngoc.
     - Tạo từng đối tượng 1 thì admin nhập ô input còn nếu import nhiều thì sẽ có file excel mẫu để admin nhập liệu cho nhanh rồi import vào hệ thống (file excel sẽ có cột tương ứng với các trường dữ liệu cần thiết, sau đó backend sẽ đọc file này và thực hiện quy trình tạo tài khoản tương tự như trên cho từng dòng dữ liệu trong file).
      Employees thêm EmployeeType NVARCHAR(20) NULL (để phân biệt Instructor/Staff dễ dàng hơn khi query)
 - Workflow chính thức cho Sinh viên:

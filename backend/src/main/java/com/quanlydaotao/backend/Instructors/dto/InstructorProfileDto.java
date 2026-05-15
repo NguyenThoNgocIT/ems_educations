@@ -1,8 +1,8 @@
-package com.quanlydaotao.backend.lecturer.dto;
+package com.quanlydaotao.backend.Instructors.dto;
 import lombok.Data;
 import java.util.UUID;
 @Data
-public class LecturerProfileDto {
+public class InstructorProfileDto {
     private UUID id;
     private UUID employeeId;
     private String instructorCode;

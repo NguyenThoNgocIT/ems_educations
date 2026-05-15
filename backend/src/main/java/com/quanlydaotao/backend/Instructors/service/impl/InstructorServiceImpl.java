@@ -1,11 +1,11 @@
-package com.quanlydaotao.backend.lecturer.service.impl;
+package com.quanlydaotao.backend.Instructors.service.impl;
+import com.quanlydaotao.backend.Instructors.dto.InstructorCreateRequest;
+import com.quanlydaotao.backend.Instructors.dto.InstructorProfileDto;
+import com.quanlydaotao.backend.Instructors.dto.InstructorUpdateRequest;
+import com.quanlydaotao.backend.Instructors.entity.InstructorProfile;
+import com.quanlydaotao.backend.Instructors.repository.InstructorProfileRepository;
+import com.quanlydaotao.backend.Instructors.service.InstructorService;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
-import com.quanlydaotao.backend.lecturer.dto.LecturerCreateRequest;
-import com.quanlydaotao.backend.lecturer.dto.LecturerProfileDto;
-import com.quanlydaotao.backend.lecturer.dto.LecturerUpdateRequest;
-import com.quanlydaotao.backend.lecturer.entity.LecturerProfile;
-import com.quanlydaotao.backend.lecturer.repository.LecturerProfileRepository;
-import com.quanlydaotao.backend.lecturer.service.LecturerService;
 import com.quanlydaotao.backend.user.entity.Employee;
 import com.quanlydaotao.backend.user.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,12 +17,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
-public class LecturerServiceImpl implements LecturerService {
-    private final LecturerProfileRepository lecturerRepository;
+public class InstructorServiceImpl implements InstructorService {
+    private final InstructorProfileRepository lecturerRepository;
     private final EmployeeRepository employeeRepository;
     @Override
     @Transactional
-    public LecturerProfileDto createLecturer(LecturerCreateRequest request) {
+    public InstructorProfileDto createLecturer(InstructorCreateRequest request) {
         if (lecturerRepository.findByInstructorCode(request.getInstructorCode()).isPresent()) {
             throw new RuntimeException("Instructor code already exists.");
         }
@@ -31,7 +31,7 @@ public class LecturerServiceImpl implements LecturerService {
         if (lecturerRepository.findByEmployeeEmployeeId(employee.getEmployeeId()).isPresent()) {
             throw new RuntimeException("Employee is already an instructor.");
         }
-        LecturerProfile lecturer = new LecturerProfile();
+        InstructorProfile lecturer = new InstructorProfile();
         lecturer.setEmployee(employee);
         lecturer.setInstructorCode(request.getInstructorCode());
         lecturer.setDepartmentId(request.getDepartmentId());
@@ -41,22 +41,22 @@ public class LecturerServiceImpl implements LecturerService {
     }
     @Override
     @Transactional(readOnly = true)
-    public LecturerProfileDto getLecturerById(UUID id) {
-        LecturerProfile lecturer = lecturerRepository.findById(id)
+    public InstructorProfileDto getLecturerById(UUID id) {
+        InstructorProfile lecturer = lecturerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lecturer not found"));
         return mapToDto(lecturer);
     }
     @Override
     @Transactional(readOnly = true)
-    public List<LecturerProfileDto> getAllLecturers() {
+    public List<InstructorProfileDto> getAllLecturers() {
         return lecturerRepository.findAll().stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
     @Override
     @Transactional
-    public LecturerProfileDto updateLecturer(UUID id, LecturerUpdateRequest request) {
-        LecturerProfile lecturer = lecturerRepository.findById(id)
+    public InstructorProfileDto updateLecturer(UUID id, InstructorUpdateRequest request) {
+        InstructorProfile lecturer = lecturerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lecturer not found"));
         if (request.getInstructorCode() != null && !request.getInstructorCode().equals(lecturer.getInstructorCode())) {
             if (lecturerRepository.findByInstructorCode(request.getInstructorCode()).isPresent()) {
@@ -73,14 +73,14 @@ public class LecturerServiceImpl implements LecturerService {
     @Override
     @Transactional
     public void deleteLecturer(UUID id) {
-        LecturerProfile lecturer = lecturerRepository.findById(id)
+        InstructorProfile lecturer = lecturerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lecturer not found"));
         lecturer.setIsActive(false);
         lecturer.setDeletedAt(LocalDateTime.now());
         lecturerRepository.save(lecturer);
     }
-    private LecturerProfileDto mapToDto(LecturerProfile lecturer) {
-        LecturerProfileDto dto = new LecturerProfileDto();
+    private InstructorProfileDto mapToDto(InstructorProfile lecturer) {
+        InstructorProfileDto dto = new InstructorProfileDto();
         dto.setId(lecturer.getInstructorId());
         dto.setEmployeeId(lecturer.getEmployee().getEmployeeId());
         dto.setInstructorCode(lecturer.getInstructorCode());

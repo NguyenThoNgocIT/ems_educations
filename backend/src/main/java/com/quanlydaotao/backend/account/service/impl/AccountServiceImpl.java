@@ -1,4 +1,5 @@
 package com.quanlydaotao.backend.account.service.impl;
+import com.quanlydaotao.backend.Instructors.entity.InstructorProfile;
 import com.quanlydaotao.backend.account.dto.AccountCreationRequest;
 import com.quanlydaotao.backend.user.entity.Person;
 import com.quanlydaotao.backend.user.entity.User;
@@ -7,7 +8,6 @@ import com.quanlydaotao.backend.user.entity.Employee;
 import com.quanlydaotao.backend.staff.entity.Staff;
 import com.quanlydaotao.backend.user.entity.UserRole;
 import com.quanlydaotao.backend.role.entity.Role;
-import com.quanlydaotao.backend.lecturer.entity.LecturerProfile;
 import com.quanlydaotao.backend.utils.StringUtil;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +52,7 @@ public class AccountServiceImpl {
             entityManager.persist(e);
 
             if ("INSTRUCTOR".equalsIgnoreCase(req.getType()) || "LECTURER".equalsIgnoreCase(req.getType())) {
-                LecturerProfile lp = new LecturerProfile();
+                InstructorProfile lp = new InstructorProfile();
                 lp.setEmployee(e);
                 lp.setInstructorCode(req.getEmployeeCode());
                 lp.setDepartmentId(req.getDepartmentId());

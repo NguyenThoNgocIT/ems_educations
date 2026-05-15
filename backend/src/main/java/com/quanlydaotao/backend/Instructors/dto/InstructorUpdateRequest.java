@@ -1,11 +1,11 @@
-package com.quanlydaotao.backend.lecturer.dto;
+package com.quanlydaotao.backend.Instructors.dto;
 import lombok.Data;
 import java.util.UUID;
 @Data
-public class LecturerCreateRequest {
-    private UUID employeeId;
+public class InstructorUpdateRequest {
     private String instructorCode;
     private UUID departmentId;
     private UUID degreeId;
+    private Boolean isActive;
 }
 

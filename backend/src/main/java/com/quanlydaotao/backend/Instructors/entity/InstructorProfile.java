@@ -1,4 +1,4 @@
-package com.quanlydaotao.backend.lecturer.entity;
+package com.quanlydaotao.backend.Instructors.entity;
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
 import com.quanlydaotao.backend.user.entity.Employee;
 import jakarta.persistence.*;
@@ -13,7 +13,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LecturerProfile extends SoftDeleteEntity {
+public class InstructorProfile extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
