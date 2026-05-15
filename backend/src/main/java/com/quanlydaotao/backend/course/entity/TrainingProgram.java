@@ -16,13 +16,13 @@ public class TrainingProgram extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "ProgramId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "TrainingProgramId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
     private UUID programId;
 
-    @Column(name = "ProgramCode", nullable = false, unique = true, length = 50)
+    @Column(name = "Code", nullable = false, unique = true, length = 50)
     private String programCode;
 
-    @Column(name = "ProgramName", nullable = false, length = 255)
+    @Column(name = "Name", nullable = false, length = 255)
     private String programName;
 
     @ManyToOne(fetch = FetchType.LAZY)

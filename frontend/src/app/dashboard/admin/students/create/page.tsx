@@ -7,21 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, UserPlus } from 'lucide-react';
+import { ArrowLeft, Save, UserPlus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { studentApi } from '@/api/student';
+import { trainingProgramApi } from '@/api/training-program';
 
-const PROGRAM_OPTIONS = [
-  { value: '40299068-E853-4123-946D-AB9E68D28971', label: '💻 Công nghệ thông tin (CNTT)' },
-  { value: '61C1D31F-C6EC-4D74-A62B-C4B5071608B0', label: '📊 Hệ thống thông tin (HTTT)' },
-  { value: 'F72A21BD-32F0-404D-9ADE-8FEFDDD218E3', label: '⚙️ Kỹ thuật phần mềm (KTPM)' },
-  { value: '0DC1F922-5360-41BF-8EFF-71F5547DA30C', label: '📈 Quản trị kinh doanh (QTKD)' },
-  { value: 'B3982A4C-97A2-4B4F-BE58-B0ECD2C38057', label: '🌐 Ngôn ngữ Anh (NN)' },
-];
 
 export default function CreateStudentPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [fetchingPrograms, setFetchingPrograms] = useState(true);
   const [formData, setFormData] = useState({
     fullName: '',
     studentCode: '',
@@ -32,6 +28,23 @@ export default function CreateStudentPage() {
     phoneNumber: '',
     contactEmail: ''
   });
+
+  // Lấy danh sách chương trình đào tạo từ BE
+  React.useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        const response: any = await trainingProgramApi.getAll({ size: 100 });
+        // Kết quả từ Spring Data Page thường nằm trong field .content
+        setPrograms(response.content || []);
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách chương trình:', error);
+        toast.error('Không thể tải danh sách chương trình đào tạo');
+      } finally {
+        setFetchingPrograms(false);
+      }
+    };
+    fetchPrograms();
+  }, []);
 
   const handleProgramChange = (value: string) => {
     setFormData({ ...formData, trainingProgramId: value });
@@ -169,18 +182,29 @@ export default function CreateStudentPage() {
 
             {/* Chương trình đào tạo */}
             <div>
-              <Label className="font-semibold">
-                Chương trình đào tạo <span className="text-red-500">*</span>
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold">
+                  Chương trình đào tạo <span className="text-red-500">*</span>
+                </Label>
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  className="p-0 h-auto text-xs text-green-600 hover:text-green-700"
+                  onClick={() => router.push('/dashboard/admin/training-programs/create')}
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Thêm mới chương trình
+                </Button>
+              </div>
               <select
                 value={formData.trainingProgramId}
                 onChange={(e) => handleProgramChange(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 outline-none focus:border-green-500"
+                disabled={fetchingPrograms}
+                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 outline-none focus:border-green-500 disabled:bg-gray-100"
               >
-                <option value="">-- Chọn chương trình --</option>
-                {PROGRAM_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                <option value="">{fetchingPrograms ? '-- Đang tải... --' : '-- Chọn chương trình --'}</option>
+                {programs.map((program) => (
+                  <option key={program.trainingProgramId} value={program.trainingProgramId}>
+                    {program.code} - {program.name}
                   </option>
                 ))}
               </select>
