@@ -4,8 +4,10 @@ import com.quanlydaotao.backend.user.entity.Person;
 import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.student.entity.Student;
 import com.quanlydaotao.backend.user.entity.Employee;
+import com.quanlydaotao.backend.staff.entity.Staff;
 import com.quanlydaotao.backend.user.entity.UserRole;
 import com.quanlydaotao.backend.role.entity.Role;
+import com.quanlydaotao.backend.lecturer.entity.LecturerProfile;
 import com.quanlydaotao.backend.utils.StringUtil;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +49,24 @@ public class AccountServiceImpl {
             e.setEmployeeCode(req.getEmployeeCode());
             e.setStartWorkDate(req.getStartWorkDate());
             e.setEmployeeType(req.getType());
+            e.setStatus("ACTIVE");
             entityManager.persist(e);
+
+            if ("INSTRUCTOR".equalsIgnoreCase(req.getType()) || "LECTURER".equalsIgnoreCase(req.getType())) {
+                LecturerProfile lp = new LecturerProfile();
+                lp.setEmployee(e);
+                lp.setInstructorCode(req.getEmployeeCode());
+                lp.setDepartmentId(req.getDepartmentId());
+                lp.setDegreeId(req.getDegreeId());
+                entityManager.persist(lp);
+            } else if ("STAFF".equalsIgnoreCase(req.getType())) {
+                Staff st = new Staff();
+                st.setEmployee(e);
+                st.setStaffCode(req.getEmployeeCode());
+                st.setDivisionId(req.getDivisionId());
+                st.setPositionId(req.getPositionId());
+                entityManager.persist(st);
+            }
             code = req.getEmployeeCode();
         }
         // Generate User
@@ -63,7 +82,7 @@ public class AccountServiceImpl {
         entityManager.persist(user);
         // Generate Role
         String roleName = req.getType(); // Map exactly or match logic
-        Role role = entityManager.createQuery("SELECT r FROM Role r WHERE r.roleCode = :code OR r.roleName = :code", Role.class)
+        Role role = entityManager.createQuery("SELECT r FROM Role r WHERE r.code  = :code OR r.name = :code", Role.class)
                 .setParameter("code", roleName)
                 .getResultStream().findFirst().orElse(null);
         if (role != null) {

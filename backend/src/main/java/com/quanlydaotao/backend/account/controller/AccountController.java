@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 public class AccountController {
     private final AccountServiceImpl accountService;
     @PostMapping("/create")
-    @Operation(summary = "Tạo tài khoản (Student, Instructor, Staff)")
+    @Operation(summary = "Tạo tài khoản(Admin) (Student, Instructor, Staff)")
     public ResponseEntity<ApiResponse<String>> createAccount(@RequestBody AccountCreationRequest request) {
         accountService.createAccount(request);
         return ResponseEntity.ok(ApiResponse.success("Tạo tài khoản thành công", null));

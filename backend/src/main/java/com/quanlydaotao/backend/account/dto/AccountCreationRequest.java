@@ -17,4 +17,9 @@ public class AccountCreationRequest {
     // For Employee/Instructor
     private LocalDate startWorkDate;
     private String employeeCode;
+    private UUID departmentId;
+    private UUID degreeId;
+    // Staff specific
+    private UUID divisionId;
+    private UUID positionId;
 }
