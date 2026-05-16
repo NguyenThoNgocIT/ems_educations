@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,22 +10,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Save, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { studentApi } from '@/api/student';
+import { request } from '@/utils/request';
+import Select from 'react-select';
 
-const PROGRAM_OPTIONS = [
-  { value: '40299068-E853-4123-946D-AB9E68D28971', label: '💻 Công nghệ thông tin (CNTT)' },
-  { value: '61C1D31F-C6EC-4D74-A62B-C4B5071608B0', label: '📊 Hệ thống thông tin (HTTT)' },
-  { value: 'F72A21BD-32F0-404D-9ADE-8FEFDDD218E3', label: '⚙️ Kỹ thuật phần mềm (KTPM)' },
-  { value: '0DC1F922-5360-41BF-8EFF-71F5547DA30C', label: '📈 Quản trị kinh doanh (QTKD)' },
-  { value: 'B3982A4C-97A2-4B4F-BE58-B0ECD2C38057', label: '🌐 Ngôn ngữ Anh (NN)' },
-];
+interface TrainingProgram {
+  trainingProgramId: string;
+  code: string;
+  name: string;
+}
+
+interface SelectOption {
+  value: string;
+  label: string;
+}
 
 export default function CreateStudentPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [programs, setPrograms] = useState<TrainingProgram[]>([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(true);
   const [formData, setFormData] = useState({
     fullName: '',
     studentCode: '',
-    trainingProgramId: '',
+    trainingProgramId: '',  // ✅ ĐÚNG TÊN
     note: '',
     dateOfBirth: '',
     gender: 'Nam',
@@ -33,11 +40,33 @@ export default function CreateStudentPage() {
     contactEmail: ''
   });
 
-  const handleProgramChange = (value: string) => {
-    setFormData({ ...formData, trainingProgramId: value });
+  // Lấy danh sách chương trình đào tạo từ API
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        const response = await request.get('/api/training-programs/all');
+        const data = response?.data || response || [];
+        setPrograms(data);
+      } catch (error) {
+        console.error('Không thể lấy danh sách chương trình:', error);
+        toast.error('Không thể tải danh sách chương trình');
+      } finally {
+        setLoadingPrograms(false);
+      }
+    };
+    fetchPrograms();
+  }, []);
+
+  // Chuyển đổi sang format react-select
+  const programOptions: SelectOption[] = programs.map(program => ({
+    value: program.trainingProgramId,
+    label: `${program.code} - ${program.name}`
+  }));
+
+  const handleProgramChange = (option: SelectOption | null) => {
+    setFormData({ ...formData, trainingProgramId: option?.value || '' });
   };
 
-  // Tạo email tự động từ họ tên
   const generateEmail = (fullName: string) => {
     if (!fullName.trim()) return '';
     const nameParts = fullName.trim().toLowerCase().split(' ');
@@ -79,15 +108,13 @@ export default function CreateStudentPage() {
       const enrollData = {
         fullName: formData.fullName,
         studentCode: formData.studentCode,
-        trainingProgramId: formData.trainingProgramId,
+        trainingProgramId: formData.trainingProgramId,  // ✅ GỬI ĐÚNG TÊN
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
         phoneNumber: formData.phoneNumber,
         contactEmail: formData.contactEmail || generateEmail(formData.fullName),
         note: formData.note
       };
-      
-      console.log('📤 Gửi dữ liệu:', enrollData);
       
       await studentApi.enroll(enrollData);
       toast.success('Thêm sinh viên thành công');
@@ -98,6 +125,46 @@ export default function CreateStudentPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  if (loadingPrograms) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Tuỳ chỉnh style cho react-select
+  const customStyles = {
+    control: (base: any) => ({
+      ...base,
+      borderRadius: '0.5rem',
+      borderColor: '#e5e7eb',
+      backgroundColor: 'white',
+      padding: '2px 0',
+      boxShadow: 'none',
+      '&:hover': { borderColor: '#e5e7eb' },
+      '&:focus-within': { borderColor: '#006633', boxShadow: '0 0 0 2px rgba(0,102,51,0.2)' }
+    }),
+    menu: (base: any) => ({
+      ...base,
+      borderRadius: '0.5rem',
+      overflow: 'hidden',
+      zIndex: 9999
+    }),
+    menuList: (base: any) => ({
+      ...base,
+      maxHeight: '200px',
+      overflowY: 'auto'
+    }),
+    option: (base: any, state: any) => ({
+      ...base,
+      backgroundColor: state.isFocused ? '#f3f4f6' : 'white',
+      color: '#1f2937',
+      cursor: 'pointer',
+      '&:active': { backgroundColor: '#e5e7eb' }
+    })
   };
 
   return (
@@ -177,18 +244,21 @@ export default function CreateStudentPage() {
               <Label className="font-semibold">
                 Chương trình đào tạo <span className="text-red-500">*</span>
               </Label>
-              <select
-                value={formData.trainingProgramId}
-                onChange={(e) => handleProgramChange(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-              >
-                <option value="">-- Chọn chương trình --</option>
-                {PROGRAM_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <Select
+                options={programOptions}
+                onChange={handleProgramChange}
+                placeholder="-- Chọn chương trình --"
+                isClearable
+                className="mt-1.5"
+                styles={customStyles}
+                menuPortalTarget={document.body}
+                maxMenuHeight={200}
+              />
+              {programs.length === 0 && (
+                <p className="text-xs text-yellow-500 mt-1">
+                  Không có chương trình đào tạo nào. Vui lòng thêm chương trình trước.
+                </p>
+              )}
             </div>
 
             {/* Số điện thoại */}
@@ -226,18 +296,10 @@ export default function CreateStudentPage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button 
-                type="submit" 
-                className="bg-green-600 hover:bg-green-700"
-                disabled={loading}
-              >
+              <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={loading}>
                 {loading ? "Đang xử lý..." : "💾 LƯU & THÊM MỚI"}
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => router.push('/dashboard/admin/students')}
-              >
+              <Button type="button" variant="outline" onClick={() => router.push('/dashboard/admin/students')}>
                 Hủy bỏ
               </Button>
             </div>
