@@ -10,7 +10,7 @@ import com.quanlydaotao.backend.scheduling.mapper.ScheduleMapper;
 import com.quanlydaotao.backend.scheduling.repository.ScheduleRepository;
 import com.quanlydaotao.backend.scheduling.repository.TimeSlotRepository;
 import com.quanlydaotao.backend.scheduling.service.ScheduleService;
-import com.quanlydaotao.backend.user.repository.EmployeeRepository;
+import com.quanlydaotao.backend.employee.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -131,3 +131,4 @@ public class ScheduleServiceImpl implements ScheduleService {
         }
     }
 }
+

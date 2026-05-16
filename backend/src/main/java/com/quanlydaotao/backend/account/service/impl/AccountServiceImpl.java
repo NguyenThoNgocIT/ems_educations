@@ -1,10 +1,10 @@
 package com.quanlydaotao.backend.account.service.impl;
-import com.quanlydaotao.backend.Instructors.entity.InstructorProfile;
+import com.quanlydaotao.backend.instructor.entity.InstructorProfile;
 import com.quanlydaotao.backend.account.dto.AccountCreationRequest;
-import com.quanlydaotao.backend.user.entity.Person;
+import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.student.entity.Student;
-import com.quanlydaotao.backend.user.entity.Employee;
+import com.quanlydaotao.backend.employee.entity.Employee;
 import com.quanlydaotao.backend.staff.entity.Staff;
 import com.quanlydaotao.backend.user.entity.UserRole;
 import com.quanlydaotao.backend.role.entity.Role;
@@ -92,3 +92,4 @@ public class AccountServiceImpl {
         }
     }
 }
+

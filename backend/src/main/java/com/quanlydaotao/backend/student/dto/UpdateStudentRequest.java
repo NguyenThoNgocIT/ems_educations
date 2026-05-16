@@ -13,6 +13,4 @@ public class UpdateStudentRequest {
     private String note;
     private UUID trainingProgramId;
     private Boolean isActive;
-    private String phoneNumber;      // ✅ THÊM
-    private String contactEmail;     // ✅ THÊM
 }

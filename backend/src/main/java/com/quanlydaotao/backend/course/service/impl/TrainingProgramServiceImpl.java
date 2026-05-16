@@ -44,18 +44,10 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .orElseThrow(() -> new RuntimeException("Major not found"));
         
         TrainingProgram program = new TrainingProgram();
-<<<<<<< HEAD
         program.setCode(request.getProgramCode());
         program.setName(request.getProgramName());
         program.setMajorId(major.getMajorId());
-=======
-        program.setProgramCode(request.getProgramCode());
-        program.setProgramName(request.getProgramName());
-        program.setMajor(major);
-        program.setDepartmentId(major.getDepartmentId());
-        program.setAcademicCohortId(request.getAcademicCohortId());
-        program.setAcademicYear(request.getAcademicYear());
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
+
         program.setTotalCredits(request.getTotalCredits());
         program.setDescription(request.getDescription());
         program.setIsActive(true);
@@ -69,21 +61,10 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         TrainingProgram program = trainingProgramRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Training Program not found"));
         
-<<<<<<< HEAD
         program.setCode(request.getProgramCode());
         program.setName(request.getProgramName());
         program.setMajorId(request.getMajorId());
-=======
-        Major major = majorRepository.findById(request.getMajorId())
-                .orElseThrow(() -> new RuntimeException("Major not found"));
-        
-        program.setProgramCode(request.getProgramCode());
-        program.setProgramName(request.getProgramName());
-        program.setMajor(major);
-        program.setDepartmentId(major.getDepartmentId());
-        program.setAcademicCohortId(request.getAcademicCohortId());
-        program.setAcademicYear(request.getAcademicYear());
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
+
         program.setTotalCredits(request.getTotalCredits());
         program.setDescription(request.getDescription());
         
@@ -106,7 +87,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .collect(Collectors.toList());
     }
 
-    // ✅ SỬA LẠI mapToDto - DÙNG ĐÚNG TÊN FIELD
+    // âœ… Sá»¬A Láº I mapToDto - DÃ™NG ÄÃšNG TÃŠN FIELD
     private TrainingProgramDto mapToDto(TrainingProgram entity) {
         TrainingProgramDto dto = new TrainingProgramDto();
         dto.setTrainingProgramId(entity.getTrainingProgramId());

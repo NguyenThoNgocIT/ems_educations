@@ -1,11 +1,14 @@
 # UEMS Project AI Rules & Standards
 
-Chào mừng AI Assistant! Đây là hướng dẫn tiêu chuẩn cho dự án UEMS (University Education Management System). Hãy tuân thủ các quy tắc này để viết code đồng nhất và chất lượng cao.
+Chào mừng AI Assistant! Đây là hướng dẫn tiêu chuẩn cho dự án Xây dựng hệ thống phần mềm quản lý hoạt động đào tạo – Web API (Spring Boot, SQL Server, …) 
+– Web Admin phục vụ quản lý đào tạo – Web Client phục vụ người học / đào tạo cho trường đại học. UEMS (University Education Management System). Hãy tuân thủ các quy tắc này để viết code đồng nhất và chất lượng cao.
 
 ## 🚀 1. Tổng quan Dự án
 - **Công nghệ:** Java 17, Spring Boot 3.3.5, MS SQL Server, Spring Data JPA.
 - **Quản lý DB:** Flyway (tất cả thay đổi DB phải qua file migration `.sql`).
 - **Phân quyền:** JWT + Spring Security (RBAC).
+- Tất cả controller đều phải qua middelware được bảo về bởi JWT Spring Security đã được cấu hình trong thư mục E:\Downloads\quanlydaotao-main\backend\src\main\java\com\quanlydaotao\backend\infrastructure\security
+E:\Downloads\quanlydaotao-main\backend\src\main\java\com\quanlydaotao\backend\common\config\SecurityConfig.java
 
 ## 🛠 2. Tiêu chuẩn viết Entity
 - **ID:** Luôn sử dụng `UUID` cho tất cả các Primary Key.
@@ -47,6 +50,9 @@ Chào mừng AI Assistant! Đây là hướng dẫn tiêu chuẩn cho dự án U
 *Lưu ý: Luôn kiểm tra sự tồn tại của dữ liệu và ném ra ResourceNotFoundException nếu không tìm thấy.*
 
 RBAC & AUTH:
+Phân quyền theo chuẩn RBAC:
+- 1 user có nhiều role 1 role năm giữ nhiều permission. có bảng menu permission nào được vào menu nào.
+- Gán vai trò cho người dùng ở đây có Student, Instructor, Admin, Staff... sẽ được vào những quyền gì gán tự động và có thể thêm sửa xoá linh hoạt, quyền sẽ được truy cập vào controllers nào actions nào tưng ứng quyền thì sẽ được vào menu nào setup menu tự động theo phân quyền.
 - Cơ chế bảo vệ dữ liệu nhạy cảm (Identity Protection) đã được áp dụng cho các API cập nhật thông tin người dùng
 - (ví dụ: `PUT /api/auth/users/{id}`). Các trường như `userId` và `email` sẽ bị khóa,
 - không cho phép thay đổi sau khi đăng ký. FE cần chuyển các trường này sang trạng thái `disabled` hoặc `read-only` 
@@ -109,8 +115,7 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
            │
            ▼
            Trả về thông báo thành công + nút “Gửi lại email”
-+ Gửi email tài khoản cho sinh viên
-+ Ghi log vào bảng Logs
++ Gửi email tài khoản cho sinh viên là email edu chứ k phải email cá nhân 
 + Nếu có lỗi ở bất kỳ bước nào, rollback toàn bộ transaction và trả về lỗi chi tiết để FE hiển thị.
 
 - WORKFLOW CHÍNH THỨC CHO STAFF (Nhân viên hành chính)
@@ -133,6 +138,7 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
     - Ngày bắt đầu làm việc (StartWorkDate) 
     - Division (Phòng ban) lấy từ danh sách đã có từ bảng Divisions dạng dropdown có search
     - Position (Chức vụ) lấy từ danh sách đã có từ bảng Positions dạng dropdown có search
+    - Contract (Hợp đồng) lấy từ danh sách đã có từ bảng Contract dạng dropdown có search
     - Ghi chú
       │
       ▼
@@ -150,9 +156,7 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
            │
            ▼
            Trả về thông báo thành công
-+ Gửi email tài khoản cho nhân viên
-+ Ghi log vào bảng Logs
-+ (tùy chọn) Tạo hợp đồng mặc định (Contracts)
++ Gửi email tài khoản cho nhân viên là email edu chứ k phải email cá nhân 
 - WORKFLOW CHÍNH THỨC CHO INSTRUCTORS (Giảng viên)
   Admin nhấn [+ Tạo mới]
   │
@@ -173,6 +177,7 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
     - Ngày bắt đầu làm việc (StartWorkDate)
     - Department (Khoa/Bộ môn) lấy từ danh sách đã có từ bảng Departments dạng dropdown có search
     - Degree (Học vị) lấy từ danh sách đã có từ bảng Degrees dạng dropdown có search
+    - Contract (Hợp đồng) lấy từ danh sách đã có từ bảng Contract dạng dropdown có search
     - Ghi chú
       │
       ▼
@@ -190,6 +195,6 @@ lý người dùng. Sau khi tạo,các tài khoản này sẽ có quyền truy c
            │
            ▼
            Trả về thông báo thành công
-+ Gửi email tài khoản cho giảng viên
-+ Ghi log vào bảng Logs
-+ (tùy chọn) Tạo TeachingAssignments hoặc Contract mặc định
++ Gửi email tài khoản cho giảng viên là email edu chứ k phải email cá nhân 
+- với lần đăng nhập đầu tiên có xử lí trường requirePassChange true chuyến đển trang đổi mk đổi thành false. có thể vào email để đổi.
+- Đối với xử lí quên mk thì user sẽ gửi yêu cầu lên admin kèm các thông tin cần thiết sau đó admin sẽ tiến hành reset pass lại cho bạn dạng mặc định là ngày sinh sau đó bạn đăng nhập giống lần đầu tiên nó sẽ chuyển đến trang đổi pass hoặc vào email để đổi pass

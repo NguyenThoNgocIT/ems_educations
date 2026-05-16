@@ -6,9 +6,9 @@ import com.quanlydaotao.backend.student.dto.UpdateStudentRequest;
 import com.quanlydaotao.backend.student.entity.Student;
 import com.quanlydaotao.backend.student.repository.StudentRepository;
 import com.quanlydaotao.backend.student.service.StudentService;
-import com.quanlydaotao.backend.user.entity.Person;
+import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.user.entity.User;
-import com.quanlydaotao.backend.user.repository.PersonRepository;
+import com.quanlydaotao.backend.person.repository.PersonRepository;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import com.quanlydaotao.backend.student.dto.EnrollStudentRequest;
 import com.quanlydaotao.backend.user.entity.UserRole;
@@ -40,7 +40,7 @@ public class StudentServiceImpl implements StudentService {
     private String removeAccents(String text) {
         String nfdNormalizedString = Normalizer.normalize(text, Normalizer.Form.NFD);
         Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
-        return pattern.matcher(nfdNormalizedString).replaceAll("").replace("đ", "d").replace("Đ", "D");
+        return pattern.matcher(nfdNormalizedString).replaceAll("").replace("Ã„â€˜", "d").replace("Ã„Â", "D");
     }
 
     @Override
@@ -129,7 +129,6 @@ public class StudentServiceImpl implements StudentService {
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
-<<<<<<< HEAD
 @Override
 @Transactional
 public StudentDto updateStudent(UUID id, UpdateStudentRequest request) {
@@ -140,38 +139,13 @@ public StudentDto updateStudent(UUID id, UpdateStudentRequest request) {
     
     if (request.getTrainingProgramId() != null) {
         student.setTrainingProgramId(request.getTrainingProgramId());
-=======
-    @Override
-    @Transactional
-    public StudentDto updateStudent(UUID id, UpdateStudentRequest request) {
-        Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
-        student.setNote(request.getNote());
-        
-        // Update Person info
-        Person person = student.getPerson();
-        if (request.getFullName() != null) person.setFullName(request.getFullName());
-        if (request.getDateOfBirth() != null) person.setDateOfBirth(request.getDateOfBirth());
-        if (request.getGender() != null) person.setGender(request.getGender());
-        if (request.getPhoneNumber() != null) person.setPhoneNumber(request.getPhoneNumber());
-        if (request.getContactEmail() != null) person.setContactEmail(request.getContactEmail());
-        personRepository.save(person);
 
-        if (request.getTrainingProgramId() != null) {
-            student.setTrainingProgramId(request.getTrainingProgramId());
-        }
-        if (request.getIsActive() != null) {
-            student.setIsActive(request.getIsActive());
-        }
-        student = studentRepository.save(student);
-        return mapToDto(student);
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
     }
     if (request.getIsActive() != null) {
         student.setIsActive(request.getIsActive());
     }
     
-    // ✅ THÊM CẬP NHẬT SĐT VÀ EMAIL CHO PERSON
+    // Ã¢Å“â€¦ THÃƒÅ M CÃ¡ÂºÂ¬P NHÃ¡ÂºÂ¬T SÃ„ÂT VÃƒâ‚¬ EMAIL CHO PERSON
     Person person = student.getPerson();
     if (request.getPhoneNumber() != null) {
         person.setPhoneNumber(request.getPhoneNumber());
@@ -211,3 +185,5 @@ public StudentDto updateStudent(UUID id, UpdateStudentRequest request) {
     return dto;
     }
 }
+
+

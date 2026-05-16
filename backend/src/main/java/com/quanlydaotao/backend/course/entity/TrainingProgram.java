@@ -22,7 +22,6 @@ public class TrainingProgram extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "TrainingProgramId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-<<<<<<< HEAD
     private UUID trainingProgramId;
 
     @Column(name = "Code", length = 50)
@@ -30,20 +29,11 @@ public class TrainingProgram extends SoftDeleteEntity {
 
     @Column(name = "Name", length = 255)
     private String name;
-=======
-    private UUID programId;
 
-    @Column(name = "Code", nullable = false, unique = true, length = 50)
-    private String programCode;
-
-    @Column(name = "Name", nullable = false, length = 255)
-    private String programName;
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
 
     @Column(name = "NameEn", length = 255)
     private String nameEn;
 
-<<<<<<< HEAD
     @Column(name = "MajorId")
     private UUID majorId;
 
@@ -60,18 +50,7 @@ public class TrainingProgram extends SoftDeleteEntity {
     private String educationType;
 
     @Column(name = "TotalCredits")
-=======
-    @Transient
-    private String academicYear;
 
-    @Column(name = "DepartmentId", columnDefinition = "uniqueidentifier")
-    private UUID departmentId;
-
-    @Column(name = "AcademicCohortId", columnDefinition = "uniqueidentifier")
-    private UUID academicCohortId;
-
-    @Column(name = "TotalCredits", nullable = false)
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
     private Integer totalCredits;
 
     @Column(name = "RequiredCredits", precision = 5, scale = 1)
@@ -104,13 +83,9 @@ public class TrainingProgram extends SoftDeleteEntity {
     @Column(name = "Description", columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
-<<<<<<< HEAD
     @Column(name = "Objectives", columnDefinition = "NVARCHAR(MAX)")
     private String objectives;
-=======
-    @Transient
-    private String note;
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
+
 
     @Column(name = "LearningOutcomes", columnDefinition = "NVARCHAR(MAX)")
     private String learningOutcomes;

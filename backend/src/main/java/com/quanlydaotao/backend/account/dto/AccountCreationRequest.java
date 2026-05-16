@@ -5,6 +5,7 @@ import java.util.UUID;
 @Data
 public class AccountCreationRequest {
     private String fullName;
+    private String fullNameNonAccent;
     private LocalDate dateOfBirth;
     private String gender;
     private String contactEmail;

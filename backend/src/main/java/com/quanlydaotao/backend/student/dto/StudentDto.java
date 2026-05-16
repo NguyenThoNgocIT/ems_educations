@@ -19,6 +19,4 @@ public class StudentDto {
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private String phoneNumber;      // ✅ THÊM NẾU CẦN HIỂN THỊ
-    private String contactEmail;     // ✅ THÊM NẾU CẦN HIỂN THỊ
 }
