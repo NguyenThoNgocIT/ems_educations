@@ -6,11 +6,15 @@ import com.quanlydaotao.backend.student.dto.UpdateStudentRequest;
 import com.quanlydaotao.backend.student.entity.Student;
 import com.quanlydaotao.backend.student.repository.StudentRepository;
 import com.quanlydaotao.backend.student.service.StudentService;
-import com.quanlydaotao.backend.user.entity.Person;
+import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.user.entity.User;
-import com.quanlydaotao.backend.user.repository.PersonRepository;
+import com.quanlydaotao.backend.person.repository.PersonRepository;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import com.quanlydaotao.backend.student.dto.EnrollStudentRequest;
+import com.quanlydaotao.backend.user.entity.UserRole;
+import com.quanlydaotao.backend.user.entity.UserRoleId;
+import com.quanlydaotao.backend.role.repository.RoleRepository;
+import com.quanlydaotao.backend.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,75 +32,15 @@ public class StudentServiceImpl implements StudentService {
     private final StudentRepository studentRepository;
     private final PersonRepository personRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
 
     // Helper method to remove accents (Vietnamese)
     private String removeAccents(String text) {
         String nfdNormalizedString = Normalizer.normalize(text, Normalizer.Form.NFD);
         Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
-        return pattern.matcher(nfdNormalizedString).replaceAll("").replace("đ", "d").replace("Đ", "D");
-    }
-
-    @Override
-    @Transactional
-    public StudentDto enrollStudent(EnrollStudentRequest request) {
-        if (studentRepository.findByStudentCode(request.getStudentCode()).isPresent()) {
-            throw new RuntimeException("Student code already exists.");
-        }
-
-        // 1. Create Person
-        Person person = new Person();
-        person.setFullName(request.getFullName());
-        person.setDateOfBirth(request.getDateOfBirth());
-        person.setGender(request.getGender());
-        person.setPhoneNumber(request.getPhoneNumber());
-        person.setContactEmail(request.getContactEmail());
-        person = personRepository.save(person);
-
-        // 2. Create Student
-        Student student = new Student();
-        student.setPerson(person);
-        student.setStudentCode(request.getStudentCode());
-        student.setNote(request.getNote());
-        student.setTrainingProgramId(request.getTrainingProgramId());
-        student = studentRepository.save(student);
-
-        // 3. Create User account
-        String[] nameParts = request.getFullName().trim().split("\\s+");
-        String firstName = removeAccents(nameParts[nameParts.length - 1]).toLowerCase();
-        String generatedEmail = firstName + "." + request.getStudentCode() + "@donga.edu.vn";
-
-        String generatedPassword = request.getDateOfBirth().format(DateTimeFormatter.ofPattern("ddMMyyyy"));
-
-        User user = new User();
-        user.setPerson(person);
-        user.setUsername(request.getStudentCode());
-        user.setEmail(generatedEmail);
-        user.setPasswordHash(passwordEncoder.encode(generatedPassword));
-        user.setRequirePasswordChange(true);
-        userRepository.save(user);
-
-        return mapToDto(student);
-    }
-
-    @Override
-    @Transactional
-    public StudentDto createStudent(CreateStudentRequest request) {
-        if (studentRepository.findByStudentCode(request.getStudentCode()).isPresent()) {
-            throw new RuntimeException("Student code already exists.");
-        }
-        Person person = personRepository.findById(request.getPersonId())
-                .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
-        if (studentRepository.findByPersonPersonId(person.getPersonId()).isPresent()) {
-            throw new RuntimeException("Person is already a student.");
-        }
-        Student student = new Student();
-        student.setPerson(person);
-        student.setStudentCode(request.getStudentCode());
-        student.setNote(request.getNote());
-        student.setTrainingProgramId(request.getTrainingProgramId());
-        student = studentRepository.save(student);
-        return mapToDto(student);
+        return pattern.matcher(nfdNormalizedString).replaceAll("").replace("Ã„â€˜", "d").replace("Ã„Â", "D");
     }
     @Override
     @Transactional(readOnly = true)
@@ -122,12 +66,13 @@ public StudentDto updateStudent(UUID id, UpdateStudentRequest request) {
     
     if (request.getTrainingProgramId() != null) {
         student.setTrainingProgramId(request.getTrainingProgramId());
+
     }
     if (request.getIsActive() != null) {
         student.setIsActive(request.getIsActive());
     }
     
-    // ✅ THÊM CẬP NHẬT SĐT VÀ EMAIL CHO PERSON
+    // EMAIL CHO PERSON
     Person person = student.getPerson();
     if (request.getPhoneNumber() != null) {
         person.setPhoneNumber(request.getPhoneNumber());
@@ -153,7 +98,11 @@ public StudentDto updateStudent(UUID id, UpdateStudentRequest request) {
     StudentDto dto = new StudentDto();
     dto.setId(student.getStudentId());
     dto.setPersonId(student.getPerson().getPersonId());
-    dto.setFullName(student.getPerson().getFullName());  // ✅ THÊM DÒNG NÀY
+    dto.setFullName(student.getPerson().getFullName());
+    dto.setDateOfBirth(student.getPerson().getDateOfBirth());
+    dto.setGender(student.getPerson().getGender());
+    dto.setPhoneNumber(student.getPerson().getPhoneNumber());
+    dto.setContactEmail(student.getPerson().getContactEmail());
     dto.setStudentCode(student.getStudentCode());
     dto.setNote(student.getNote());
     dto.setTrainingProgramId(student.getTrainingProgramId());
@@ -163,3 +112,5 @@ public StudentDto updateStudent(UUID id, UpdateStudentRequest request) {
     return dto;
     }
 }
+
+

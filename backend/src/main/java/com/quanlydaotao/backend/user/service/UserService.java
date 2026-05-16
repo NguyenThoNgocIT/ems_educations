@@ -1,8 +1,8 @@
 package com.quanlydaotao.backend.user.service;
 import com.quanlydaotao.backend.user.dto.*;
-import com.quanlydaotao.backend.user.entity.Person;
+import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.user.entity.User;
-import com.quanlydaotao.backend.user.repository.PersonRepository;
+import com.quanlydaotao.backend.person.repository.PersonRepository;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import com.quanlydaotao.backend.user.repository.UserSessionRepository;
 import lombok.RequiredArgsConstructor;
@@ -110,3 +110,5 @@ public class UserService {
         userSessionRepository.saveAll(sessions);
     }
 }
+
+

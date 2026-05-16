@@ -3,7 +3,7 @@ package com.quanlydaotao.backend.scheduling.entity;
 import com.quanlydaotao.backend.course.entity.CourseClass;
 import com.quanlydaotao.backend.facility.entity.Room;
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
-import com.quanlydaotao.backend.user.entity.Employee;
+import com.quanlydaotao.backend.employee.entity.Employee;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -74,3 +74,5 @@ public class Schedule extends SoftDeleteEntity {
     @Column(name = "Note", length = 255)
     private String note;
 }
+
+

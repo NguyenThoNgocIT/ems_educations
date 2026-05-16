@@ -19,6 +19,9 @@ public class CreateTrainingProgramRequest {
     @NotBlank(message = "Academic year is required")
     private String academicYear;
     
+    @NotNull(message = "Academic cohort ID is required")
+    private UUID academicCohortId;
+    
     @NotNull(message = "Total credits is required")
     private Integer totalCredits;
     

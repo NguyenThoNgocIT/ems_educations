@@ -24,10 +24,10 @@ public class Major extends SoftDeleteEntity {
     private UUID departmentId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 20)
-    private String code;                    // ✅ Đổi tên từ majorCode -> code
+    private String code;
 
     @Column(name = "Name", nullable = false, length = 255)
-    private String name;                    // ✅ Đổi tên từ majorName -> name
+    private String name;
 
     @Column(name = "Description", columnDefinition = "nvarchar(max)")
     private String description;

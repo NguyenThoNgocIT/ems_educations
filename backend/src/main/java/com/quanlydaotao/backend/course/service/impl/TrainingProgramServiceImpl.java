@@ -47,6 +47,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         program.setCode(request.getProgramCode());
         program.setName(request.getProgramName());
         program.setMajorId(major.getMajorId());
+
         program.setTotalCredits(request.getTotalCredits());
         program.setDescription(request.getDescription());
         program.setIsActive(true);
@@ -63,6 +64,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         program.setCode(request.getProgramCode());
         program.setName(request.getProgramName());
         program.setMajorId(request.getMajorId());
+
         program.setTotalCredits(request.getTotalCredits());
         program.setDescription(request.getDescription());
         
@@ -85,7 +87,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .collect(Collectors.toList());
     }
 
-    // ✅ SỬA LẠI mapToDto - DÙNG ĐÚNG TÊN FIELD
+    // âœ… Sá»¬A Láº I mapToDto - DÃ™NG ÄÃšNG TÃŠN FIELD
     private TrainingProgramDto mapToDto(TrainingProgram entity) {
         TrainingProgramDto dto = new TrainingProgramDto();
         dto.setTrainingProgramId(entity.getTrainingProgramId());

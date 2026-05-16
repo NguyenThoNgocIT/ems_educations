@@ -1,4 +1,5 @@
 package com.quanlydaotao.backend.user.entity;
+import com.quanlydaotao.backend.person.entity.Person;
 
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
 import jakarta.persistence.Column;

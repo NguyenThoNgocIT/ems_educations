@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { studentApi } from '@/api/student';
+import { trainingProgramApi } from '@/api/training-program';
 
 interface Student {
   id: string;
@@ -22,13 +23,7 @@ interface Student {
   updatedAt?: string;
 }
 
-const PROGRAM_NAMES: Record<string, string> = {
-  '40299068-e853-4123-946d-ab9e68d28971': 'CNTT - Công nghệ thông tin',
-  '61c1d31f-c6ec-4d74-a62b-c4b5071608b0': 'HTTT - Hệ thống thông tin',
-  'f72a21bd-32f0-404d-9ade-8fefddd218e3': 'KTPM - Kỹ thuật phần mềm',
-  '0dc1f922-5360-41bf-8eff-71f5547da30c': 'QTKD - Quản trị kinh doanh',
-  'b3982a4c-97a2-4b4f-be58-b0ecd2c38057': 'NN - Ngôn ngữ Anh',
-};
+// Removed hardcoded PROGRAM_NAMES
 
 // Hàm tính năm đào tạo dựa trên ngày tạo
 const getTrainingYear = (createdAt: string): string => {
@@ -70,22 +65,28 @@ export default function StudentsPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [programs, setPrograms] = useState<any[]>([]);
 
-  const fetchStudents = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await studentApi.getAll();
-      const data = response?.data || response || [];
-      setStudents(data);
+      const [studentRes, programRes]: any = await Promise.all([
+        studentApi.getAll(),
+        trainingProgramApi.getAll({ size: 100 })
+      ]);
+      
+      const studentData = studentRes?.data || studentRes || [];
+      setStudents(studentData);
+      setPrograms(programRes.content || []);
     } catch (error) {
-      toast.error('Không thể lấy danh sách sinh viên');
+      toast.error('Không thể lấy dữ liệu');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStudents();
+    fetchData();
   }, []);
 
   const handleReactivate = async (student: Student) => {
@@ -117,7 +118,7 @@ export default function StudentsPage() {
     try {
       await studentApi.delete(student.id);
       toast.success(`Đã xóa sinh viên ${student.fullName}`);
-      await fetchStudents();
+      await fetchData();
     } catch (error) {
       toast.error('Xóa sinh viên thất bại');
     }
@@ -191,11 +192,19 @@ export default function StudentsPage() {
                   </thead>
                   <tbody>
                     {paginatedStudents.map((student) => (
+<<<<<<< HEAD
                       <tr key={student.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{student.studentCode}</td>
                         <td className="py-3 px-4 text-sm text-gray-700 dark:text-gray-300">{student.fullName || 'Chưa cập nhật'}</td>
                         <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
                           {PROGRAM_NAMES[student.trainingProgramId?.toLowerCase()] || student.trainingProgramId}
+=======
+                      <tr key={student.id} className="border-b hover:bg-muted/50">
+                        <td className="py-3 px-4 text-sm font-medium">{student.studentCode}</td>
+                        <td className="py-3 px-4 text-sm">{student.fullName || 'Chưa cập nhật'}</td>
+                        <td className="py-3 px-4 text-sm">
+                          {programs.find(p => p.programId === student.trainingProgramId)?.programName || student.trainingProgramId}
+>>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
                         </td>
                         <td className="py-3 px-4 text-sm">
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">

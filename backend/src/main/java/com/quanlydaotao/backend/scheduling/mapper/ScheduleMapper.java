@@ -1,5 +1,4 @@
 package com.quanlydaotao.backend.scheduling.mapper;
-
 import com.quanlydaotao.backend.scheduling.dto.ScheduleDto;
 import com.quanlydaotao.backend.scheduling.entity.Schedule;
 import org.mapstruct.Mapper;

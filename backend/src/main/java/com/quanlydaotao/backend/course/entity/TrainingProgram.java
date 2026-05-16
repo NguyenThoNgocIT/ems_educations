@@ -30,6 +30,7 @@ public class TrainingProgram extends SoftDeleteEntity {
     @Column(name = "Name", length = 255)
     private String name;
 
+
     @Column(name = "NameEn", length = 255)
     private String nameEn;
 
@@ -49,6 +50,7 @@ public class TrainingProgram extends SoftDeleteEntity {
     private String educationType;
 
     @Column(name = "TotalCredits")
+
     private Integer totalCredits;
 
     @Column(name = "RequiredCredits", precision = 5, scale = 1)
@@ -83,6 +85,7 @@ public class TrainingProgram extends SoftDeleteEntity {
 
     @Column(name = "Objectives", columnDefinition = "NVARCHAR(MAX)")
     private String objectives;
+
 
     @Column(name = "LearningOutcomes", columnDefinition = "NVARCHAR(MAX)")
     private String learningOutcomes;

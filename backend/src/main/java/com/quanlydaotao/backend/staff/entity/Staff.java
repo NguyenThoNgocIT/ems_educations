@@ -1,6 +1,6 @@
 package com.quanlydaotao.backend.staff.entity;
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
-import com.quanlydaotao.backend.user.entity.Employee;
+import com.quanlydaotao.backend.employee.entity.Employee;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,3 +28,5 @@ public class Staff extends SoftDeleteEntity {
     @Column(name = "PositionId")
     private UUID positionId;
 }
+
+

@@ -5,7 +5,6 @@ import com.quanlydaotao.backend.infrastructure.security.jwt.JwtAuthenticationFil
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -70,6 +69,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // ✅ CHỈ THÊM DÒNG NÀY
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/departments/**").permitAll()
+                .requestMatchers("/api/majors/**").permitAll()
+                .requestMatchers("/api/training-programs/**").permitAll()
+                .requestMatchers("/api/academic-cohorts/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/courses/**").permitAll()
                 .requestMatchers("/api/v1/courses/**").hasRole("ADMIN")
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()

@@ -8,12 +8,12 @@ export const majorApi = {
   // Lấy chi tiết ngành học
   getById: (id: string) => request.get(`/api/majors/${id}`),
   
-  // Tạo mới ngành học
-  create: (data: { majorCode: string; majorName: string; description?: string; departmentId?: string }) =>
+  // Tạo mới ngành học (Đã đồng bộ sang code và name)
+  create: (data: { code: string; name: string; description?: string; departmentId?: string }) =>
     request.post('/api/majors', data),
   
-  // Cập nhật ngành học
-  update: (id: string, data: { majorCode: string; majorName: string; description?: string; departmentId?: string }) =>
+  // Cập nhật ngành học (Đã đồng bộ sang code và name)
+  update: (id: string, data: { code: string; name: string; description?: string; departmentId?: string }) =>
     request.put(`/api/majors/${id}`, data),
   
   // Xóa ngành học
