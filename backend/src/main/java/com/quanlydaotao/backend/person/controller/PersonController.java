@@ -1,5 +1,4 @@
 package com.quanlydaotao.backend.person.controller;
-import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.common.dto.ApiResponse;
 import com.quanlydaotao.backend.person.dto.CreatePersonRequest;
 import com.quanlydaotao.backend.person.dto.PersonDto;

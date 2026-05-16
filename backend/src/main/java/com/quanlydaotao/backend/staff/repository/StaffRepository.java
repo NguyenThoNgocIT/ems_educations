@@ -9,5 +9,6 @@ import java.util.UUID;
 @Repository
 public interface StaffRepository extends JpaRepository<Staff, UUID> {
     Optional<Staff> findByEmployeeIdAndDeletedAtIsNull(UUID id);
+    Optional<Staff> findByStaffCode(String staffCode);
     Page<Staff> findByDeletedAtIsNull(Pageable pageable);
 }

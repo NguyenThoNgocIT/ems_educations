@@ -27,11 +27,17 @@ public class Employee extends SoftDeleteEntity {
     private String employeeCode;
     @Column(name = "StartWorkDate")
     private LocalDate startWorkDate;
+    @Column(name = "EndWorkDate")
+    private LocalDate endWorkDate;
     @Column(name = "Status", length = 50)
     private String status;
 
     @Column(name = "EmployeeType", length = 20)
     private String employeeType;
+    @Column(name = "ContractType", length = 50)
+    private String contractType;
+    @Column(name = "Note", length = 255)
+    private String note;
 }
 
 

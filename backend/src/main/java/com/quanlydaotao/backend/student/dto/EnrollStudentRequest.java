@@ -1,5 +1,4 @@
 package com.quanlydaotao.backend.student.dto;
-import com.quanlydaotao.backend.person.entity.Person;
 
 import lombok.Data;
 import java.time.LocalDate;

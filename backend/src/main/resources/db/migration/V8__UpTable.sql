@@ -15,7 +15,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Positions_Divisions')
     BEGIN
         ALTER TABLE Positions
-        ADD CONSTRAINT FK_Positions_Divisions FOREIGN KEY (DivisionId) REFERENCES Divisions(Id);
+        ADD CONSTRAINT FK_Positions_Divisions FOREIGN KEY (DivisionId) REFERENCES Divisions(DivisionId);
     END
 END
 GO
@@ -86,7 +86,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Degrees_Majors')
     BEGIN
         ALTER TABLE Degrees
-        ADD CONSTRAINT FK_Degrees_Majors FOREIGN KEY (MajorId) REFERENCES Majors(Id);
+        ADD CONSTRAINT FK_Degrees_Majors FOREIGN KEY (MajorId) REFERENCES Majors(MajorId);
     END
 END
 GO
