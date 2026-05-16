@@ -21,25 +21,6 @@ public class InstructorServiceImpl implements InstructorService {
     private final InstructorProfileRepository lecturerRepository;
     private final EmployeeRepository employeeRepository;
     @Override
-    @Transactional
-    public InstructorProfileDto createLecturer(InstructorCreateRequest request) {
-        if (lecturerRepository.findByInstructorCode(request.getInstructorCode()).isPresent()) {
-            throw new RuntimeException("Instructor code already exists.");
-        }
-        Employee employee = employeeRepository.findById(request.getEmployeeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
-        if (lecturerRepository.findByEmployeeEmployeeId(employee.getEmployeeId()).isPresent()) {
-            throw new RuntimeException("Employee is already an instructor.");
-        }
-        InstructorProfile lecturer = new InstructorProfile();
-        lecturer.setEmployee(employee);
-        lecturer.setInstructorCode(request.getInstructorCode());
-        lecturer.setDepartmentId(request.getDepartmentId());
-        lecturer.setDegreeId(request.getDegreeId());
-        lecturer = lecturerRepository.save(lecturer);
-        return mapToDto(lecturer);
-    }
-    @Override
     @Transactional(readOnly = true)
     public InstructorProfileDto getLecturerById(UUID id) {
         InstructorProfile lecturer = lecturerRepository.findById(id)

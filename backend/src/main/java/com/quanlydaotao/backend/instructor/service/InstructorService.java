@@ -6,7 +6,6 @@ import com.quanlydaotao.backend.instructor.dto.InstructorCreateRequest;
 import com.quanlydaotao.backend.instructor.dto.InstructorProfileDto;
 import com.quanlydaotao.backend.instructor.dto.InstructorUpdateRequest;
 public interface InstructorService {
-    InstructorProfileDto createLecturer(InstructorCreateRequest request);
     InstructorProfileDto getLecturerById(UUID id);
     List<InstructorProfileDto> getAllLecturers();
     InstructorProfileDto updateLecturer(UUID id, InstructorUpdateRequest request);
