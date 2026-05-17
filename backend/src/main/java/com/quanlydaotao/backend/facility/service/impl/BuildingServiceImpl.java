@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
-@Service
+@Service  // ← PHẢI CÓ ANNOTATION NÀY
 @RequiredArgsConstructor
 public class BuildingServiceImpl implements BuildingService {
 
@@ -45,7 +45,15 @@ public class BuildingServiceImpl implements BuildingService {
         Building building = buildingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tòa nhà với ID: " + id));
         
-        buildingMapper.updateEntityFromDto(dto, building);
+        // Cập nhật thủ công từng field (tránh lỗi identifier)
+        building.setCode(dto.getCode());
+        building.setName(dto.getName());
+        building.setAddress(dto.getAddress());
+        building.setTotalFloors(dto.getTotalFloors());
+        building.setBuildingType(dto.getBuildingType());
+        building.setDescription(dto.getDescription());
+        building.setNote(dto.getNote());
+        
         return buildingMapper.toDto(buildingRepository.save(building));
     }
 

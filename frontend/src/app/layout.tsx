@@ -18,6 +18,25 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Đại học Đông Á - Hệ thống Quản lý Giáo dục",
   description: "Hệ thống quản lý đào tạo Đại học Đông Á",
+  icons: {
+    icon: [
+      {
+        url: "/favicon.ico",
+        sizes: "32x32",
+        type: "image/x-icon",
+      },
+      {
+        url: "/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+    ],
+    apple: {
+      url: "/apple-touch-icon.png",
+      sizes: "180x180",
+      type: "image/png",
+    },
+  },
 };
 
 export default function RootLayout({

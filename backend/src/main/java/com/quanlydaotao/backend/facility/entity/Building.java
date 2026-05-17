@@ -23,21 +23,21 @@ public class Building extends SoftDeleteEntity {
     @Column(name = "Code", nullable = false, unique = true, length = 100)
     private String code;
 
-    @Column(name = "Name", nullable = false, length = 255)
+    @Column(name = "Name", nullable = false, length = 200)  // Tăng từ 255 lên 200
     private String name;
 
-    @Column(name = "Address", length = 200)
+    @Column(name = "Address", length = 500)  // Tăng từ 200 lên 500
     private String address;
 
     @Column(name = "TotalFloors")
     private Integer totalFloors;
 
-    @Column(name = "BuildingType", length = 10)
+    @Column(name = "BuildingType", length = 100)  // Tăng từ 10 lên 100
     private String buildingType;
 
-    @Column(name = "Description", length = 255)
+    @Column(name = "Description", length = 500)  // Tăng từ 255 lên 500
     private String description;
 
-    @Column(name = "Note", length = 255)
+    @Column(name = "Note", length = 500)  // Tăng từ 255 lên 500
     private String note;
 }
