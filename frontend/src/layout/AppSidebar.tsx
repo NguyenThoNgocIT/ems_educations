@@ -18,31 +18,31 @@ export default function AppSidebar() {
         ${isOpen ? "w-[290px]" : "w-[78px]"} 
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
     >
-      {/* LOGO ĐẠI HỌC ĐÔNG Á - CHỈNH TO VÀ CĂN CHÍNH GIỮA KHỐI */}
-      <div className="h-[90px] border-b border-gray-100 flex items-center justify-center px-4 overflow-hidden dark:border-slate-800">
+      {/* 💥 ĐỒNG BỘ CHIỀU CAO VỀ h-[70px] ĐỂ ĐƯỜNG GẠCH NGANG BẰNG NHAU VỚI HEADER */}
+      <div className="h-[80px] border-b border-gray-100 flex items-center justify-center px-4 overflow-hidden dark:border-slate-800 flex-shrink-0">
         {/* Link trỏ về trang chủ hệ thống, an toàn không lo đăng xuất */}
         <Link href="/dashboard/admin" className="relative flex items-center justify-center w-full h-full">
           {isOpen ? (
-            /* Khi Sidebar MỞ TO -> Hiện logo lớn, tăng size căng nét w-[230px] và căn giữa */
-            <div className="relative w-[230px] h-[65px] transition-all duration-300 flex items-center justify-center">
+            /* Khi Sidebar MỞ TO -> Tỉ lệ h-[48px] phù hợp hoàn hảo với khối cha h-[70px] */
+            <div className="relative w-[310px] h-[88px] transition-all duration-300 flex items-center justify-center">
               <Image
                 src="/images/logo/logo-sidebar-admin-big.png"
                 alt="Đại Học Đông Á"
                 fill
                 priority
-                sizes="230px"
+                sizes="310px"
                 className="object-contain"
               />
             </div>
           ) : (
             /* Khi Sidebar THU NHỎ -> Giữ nguyên icon nhỏ gọn gàng ở giữa */
-            <div className="relative w-10 h-10 transition-all duration-300">
+            <div className="relative w-9 h-9 transition-all duration-300">
               <Image
                 src="/images/logo/logo-sidebar-admin-small.png"
                 alt="UDA"
                 fill
                 priority
-                sizes="40px"
+                sizes="36px"
                 className="object-contain"
               />
             </div>
@@ -90,7 +90,7 @@ export default function AppSidebar() {
       </div>
 
       {/* FOOTER */}
-      <div className="p-4 border-t border-gray-100 bg-gray-50/50 whitespace-nowrap overflow-hidden dark:border-slate-800 dark:bg-slate-900/50 flex flex-col items-center justify-center">
+      <div className="p-4 border-t border-gray-100 bg-gray-50/50 whitespace-nowrap overflow-hidden dark:border-slate-800 dark:bg-slate-900/50 flex flex-col items-center justify-center flex-shrink-0">
         <div className="text-center flex flex-col items-center justify-center w-full">
           <p className="text-[12px] font-bold text-gray-800 dark:text-slate-200 tracking-wider">
             {isOpen ? "EMS" : "E"}
