@@ -4,17 +4,14 @@ const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8081";
 
 const request: AxiosInstance = axios.create({
   baseURL,
-  timeout: 10000,
-  withCredentials: true, // ✅ Thêm dòng này
+  timeout: 30000, // Tăng timeout lên 30s
+  withCredentials: true,
 });
 
-// ✅ THÊM INTERCEPTOR ĐỂ GẮN TOKEN
+// Interceptor gắn token
 request.interceptors.request.use(
   (config) => {
-    // Lấy token từ localStorage
     const token = localStorage.getItem('access_token');
-    
-    console.log('🔑 Token từ localStorage:', token); // Kiểm tra xem có token không
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -24,13 +21,17 @@ request.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Interceptor xử lý response
 request.interceptors.response.use(
   (response) => response.data as any,
   (error) => {
-    // Xử lý lỗi 401 - Unauthorized
+    // CHỈ LOGOUT KHI API TRẢ VỀ 401 VÀ ĐÃ THỬ HẾT CÁCH
     if (error.response?.status === 401) {
-      console.error('⚠️ Truy cập bị từ chối hoặc thông tin không chính xác');
-      // Có thể redirect về login
+      console.error('⚠️ Phiên đăng nhập hết hạn');
+      // KHÔNG TỰ ĐỘNG LOGOUT - để user tự quyết định
+      // Nếu muốn tự động logout, bỏ comment dòng dưới:
+      // localStorage.removeItem('access_token');
+      // localStorage.removeItem('user');
       // window.location.href = '/dashboard/admin/signin';
     }
     return Promise.reject(error);

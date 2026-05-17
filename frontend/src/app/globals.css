@@ -682,49 +682,130 @@
   animation: float 6s ease-in-out infinite;
 }
 
-/* ===== BỎ HOÀN TOÀN DARK MODE ===== */
-.dark {
-  display: none;
+/* ===== DARK MODE - HOẠT ĐỘNG ĐÚNG ===== */
+
+/* Dark mode - nền và chữ */
+.dark body {
+  background-color: #0f172a !important;
 }
 
-/* ===== FORCE MÀU CHỮ CHO TOÀN BỘ GIAO DIỆN ===== */
-*:not(.text-white):not(.bg-blue-600):not(.bg-green-600):not(.bg-red-600):not(button) {
-  color: #1f2937 !important;
+.dark .bg-white {
+  background-color: #1e293b !important;
 }
 
-/* Fix cho menu sidebar */
-.sidebar-nav a,
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: #0f172a !important;
+}
+
+.dark .border-gray-100,
+.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+/* Màu chữ trong dark mode - QUAN TRỌNG */
+.dark,
+.dark body,
+.dark .text-gray-500,
+.dark .text-gray-600,
+.dark .text-gray-700,
+.dark .text-gray-800,
+.dark .text-gray-900,
+.dark .text-emerald-600,
+.dark p,
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark span,
+.dark div,
+.dark .font-bold,
+.dark .font-medium,
+.dark .text-sm,
+.dark .text-xs,
+.dark .text-base {
+  color: #e2e8f0 !important;
+}
+
+/* Màu chữ phụ */
+.dark .text-gray-400,
+.dark .text-gray-300 {
+  color: #94a3b8 !important;
+}
+
+/* Menu sidebar trong dark mode */
+.dark .menu-item {
+  color: #cbd5e1 !important;
+}
+
+.dark .menu-item-active {
+  background-color: #064e3b !important;
+  color: #34d399 !important;
+}
+
+.dark .menu-item-inactive:hover {
+  background-color: #1e293b !important;
+  color: #34d399 !important;
+}
+
+/* Giữ màu trắng cho button có nền màu */
+.dark .bg-blue-600,
+.dark .bg-green-600,
+.dark .bg-red-600,
+.dark .bg-emerald-500,
+.dark .bg-emerald-600,
+.dark .bg-emerald-500 *,
+.dark .bg-emerald-600 *,
+.dark .bg-blue-600 *,
+.dark .bg-green-600 *,
+.dark .bg-red-600 * {
+  color: #ffffff !important;
+}
+
+/* ===== SIDEBAR MENU - TĂNG ĐỘ TƯƠNG PHẢN ===== */
+
+/* Màu chữ menu mặc định - đậm hơn */
 .menu-item,
+.sidebar-nav a,
 nav a,
 [class*="menu-item"] {
-  color: #374151 !important;
+  color: #1f2937 !important;
+  font-weight: 500 !important;
 }
 
-.sidebar-nav a:hover,
+/* Dark mode - chữ sáng hơn */
+.dark .menu-item,
+.dark .sidebar-nav a,
+.dark nav a,
+.dark [class*="menu-item"] {
+  color: #f1f5f9 !important;
+}
+
+/* Hover - màu xanh lá đậm */
 .menu-item:hover,
+.sidebar-nav a:hover,
 nav a:hover {
-  color: #10b981 !important;
+  color: #059669 !important;
+  background-color: #ecfdf5 !important;
 }
 
-/* Fix cho active menu */
+/* Active menu - nền xanh lá nhạt, chữ xanh lá đậm */
 .menu-item-active,
 .sidebar-nav .active {
-  background-color: #ecfdf5 !important;
-  color: #059669 !important;
+  background-color: #d1fae5 !important;
+  color: #047857 !important;
+  font-weight: 600 !important;
 }
 
-/* Fix cho text trong button */
-button span,
-button svg {
-  color: inherit !important;
+.dark .menu-item-active,
+.dark .sidebar-nav .active {
+  background-color: #064e3b !important;
+  color: #34d399 !important;
 }
 
-/* Đảm bảo text trong card */
-.card p,
-.card h1,
-.card h2,
-.card h3,
-.card h4,
-.card span:not(.badge) {
-  color: #1f2937 !important;
+/* Logo sidebar */
+[class*="ĐẠI HỌC"],
+[class*="ĐÔNG Á"] {
+  color: #047857 !important;
+  font-weight: 700 !important;
 }
