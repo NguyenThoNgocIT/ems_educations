@@ -13,20 +13,16 @@ import {
   DoorOpen,
   Clock,
   CalendarDays,
-  GraduationCap,  // ✅ THÊM icon cho Ngành học
-  Target,         // ✅ THÊM icon cho Chương trình đào tạo
+  GraduationCap,
+  Target,
 } from "lucide-react";
 
-// Menu trực tiếp trong file (không cần qua navigation.tsx)
 const adminMenu = [
   { name: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, path: "/dashboard/admin" },
   { name: "Sinh viên", icon: <Users className="h-5 w-5" />, path: "/dashboard/admin/students" },
   { name: "Giảng viên", icon: <User className="h-5 w-5" />, path: "/dashboard/admin/lecturers" },
-  
-  // ✅ THÊM 2 DÒNG NÀY
   { name: "Ngành học", icon: <GraduationCap className="h-5 w-5" />, path: "/dashboard/admin/majors" },
   { name: "Chương trình đào tạo", icon: <Target className="h-5 w-5" />, path: "/dashboard/admin/training-programs" },
-  
   { name: "Môn học", icon: <BookOpen className="h-5 w-5" />, path: "/dashboard/admin/courses" },
   { name: "Lớp học phần", icon: <Layers className="h-5 w-5" />, path: "/dashboard/admin/course-classes" },
   { name: "Tòa nhà", icon: <Building className="h-5 w-5" />, path: "/dashboard/admin/buildings" },
@@ -42,8 +38,8 @@ export default function AppSidebar() {
   return (
     <aside className={`fixed left-0 top-0 z-50 h-full bg-white dark:bg-gray-900 shadow-xl transition-all duration-300 ${isExpanded || isHovered ? 'w-64' : 'w-20'}`}>
       <div className="flex h-full flex-col">
-        <div className="flex h-16 items-center justify-center border-b">
-          <span className={`font-bold text-primary ${!(isExpanded || isHovered) && 'hidden'}`}>
+        <div className="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-700">
+          <span className={`font-bold text-green-600 dark:text-green-400 ${!(isExpanded || isHovered) && 'hidden'}`}>
             ĐẠI HỌC ĐÔNG Á
           </span>
         </div>
@@ -56,7 +52,7 @@ export default function AppSidebar() {
                 href={item.path}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                   isActive
-                    ? 'bg-primary text-white'
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
                 }`}
               >

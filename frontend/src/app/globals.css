@@ -38,18 +38,19 @@
   --color-white: #ffffff;
   --color-black: #101828;
 
-  --color-brand-25: #f2f7ff;
-  --color-brand-50: #ecf3ff;
-  --color-brand-100: #dde9ff;
-  --color-brand-200: #c2d6ff;
-  --color-brand-300: #9cb9ff;
-  --color-brand-400: #7592ff;
-  --color-brand-500: #465fff;
-  --color-brand-600: #3641f5;
-  --color-brand-700: #2a31d8;
-  --color-brand-800: #252dae;
-  --color-brand-900: #262e89;
-  --color-brand-950: #161950;
+  /* Màu Brand - Xanh lá cây */
+  --color-brand-25: #f6fef9;
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
 
   --color-blue-light-25: #f5fbff;
   --color-blue-light-50: #f0f9ff;
@@ -131,7 +132,6 @@
   --color-warning-950: #4e1d09;
 
   --color-theme-pink-500: #ee46bc;
-
   --color-theme-purple-500: #7a5af8;
 
   --shadow-theme-md:
@@ -148,7 +148,7 @@
     0px 20px 24px -4px rgba(16, 24, 40, 0.08),
     0px 8px 8px -4px rgba(16, 24, 40, 0.03);
   --shadow-datepicker: -5px 0 0 #262d3c, 5px 0 0 #262d3c;
-  --shadow-focus-ring: 0px 0px 0px 4px rgba(70, 95, 255, 0.12);
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(16, 185, 129, 0.12);
   --shadow-slider-navigation:
     0px 1px 2px 0px rgba(16, 24, 40, 0.1), 0px 1px 3px 0px rgba(16, 24, 40, 0.1);
   --shadow-tooltip:
@@ -167,14 +167,6 @@
   --z-index-999999: 999999;
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
   *,
   ::after,
@@ -188,99 +180,68 @@
     cursor: pointer;
   }
   body {
-    @apply font-outfit relative z-1 bg-gray-50 font-normal;
+    @apply font-outfit relative z-1 bg-gray-50 font-normal text-gray-900;
   }
 }
 
+/* Menu items với màu xanh lá */
 @utility menu-item {
   @apply text-theme-sm relative flex w-full items-center gap-3 rounded-lg px-3 py-2 font-medium;
 }
 
 @utility menu-item-active {
-  @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
+  @apply bg-green-50 text-green-600;
 }
 
 @utility menu-item-inactive {
-  @apply text-gray-700 group-hover:text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300;
-}
-
-@utility menu-item-icon {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400;
+  @apply text-gray-700 group-hover:text-green-600 hover:bg-green-50;
 }
 
 @utility menu-item-icon-active {
-  @apply text-brand-500 dark:text-brand-400;
-}
-
-@utility menu-item-icon-inactive {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
-}
-
-@utility menu-item-arrow {
-  @apply relative;
-}
-
-@utility menu-item-arrow-active {
-  @apply text-brand-500 dark:text-brand-400 rotate-180;
-}
-
-@utility menu-item-arrow-inactive {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
-}
-
-@utility menu-dropdown-item {
-  @apply text-theme-sm relative flex items-center gap-3 rounded-lg px-3 py-2.5 font-medium;
+  @apply text-green-600;
 }
 
 @utility menu-dropdown-item-active {
-  @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
+  @apply bg-green-50 text-green-600;
 }
 
 @utility menu-dropdown-item-inactive {
-  @apply text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5;
+  @apply text-gray-700 hover:bg-green-50 hover:text-green-600;
 }
 
 @utility menu-dropdown-badge {
-  @apply text-brand-500 dark:text-brand-400 block rounded-full px-2.5 py-0.5 text-xs font-medium uppercase;
+  @apply text-brand-500 block rounded-full px-2.5 py-0.5 text-xs font-medium uppercase;
 }
 
 @utility menu-dropdown-badge-active {
-  @apply bg-brand-100 dark:bg-brand-500/20;
+  @apply bg-brand-100;
 }
 
 @utility menu-dropdown-badge-inactive {
-  @apply bg-brand-50 group-hover:bg-brand-100 dark:bg-brand-500/15 dark:group-hover:bg-brand-500/20;
+  @apply bg-brand-50 group-hover:bg-brand-100;
 }
 
 @utility no-scrollbar {
-  /* Chrome, Safari and Opera */
   &::-webkit-scrollbar {
     display: none;
   }
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @utility custom-scrollbar {
   &::-webkit-scrollbar {
     @apply size-1.5;
   }
-
   &::-webkit-scrollbar-track {
     @apply rounded-full;
   }
-
   &::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-gray-200 dark:bg-gray-700;
+    @apply rounded-full bg-gray-200;
   }
 }
 
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #344054;
-}
-
 @layer utilities {
-  /* For Remove Date Icon */
   input[type="date"]::-webkit-inner-spin-button,
   input[type="time"]::-webkit-inner-spin-button,
   input[type="date"]::-webkit-calendar-picker-indicator,
@@ -292,19 +253,13 @@
 
 /* third-party libraries CSS */
 .apexcharts-legend-text {
-  @apply !text-gray-700 dark:!text-gray-400;
+  @apply !text-gray-700;
 }
-
 .apexcharts-text {
-  @apply !fill-gray-700 dark:!fill-gray-400;
+  @apply !fill-gray-700;
 }
-
 .apexcharts-tooltip.apexcharts-theme-light {
-  @apply !shadow-theme-sm gap-1 !rounded-lg !border-gray-200 p-3 dark:!border-gray-800 dark:!bg-gray-900;
-}
-
-.apexcharts-legend-text {
-  @apply pl-5! !text-gray-700 dark:!text-gray-400;
+  @apply !shadow-theme-sm gap-1 !rounded-lg !border-gray-200 p-3;
 }
 .apexcharts-tooltip-series-group {
   @apply !p-0;
@@ -313,26 +268,25 @@
   @apply !p-0;
 }
 .apexcharts-tooltip-title {
-  @apply !mb-0 !border-b-0 !bg-transparent !p-0 !text-[10px] !leading-4 !text-gray-800 dark:!text-white/90;
+  @apply !mb-0 !border-b-0 !bg-transparent !p-0 !text-[10px] !leading-4 !text-gray-800;
 }
 .apexcharts-tooltip-text {
-  @apply !text-theme-xs !text-gray-700 dark:!text-white/90;
+  @apply !text-theme-xs !text-gray-700;
 }
 .apexcharts-tooltip-text-y-value {
   @apply !font-medium;
 }
-
 .apexcharts-gridline {
-  @apply !stroke-gray-100 dark:!stroke-gray-800;
+  @apply !stroke-gray-100;
 }
 
+/* Flatpickr */
 .flatpickr-wrapper {
   @apply w-full;
 }
 .flatpickr-calendar {
-  @apply dark:!bg-gray-dark dark:!shadow-theme-xl 2xsm:!w-auto mt-2 !rounded-xl !border !border-gray-200 !bg-white !p-5 !text-gray-500 dark:!border-gray-800 dark:!text-gray-400;
+  @apply mt-2 !rounded-xl !border !border-gray-200 !bg-white !p-5 !text-gray-500 !shadow-none;
 }
-
 .flatpickr-months .flatpickr-prev-month:hover svg,
 .flatpickr-months .flatpickr-next-month:hover svg {
   @apply stroke-brand-500;
@@ -341,48 +295,30 @@
 .flatpickr-calendar.arrowTop:after {
   @apply hidden;
 }
-
 .flatpickr-current-month {
   @apply !p-0;
 }
 .flatpickr-current-month .cur-month,
 .flatpickr-current-month input.cur-year {
-  @apply !h-auto !pt-0 !text-lg !font-medium !text-gray-800 dark:!text-white/90;
+  @apply !h-auto !pt-0 !text-lg !font-medium !text-gray-800;
 }
-
 .flatpickr-prev-month,
 .flatpickr-next-month {
   @apply !p-0;
 }
-
 .flatpickr-weekdays {
   @apply mt-6 mb-4 h-auto !bg-transparent;
 }
-
-.flatpickr-calendar {
-  @apply dark:!bg-gray-dark dark:!shadow-theme-xl 2xsm:!w-auto mt-2 !rounded-xl !border !border-gray-200 !bg-white !p-5 !text-gray-500 !shadow-none dark:!border-white/5 dark:!text-gray-400;
-}
-
-@media (max-width: 525px) {
-  .flatpickr-calendar.static {
-    left: auto !important;
-    right: 0 !important;
-    margin-right: -30px;
-  }
-}
-
 .flatpickr-weekday {
-  @apply !text-theme-sm !bg-transparent !font-medium !text-gray-500 dark:!text-gray-400;
+  @apply !text-theme-sm !bg-transparent !font-medium !text-gray-500;
 }
-
 .flatpickr-day {
-  @apply !text-theme-sm !flex !items-center !font-medium !text-gray-800 dark:!text-white/90 dark:hover:!border-gray-300 dark:hover:!bg-gray-900;
+  @apply !text-theme-sm !flex !items-center !font-medium !text-gray-800;
 }
 .flatpickr-day.nextMonthDay,
 .flatpickr-day.prevMonthDay {
   @apply !text-gray-400;
 }
-
 .flatpickr-months > .flatpickr-month {
   background: none !important;
 }
@@ -392,15 +328,13 @@
   background-image: none !important;
   font-weight: 500;
 }
-.flatpickr-month
-  .flatpickr-current-month
-  .flatpickr-monthDropdown-months:focus {
+.flatpickr-month .flatpickr-current-month .flatpickr-monthDropdown-months:focus {
   outline: none !important;
   border: 0 !important;
 }
 .flatpickr-months .flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month {
-  @apply !top-7 !bg-transparent dark:!fill-white dark:!text-white;
+  @apply !top-7 !bg-transparent;
 }
 .flatpickr-months .flatpickr-prev-month.flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month.flatpickr-prev-month {
@@ -413,10 +347,6 @@
 .flatpickr-days {
   @apply !border-0;
 }
-span.flatpickr-weekday,
-.flatpickr-months .flatpickr-month {
-  @apply !bg-none dark:!fill-white dark:!text-white;
-}
 .flatpickr-innerContainer {
   @apply !border-b-0;
 }
@@ -424,10 +354,7 @@ span.flatpickr-weekday,
   @apply !bg-none;
 }
 .flatpickr-day.inRange {
-  box-shadow:
-    -5px 0 0 #f9fafb,
-    5px 0 0 #f9fafb !important;
-  @apply dark:!shadow-datepicker;
+  box-shadow: -5px 0 0 #f9fafb, 5px 0 0 #f9fafb !important;
 }
 .flatpickr-day.inRange,
 .flatpickr-day.prevMonthDay.inRange,
@@ -441,13 +368,7 @@ span.flatpickr-weekday,
 .flatpickr-day:focus,
 .flatpickr-day.prevMonthDay:focus,
 .flatpickr-day.nextMonthDay:focus {
-  @apply !border-gray-50 !bg-gray-50 dark:!border-0 dark:!border-white/5 dark:!bg-white/5;
-}
-.flatpickr-day.selected,
-.flatpickr-day.startRange,
-.flatpickr-day.selected,
-.flatpickr-day.endRange {
-  @apply !text-white dark:!text-white;
+  @apply !border-gray-50 !bg-gray-50;
 }
 .flatpickr-day.selected,
 .flatpickr-day.startRange,
@@ -467,15 +388,14 @@ span.flatpickr-weekday,
 .flatpickr-day.selected.nextMonthDay,
 .flatpickr-day.startRange.nextMonthDay,
 .flatpickr-day.endRange.nextMonthDay {
-  background: #465fff;
-  @apply !border-brand-500 !bg-brand-500 hover:!border-brand-50 hover:!bg-brand-500;
+  background: #10b981;
+  @apply !border-brand-500 !bg-brand-500 hover:!border-brand-50 hover:!bg-brand-500 !text-white;
 }
 .flatpickr-day.selected.startRange + .endRange:not(:nth-child(7n + 1)),
 .flatpickr-day.startRange.startRange + .endRange:not(:nth-child(7n + 1)),
 .flatpickr-day.endRange.startRange + .endRange:not(:nth-child(7n + 1)) {
-  box-shadow: -10px 0 0 #465fff;
+  box-shadow: -10px 0 0 #10b981;
 }
-
 .flatpickr-months .flatpickr-prev-month svg,
 .flatpickr-months .flatpickr-next-month svg,
 .flatpickr-months .flatpickr-prev-month,
@@ -486,11 +406,11 @@ span.flatpickr-weekday,
 .flatpickr-months .flatpickr-next-month:hover svg {
   fill: none !important;
 }
-
 .flatpickr-calendar.static {
   @apply right-0;
 }
 
+/* FC Calendar */
 .fc .fc-view-harness {
   @apply custom-scrollbar max-w-full overflow-x-auto;
 }
@@ -511,9 +431,8 @@ span.flatpickr-weekday,
   @apply gap-2;
 }
 .fc-button-group .fc-button {
-  @apply flex h-10 w-10 items-center justify-center !rounded-lg border border-gray-200 bg-transparent hover:border-gray-200 hover:bg-gray-50 focus:shadow-none active:!border-gray-200 active:!bg-transparent active:!shadow-none dark:border-gray-800 dark:hover:border-gray-800 dark:hover:bg-gray-900 dark:active:border-gray-800!;
+  @apply flex h-10 w-10 items-center justify-center !rounded-lg border border-gray-200 bg-transparent hover:border-gray-200 hover:bg-gray-50 focus:shadow-none active:!border-gray-200 active:!bg-transparent active:!shadow-none;
 }
-
 .fc-button-group .fc-button.fc-prev-button:before {
   @apply mt-1 inline-block;
   content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16.0068 6L9.75684 12.25L16.0068 18.5' stroke='%23344054' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
@@ -522,38 +441,30 @@ span.flatpickr-weekday,
   @apply mt-1 inline-block;
   content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.50684 19L15.7568 12.75L9.50684 6.5' stroke='%23344054' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
 }
-.dark .fc-button-group .fc-button.fc-prev-button:before {
-  content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16.0068 6L9.75684 12.25L16.0068 18.5' stroke='%2398A2B3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
-}
-.dark .fc-button-group .fc-button.fc-next-button:before {
-  content: url("data:image/svg+xml,%3Csvg width='25' height='24' viewBox='0 0 25 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.50684 19L15.7568 12.75L9.50684 6.5' stroke='%2398A2B3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
-}
 .fc-button-group .fc-button .fc-icon {
   @apply hidden;
 }
 .fc-addEventButton-button {
-  @apply !bg-brand-500 hover:!bg-brand-600 !rounded-lg !border-0 !px-4 !py-2.5 !text-sm !font-medium focus:!shadow-none;
+  @apply !bg-brand-500 hover:!bg-brand-600 !rounded-lg !border-0 !px-4 !py-2.5 !text-sm !font-medium focus:!shadow-none !text-white;
 }
 .fc-toolbar-title {
-  @apply !text-lg !font-medium text-gray-800 dark:text-white/90;
+  @apply !text-lg !font-medium text-gray-800;
 }
 .fc-header-toolbar.fc-toolbar .fc-toolbar-chunk:last-child {
-  @apply rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900;
+  @apply rounded-lg bg-gray-100 p-0.5;
 }
 .fc-header-toolbar.fc-toolbar .fc-toolbar-chunk:last-child .fc-button {
-  @apply !h-auto !w-auto rounded-md !border-0 bg-transparent !px-5 !py-2 text-sm font-medium text-gray-500 hover:text-gray-700 focus:shadow-none! dark:text-gray-400;
+  @apply !h-auto !w-auto rounded-md !border-0 bg-transparent !px-5 !py-2 text-sm font-medium text-gray-500 hover:text-gray-700 focus:shadow-none!;
 }
-.fc-header-toolbar.fc-toolbar
-  .fc-toolbar-chunk:last-child
-  .fc-button.fc-button-active {
-  @apply bg-white text-gray-900 dark:bg-gray-800 dark:text-white;
+.fc-header-toolbar.fc-toolbar .fc-toolbar-chunk:last-child .fc-button.fc-button-active {
+  @apply bg-white text-gray-900;
 }
 .fc-theme-standard th {
-  @apply !border-x-0 border-t !border-gray-200 bg-gray-50 !text-left dark:!border-gray-800 dark:bg-gray-900;
+  @apply !border-x-0 border-t !border-gray-200 bg-gray-50 !text-left;
 }
 .fc-theme-standard td,
 .fc-theme-standard .fc-scrollgrid {
-  @apply !border-gray-200 dark:!border-gray-800;
+  @apply !border-gray-200;
 }
 .fc .fc-col-header-cell-cushion {
   @apply !px-5 !py-4 text-sm font-medium text-gray-400 uppercase;
@@ -565,10 +476,10 @@ span.flatpickr-weekday,
   @apply p-2;
 }
 .fc .fc-daygrid-day.fc-day-today .fc-scrollgrid-sync-inner {
-  @apply rounded-sm bg-gray-100 dark:bg-white/[0.03];
+  @apply rounded-sm bg-gray-100;
 }
 .fc .fc-daygrid-day-number {
-  @apply !p-3 text-sm font-medium text-gray-700 dark:text-gray-400;
+  @apply !p-3 text-sm font-medium text-gray-700;
 }
 .fc .fc-daygrid-day-top {
   @apply !flex-row;
@@ -577,7 +488,7 @@ span.flatpickr-weekday,
   opacity: 1;
 }
 .fc .fc-day-other .fc-daygrid-day-top .fc-daygrid-day-number {
-  @apply text-gray-400 dark:text-white/30;
+  @apply text-gray-400;
 }
 .event-fc-color {
   @apply rounded-lg py-2.5 pr-3 pl-4;
@@ -619,10 +530,10 @@ span.flatpickr-weekday,
   @apply bg-orange-500;
 }
 .fc-direction-ltr .fc-timegrid-slot-label-frame {
-  @apply px-3 py-1.5 text-left text-sm font-medium text-gray-500 dark:text-gray-400;
+  @apply px-3 py-1.5 text-left text-sm font-medium text-gray-500;
 }
 .fc .fc-timegrid-axis-cushion {
-  @apply text-sm font-medium text-gray-500 dark:text-gray-400;
+  @apply text-sm font-medium text-gray-500;
 }
 .custom-calendar .fc-h-event {
   background-color: transparent;
@@ -633,37 +544,36 @@ span.flatpickr-weekday,
   @apply min-h-screen;
 }
 
+/* Input date */
 .input-date-icon::-webkit-inner-spin-button,
 .input-date-icon::-webkit-calendar-picker-indicator {
   opacity: 0;
   -webkit-appearance: none;
 }
 
+/* Swiper */
 .stocks-slider-outer .swiper-button-next:after,
 .stocks-slider-outer .swiper-button-prev:after {
   @apply hidden;
 }
-
 .stocks-slider-outer .swiper-button-next,
 .stocks-slider-outer .swiper-button-prev {
-  @apply !static mt-0 h-8 w-9 rounded-full border border-gray-200 !text-gray-700 transition hover:bg-gray-100 dark:border-white/[0.03] dark:bg-gray-800 dark:!text-gray-400 dark:hover:bg-white/[0.05] dark:hover:!text-white/90;
+  @apply !static mt-0 h-8 w-9 rounded-full border border-gray-200 !text-gray-700 transition hover:bg-gray-100;
 }
-
 .stocks-slider-outer .swiper-button-next.swiper-button-disabled,
 .stocks-slider-outer .swiper-button-prev.swiper-button-disabled {
-  @apply bg-white opacity-50 dark:bg-gray-900;
+  @apply bg-white opacity-50;
 }
-
 .stocks-slider-outer .swiper-button-next svg,
 .stocks-slider-outer .swiper-button-prev svg {
   @apply !h-auto !w-auto;
 }
-
 .swiper-button-prev svg,
 .swiper-button-next svg {
   @apply !h-auto !w-auto;
 }
 
+/* Carousel */
 .carouselTwo .swiper-button-next:after,
 .carouselTwo .swiper-button-prev:after,
 .carouselFour .swiper-button-next:after,
@@ -682,40 +592,36 @@ span.flatpickr-weekday,
 .carouselFour .swiper-button-prev {
   @apply shadow-slider-navigation h-10 w-10 rounded-full border-[0.5px] border-white/10 bg-white/90 !text-gray-700 backdrop-blur-[10px];
 }
-
 .carouselTwo .swiper-button-prev,
 .carouselFour .swiper-button-prev {
   @apply !left-3 sm:!left-4;
 }
-
 .carouselTwo .swiper-button-next,
 .carouselFour .swiper-button-next {
   @apply !right-3 sm:!right-4;
 }
-
 .carouselThree .swiper-pagination,
 .carouselFour .swiper-pagination {
   @apply shadow-slider-navigation !bottom-3 !left-1/2 inline-flex !w-auto -translate-x-1/2 items-center gap-1.5 rounded-[40px] border-[0.5px] border-white/10 bg-white/60 px-2 py-1.5 backdrop-blur-[10px] sm:!bottom-5;
 }
-
 .carouselThree .swiper-pagination-bullet,
 .carouselFour .swiper-pagination-bullet {
   @apply shadow-theme-xs !m-0 h-2.5 w-2.5 bg-white opacity-100 duration-200 ease-in-out;
 }
-
 .carouselThree .swiper-pagination-bullet-active,
 .carouselFour .swiper-pagination-bullet-active {
   @apply w-6.5 rounded-xl;
 }
 
+/* JVectorMap */
 .jvectormap-container {
-  @apply !bg-gray-50 dark:!bg-gray-900;
+  @apply !bg-gray-50;
 }
 .jvectormap-region.jvectormap-element {
-  @apply hover:!fill-brand-500 dark:hover:!fill-brand-500 !fill-gray-300 dark:!fill-gray-700;
+  @apply hover:!fill-brand-500 !fill-gray-300;
 }
 .jvectormap-marker.jvectormap-element {
-  @apply !stroke-gray-200 dark:!stroke-gray-800;
+  @apply !stroke-gray-200;
 }
 .jvectormap-tip {
   @apply !bg-brand-500 !border-none !px-2 !py-1;
@@ -725,10 +631,12 @@ span.flatpickr-weekday,
   @apply !hidden;
 }
 
+/* Form Checkbox */
 .form-check-input:checked ~ span {
-  @apply border-brand-500 bg-brand-500 dark:border-brand-500 border-[6px];
+  @apply border-brand-500 bg-brand-500 border-[6px];
 }
 
+/* Task Checkbox */
 .taskCheckbox:checked ~ .box span {
   @apply bg-brand-500 opacity-100;
 }
@@ -736,22 +644,21 @@ span.flatpickr-weekday,
   @apply text-gray-400 line-through;
 }
 .taskCheckbox:checked ~ .box {
-  @apply border-brand-500 bg-brand-500 dark:border-brand-500;
+  @apply border-brand-500 bg-brand-500;
 }
 
+/* Task */
 .task {
-  transition: all 0.2s ease; /* Smooth transition for visual effects */
-}
-
-.task {
+  transition: all 0.2s ease;
   border-radius: 0.75rem;
   box-shadow:
     0 1px 3px 0 rgba(16, 24, 40, 0.1),
     0 1px 2px 0 rgba(16, 24, 40, 0.06);
   opacity: 0.8;
-  cursor: grabbing; /* Changes the cursor to indicate dragging */
+  cursor: grabbing;
 }
 
+/* Animations */
 @keyframes shimmer {
   0% {
     transform: translateX(-100%);
@@ -760,21 +667,64 @@ span.flatpickr-weekday,
     transform: translateX(100%);
   }
 }
-
 .animate-\[shimmer_2s_infinite\] {
   animation: shimmer 2s infinite linear;
 }
-
 @keyframes float {
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0);
   }
   50% {
     transform: translateY(-20px);
   }
 }
-
 @utility animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+/* ===== BỎ HOÀN TOÀN DARK MODE ===== */
+.dark {
+  display: none;
+}
+
+/* ===== FORCE MÀU CHỮ CHO TOÀN BỘ GIAO DIỆN ===== */
+*:not(.text-white):not(.bg-blue-600):not(.bg-green-600):not(.bg-red-600):not(button) {
+  color: #1f2937 !important;
+}
+
+/* Fix cho menu sidebar */
+.sidebar-nav a,
+.menu-item,
+nav a,
+[class*="menu-item"] {
+  color: #374151 !important;
+}
+
+.sidebar-nav a:hover,
+.menu-item:hover,
+nav a:hover {
+  color: #10b981 !important;
+}
+
+/* Fix cho active menu */
+.menu-item-active,
+.sidebar-nav .active {
+  background-color: #ecfdf5 !important;
+  color: #059669 !important;
+}
+
+/* Fix cho text trong button */
+button span,
+button svg {
+  color: inherit !important;
+}
+
+/* Đảm bảo text trong card */
+.card p,
+.card h1,
+.card h2,
+.card h3,
+.card h4,
+.card span:not(.badge) {
+  color: #1f2937 !important;
 }
