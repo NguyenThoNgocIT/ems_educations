@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Award,
   ClipboardList,
+  Target,
 } from "lucide-react";
 
 export type NavItem = {
@@ -24,11 +25,13 @@ export type NavItem = {
   path: string;
 };
 
-// ==================== ADMIN MENU (9 mục) ====================
+// ==================== ADMIN MENU (11 mục) ====================
 export const adminNavItems: NavItem[] = [
   { name: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, path: "/dashboard/admin" },
   { name: "Sinh viên", icon: <Users className="h-5 w-5" />, path: "/dashboard/admin/students" },
   { name: "Giảng viên", icon: <User className="h-5 w-5" />, path: "/dashboard/admin/lecturers" },
+  { name: "Ngành học", icon: <GraduationCap className="h-5 w-5" />, path: "/dashboard/admin/majors" },
+  { name: "Chương trình đào tạo", icon: <Target className="h-5 w-5" />, path: "/dashboard/admin/training-programs" },
   { name: "Môn học", icon: <BookOpen className="h-5 w-5" />, path: "/dashboard/admin/courses" },
   { name: "Lớp học phần", icon: <Layers className="h-5 w-5" />, path: "/dashboard/admin/course-classes" },
   { name: "Tòa nhà", icon: <Building className="h-5 w-5" />, path: "/dashboard/admin/buildings" },

@@ -23,8 +23,6 @@ interface Student {
   updatedAt?: string;
 }
 
-// Removed hardcoded PROGRAM_NAMES
-
 // Hàm tính năm đào tạo dựa trên ngày tạo
 const getTrainingYear = (createdAt: string): string => {
   const createdDate = new Date(createdAt);
@@ -93,7 +91,7 @@ export default function StudentsPage() {
     try {
       await studentApi.update(student.id, { isActive: true });
       toast.success(`Đã kích hoạt sinh viên ${student.fullName}`);
-      await fetchStudents();
+      await fetchData();
     } catch (error) {
       toast.error('Kích hoạt thất bại');
     }
@@ -192,19 +190,11 @@ export default function StudentsPage() {
                   </thead>
                   <tbody>
                     {paginatedStudents.map((student) => (
-<<<<<<< HEAD
-                      <tr key={student.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{student.studentCode}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700 dark:text-gray-300">{student.fullName || 'Chưa cập nhật'}</td>
-                        <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
-                          {PROGRAM_NAMES[student.trainingProgramId?.toLowerCase()] || student.trainingProgramId}
-=======
-                      <tr key={student.id} className="border-b hover:bg-muted/50">
+                      <tr key={student.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                         <td className="py-3 px-4 text-sm font-medium">{student.studentCode}</td>
                         <td className="py-3 px-4 text-sm">{student.fullName || 'Chưa cập nhật'}</td>
                         <td className="py-3 px-4 text-sm">
                           {programs.find(p => p.programId === student.trainingProgramId)?.programName || student.trainingProgramId}
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
                         </td>
                         <td className="py-3 px-4 text-sm">
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
