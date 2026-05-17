@@ -2,68 +2,101 @@
 
 import { useSidebar } from "@/context/SidebarContext";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Users,
-  User,
-  BookOpen,
-  Layers,
-  Building,
-  DoorOpen,
-  Clock,
-  CalendarDays,
-  GraduationCap,
-  Target,
-} from "lucide-react";
-
-const adminMenu = [
-  { name: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, path: "/dashboard/admin" },
-  { name: "Sinh viên", icon: <Users className="h-5 w-5" />, path: "/dashboard/admin/students" },
-  { name: "Giảng viên", icon: <User className="h-5 w-5" />, path: "/dashboard/admin/lecturers" },
-  { name: "Ngành học", icon: <GraduationCap className="h-5 w-5" />, path: "/dashboard/admin/majors" },
-  { name: "Chương trình đào tạo", icon: <Target className="h-5 w-5" />, path: "/dashboard/admin/training-programs" },
-  { name: "Môn học", icon: <BookOpen className="h-5 w-5" />, path: "/dashboard/admin/courses" },
-  { name: "Lớp học phần", icon: <Layers className="h-5 w-5" />, path: "/dashboard/admin/course-classes" },
-  { name: "Tòa nhà", icon: <Building className="h-5 w-5" />, path: "/dashboard/admin/buildings" },
-  { name: "Phòng học", icon: <DoorOpen className="h-5 w-5" />, path: "/dashboard/admin/rooms" },
-  { name: "Ca học", icon: <Clock className="h-5 w-5" />, path: "/dashboard/admin/time-slots" },
-  { name: "Thời khóa biểu", icon: <CalendarDays className="h-5 w-5" />, path: "/dashboard/admin/schedules" },
-];
+import { ChevronRight } from "lucide-react";
+import { adminNavItems } from "@/constants/navigation";
 
 export default function AppSidebar() {
-  const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const pathname = usePathname();
+  const { isExpanded, isHovered, isMobileOpen } = useSidebar(); 
+  const isOpen = isExpanded || isHovered;
 
   return (
-    <aside className={`fixed left-0 top-0 z-50 h-full bg-white dark:bg-gray-900 shadow-xl transition-all duration-300 ${isExpanded || isHovered ? 'w-64' : 'w-20'}`}>
-      <div className="flex h-full flex-col">
-        <div className="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-700">
-          <span className={`font-bold text-green-600 dark:text-green-400 ${!(isExpanded || isHovered) && 'hidden'}`}>
-            ĐẠI HỌC ĐÔNG Á
-          </span>
-        </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {adminMenu.map((item) => {
-            const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
-            return (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                  isActive
-                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                }`}
-              >
-                {item.icon}
-                <span className={`${!(isExpanded || isHovered) && 'hidden'}`}>
+    <aside 
+      className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-100 flex flex-col z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out dark:bg-slate-900 dark:border-slate-800 
+        ${isOpen ? "w-[290px]" : "w-[78px]"} 
+        ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+    >
+      {/* LOGO ĐẠI HỌC ĐÔNG Á - CHỈNH TO VÀ CĂN CHÍNH GIỮA KHỐI */}
+      <div className="h-[90px] border-b border-gray-100 flex items-center justify-center px-4 overflow-hidden dark:border-slate-800">
+        {/* Link trỏ về trang chủ hệ thống, an toàn không lo đăng xuất */}
+        <Link href="/dashboard/admin" className="relative flex items-center justify-center w-full h-full">
+          {isOpen ? (
+            /* Khi Sidebar MỞ TO -> Hiện logo lớn, tăng size căng nét w-[230px] và căn giữa */
+            <div className="relative w-[230px] h-[65px] transition-all duration-300 flex items-center justify-center">
+              <Image
+                src="/images/logo/logo-sidebar-admin-big.png"
+                alt="Đại Học Đông Á"
+                fill
+                priority
+                sizes="230px"
+                className="object-contain"
+              />
+            </div>
+          ) : (
+            /* Khi Sidebar THU NHỎ -> Giữ nguyên icon nhỏ gọn gàng ở giữa */
+            <div className="relative w-10 h-10 transition-all duration-300">
+              <Image
+                src="/images/logo/logo-sidebar-admin-small.png"
+                alt="UDA"
+                fill
+                priority
+                sizes="40px"
+                className="object-contain"
+              />
+            </div>
+          )}
+        </Link>
+      </div>
+
+      {/* DANH SÁCH MENU - GIỮ NGUYÊN CĂN TRÁI CHUẨN UI KHI MỞ TO */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar overflow-x-hidden">
+        {adminNavItems.map((item) => {
+          const active = pathname === item.path || pathname.startsWith(item.path + "/");
+
+          return (
+            <Link
+              key={item.path}
+              href={item.path}
+              title={!isOpen ? item.name : undefined} // Tooltip khi thu nhỏ sidebar
+              className={`flex items-center py-3 rounded-xl transition-all duration-200 whitespace-nowrap ${
+                isOpen 
+                  ? "justify-between px-4" // Khi mở to: chữ bám trái, mũi tên bám phải
+                  : "justify-center px-0"  // Khi thu nhỏ: icon căn giữa
+              } ${
+                active
+                  ? "bg-emerald-100 text-emerald-700 font-bold shadow-sm dark:bg-emerald-900/60 dark:text-emerald-300"
+                  : "text-gray-800 hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300"
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <span className={`transition-colors ${active ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
+                  {item.icon}
+                </span>
+                {/* Ẩn / Hiện tên text của danh mục menu */}
+                <span className={`text-[13px] font-medium tracking-wide transition-opacity duration-200 ${isOpen ? "opacity-100" : "opacity-0 md:w-0 overflow-hidden"}`}>
                   {item.name}
                 </span>
-              </Link>
-            );
-          })}
-        </nav>
+              </div>
+              
+              {/* Mũi tên góc phải */}
+              {isOpen && (
+                <ChevronRight className={`h-3.5 w-3.5 transition-transform ${active ? "text-emerald-500 translate-x-0.5 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500"}`} />
+              )}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* FOOTER */}
+      <div className="p-4 border-t border-gray-100 bg-gray-50/50 whitespace-nowrap overflow-hidden dark:border-slate-800 dark:bg-slate-900/50 flex flex-col items-center justify-center">
+        <div className="text-center flex flex-col items-center justify-center w-full">
+          <p className="text-[12px] font-bold text-gray-800 dark:text-slate-200 tracking-wider">
+            {isOpen ? "EMS" : "E"}
+          </p>
+          {isOpen && <p className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5 text-center">Education Management System</p>}
+        </div>
       </div>
     </aside>
   );
