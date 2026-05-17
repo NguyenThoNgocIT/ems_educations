@@ -29,7 +29,7 @@ Chào mừng AI Assistant! Đây là hướng dẫn tiêu chuẩn cho dự án X
   - Luôn thêm `@Operation` cho mỗi method để mô tả chức năng bằng tiếng Việt.
 - **Path:**
   - Auth: `/api/auth/**`
-  - Nghiệp vụ: `/api/v1/**` (Ví dụ: `/api/v1/students`).
+  - Nghiệp vụ: `/api/v1/**` (Ví dụ: `/api/v1/students`theo tương ứng đối tượng nếu api chỉ admin mới được thực hiện thì thêm /admin).
 
 ## 🏗 4. Cấu trúc Thư mục (Feature-based)
 
@@ -221,6 +221,6 @@ Phân quyền theo chuẩn RBAC:
        Trả về thông báo thành công
 
 * Gửi email tài khoản cho giảng viên là email edu chứ k phải email cá nhân
-
-- với lần đăng nhập đầu tiên user có xử lí trường requirePassChange true chuyến đển trang đổi mk đổi thành false. có thể vào email để đổi.
-- Đối với xử lí quên mk thì user sẽ gửi yêu cầu lên admin kèm các thông tin cần thiết mã sinh viên giáo viên nhân viên kèm email edun số điện thoại họ và tên. Sau đó admin sẽ tiến hành reset pass lại cho bạn dạng mặc định là ngày sinh sau đó bạn đăng nhập giống lần đầu tiên nó sẽ chuyển đến trang đổi pass hoặc vào email để đổi pass
+- thêm đối tượng thì nó tự động generate ra tk mk tạo email rồi
+- với lần đăng nhập đầu tiên user có xử lí trường requirePassChange true chuyến đển trang đổi mk đổi thành false. khi tạo có gửi xác nhận click vào để đổi mk có thể vào email để đổi.
+- Đối với xử lí user quên mk thì user sẽ gửi yêu cầu lên admin kèm các thông tin cần thiết mã sinh viên giáo viên nhân viên kèm email edu số điện thoại họ và tên. Sau đó admin sẽ tiến hành reset pass lại cho bạn dạng mặc định là ngày sinh sau đó bạn đăng nhập giống lần đầu tiên nó sẽ chuyển đến trang đổi pass hoặc vào email để đổi pass

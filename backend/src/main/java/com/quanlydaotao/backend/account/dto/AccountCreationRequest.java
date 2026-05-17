@@ -32,7 +32,10 @@ public class AccountCreationRequest {
     private String type;
 
     private String studentCode;
+    private UUID majorId;
     private UUID trainingProgramId;
+    private UUID academicCohortId;
+    private UUID classId;
     private LocalDate admissionDate;
 
     private String employeeCode;
@@ -43,6 +46,10 @@ public class AccountCreationRequest {
     private String instructorCode;
     private UUID departmentId;
     private UUID degreeId;
+    private String academicRank;
+    private String specialization;
+    private String institution;
+    private Integer graduationYear;
 
     private String staffCode;
     private UUID divisionId;

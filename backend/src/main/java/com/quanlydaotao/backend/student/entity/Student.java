@@ -28,6 +28,12 @@ public class Student extends SoftDeleteEntity {
     private String note;
     @Column(name = "TrainingProgramId", nullable = false)
     private UUID trainingProgramId;
+    @Column(name = "MajorId")
+    private UUID majorId;
+    @Column(name = "AcademicCohortId")
+    private UUID academicCohortId;
+    @Column(name = "ClassId")
+    private UUID classId;
 
     @Column(name = "AdmissionDate")
     private java.time.LocalDate admissionDate;
