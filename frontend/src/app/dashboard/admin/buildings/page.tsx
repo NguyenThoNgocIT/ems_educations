@@ -1,4 +1,3 @@
-// TODO: Chuy?n d?i t? code AI Hosting
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -13,51 +12,84 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Search, Plus, Edit, Trash2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { buildingApi } from '@/api/building';
 
-// Định nghĩa type cho Building
 interface Building {
-  id: string;
+  buildingId: string;
   code: string;
   name: string;
   address: string;
   totalFloors: number;
   buildingType: string;
+  description?: string;
+  note?: string;
 }
+
+const removeAccents = (str: string) => {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+};
 
 export default function BuildingsPage() {
   const [buildings, setBuildings] = useState<Building[]>([]);
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [deletingBuilding, setDeletingBuilding] = useState<Building | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const [formData, setFormData] = useState({
     code: '',
     name: '',
     address: '',
     totalFloors: 3,
-    buildingType: 'Giảng đường'
+    buildingType: 'Giang duong',
+    description: '',
+    note: ''
   });
 
   useEffect(() => {
-    async function fetchBuildings() {
-      try {
-        const response = await buildingApi.getAll();
-        setBuildings(response || []);
-      } catch (error) {
-        console.error(error);
-        toast.error('Không thể lấy danh sách tòa nhà');
-      }
-    }
     fetchBuildings();
   }, []);
 
-  // Filter buildings
+  const fetchBuildings = async () => {
+    setLoading(true);
+    try {
+      const data = await buildingApi.getAll();
+      setBuildings(Array.isArray(data) ? data : []);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Không thể lấy danh sách tòa nhà');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredBuildings = buildings.filter(building =>
-    building.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    building.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    building.address.toLowerCase().includes(searchTerm.toLowerCase())
+    building.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    building.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    building.address?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredBuildings.length / rowsPerPage);
+  const paginatedBuildings = filteredBuildings.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
   );
 
   const handleEdit = (building: Building) => {
@@ -65,9 +97,11 @@ export default function BuildingsPage() {
     setFormData({
       code: building.code,
       name: building.name,
-      address: building.address,
+      address: building.address || '',
       totalFloors: building.totalFloors,
-      buildingType: building.buildingType
+      buildingType: building.buildingType,
+      description: building.description || '',
+      note: building.note || ''
     });
     setModalOpen(true);
   };
@@ -79,63 +113,106 @@ export default function BuildingsPage() {
       name: '',
       address: '',
       totalFloors: 3,
-      buildingType: 'Giảng đường'
+      buildingType: 'Giang duong',
+      description: '',
+      note: ''
     });
     setModalOpen(true);
   };
 
   const handleSave = async () => {
+    if (!formData.code.trim()) {
+      toast.error('Vui lòng nhập mã tòa nhà');
+      return;
+    }
+    if (!formData.name.trim()) {
+      toast.error('Vui lòng nhập tên tòa nhà');
+      return;
+    }
+
+    const payload = {
+      code: formData.code,
+      name: removeAccents(formData.name),
+      address: formData.address ? removeAccents(formData.address) : '',
+      totalFloors: Number(formData.totalFloors),
+      buildingType: removeAccents(formData.buildingType),
+      description: formData.description ? removeAccents(formData.description) : '',
+      note: formData.note ? removeAccents(formData.note) : ''
+    };
+
     try {
       if (editingBuilding) {
-        await buildingApi.update(editingBuilding.id, formData);
-        setBuildings(prev => prev.map(b => b.id === editingBuilding.id ? { ...b, ...formData } : b));
+        await buildingApi.update(editingBuilding.buildingId, payload);
         toast.success('Cập nhật tòa nhà thành công');
       } else {
-        const newBuilding = await buildingApi.create(formData);
-        setBuildings(prev => [...prev, newBuilding]);
+        await buildingApi.create(payload);
         toast.success('Thêm tòa nhà thành công');
       }
+      await fetchBuildings();
       setModalOpen(false);
       setEditingBuilding(null);
-    } catch (error) {
+      setFormData({
+        code: '',
+        name: '',
+        address: '',
+        totalFloors: 3,
+        buildingType: 'Giang duong',
+        description: '',
+        note: ''
+      });
+    } catch (error: any) {
       console.error(error);
-      toast.error('Lỗi khi lưu tòa nhà');
+      toast.error(error.response?.data?.message || 'Lỗi khi lưu tòa nhà');
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDeleteClick = (building: Building) => {
+    setDeletingBuilding(building);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingBuilding) return;
     try {
-      await buildingApi.delete(id);
-      setBuildings(prev => prev.filter(b => b.id !== id));
-      toast.success(`Đã xóa tòa nhà ${name}`);
-    } catch (error) {
+      await buildingApi.delete(deletingBuilding.buildingId);
+      toast.success(`Đã xóa tòa nhà ${deletingBuilding.name}`);
+      await fetchBuildings();
+      setDeleteDialogOpen(false);
+      setDeletingBuilding(null);
+    } catch (error: any) {
       console.error(error);
       toast.error('Lỗi khi xóa tòa nhà');
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Quản lý tòa nhà</h1>
-          <p className="text-muted-foreground">Danh sách và quản lý tòa nhà trong trường</p>
+          <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Quản lý tòa nhà</h1>
+          <p className="text-gray-500 dark:text-gray-400">Danh sách và quản lý tòa nhà trong trường</p>
         </div>
-        <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90">
+        <Button onClick={handleAdd} className="bg-green-600 hover:bg-green-700 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Thêm tòa nhà
         </Button>
       </div>
 
-      {/* Filter Card */}
-      <Card>
+      <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
         <CardHeader>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Tìm kiếm theo mã, tên tòa nhà, địa chỉ..."
-              className="pl-10"
+              className="pl-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -143,31 +220,31 @@ export default function BuildingsPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Mã</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Tên tòa nhà</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Địa chỉ</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Số tầng</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Loại</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Thao tác</th>
+                <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                  <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 dark:text-gray-300">Mã</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 dark:text-gray-300">Tên tòa nhà</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 dark:text-gray-300">Địa chỉ</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 dark:text-gray-300">Số tầng</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 dark:text-gray-300">Loại</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700 dark:text-gray-300">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredBuildings.slice(0, 10).map((building) => (
-                  <tr key={building.id} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="py-3 px-4 text-sm font-medium">{building.code}</td>
-                    <td className="py-3 px-4 text-sm">{building.name}</td>
-                    <td className="py-3 px-4 text-sm">{building.address}</td>
-                    <td className="py-3 px-4 text-sm">{building.totalFloors}</td>
-                    <td className="py-3 px-4 text-sm">{building.buildingType}</td>
+                {paginatedBuildings.map((building) => (
+                  <tr key={building.buildingId} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{building.code}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{building.name}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{building.address || '---'}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{building.totalFloors}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{building.buildingType}</td>
                     <td className="py-3 px-4 text-sm">
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(building)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(building)} className="text-blue-600 hover:text-blue-700">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(building.id, building.name)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(building)} className="text-red-600 hover:text-red-700">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -178,16 +255,37 @@ export default function BuildingsPage() {
             </table>
           </div>
 
-          {/* Pagination info */}
           <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-muted-foreground">
-              Hiển thị {Math.min(10, filteredBuildings.length)} / {filteredBuildings.length} bản ghi
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Hiển thị</span>
+              <Select value={String(rowsPerPage)} onValueChange={(val) => setRowsPerPage(Number(val))}>
+                <SelectTrigger className="w-20 bg-white dark:bg-gray-800">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-gray-500">
+                trên tổng {filteredBuildings.length} bản ghi
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm">Trang {currentPage} / {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Add/Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -236,18 +334,36 @@ export default function BuildingsPage() {
             </div>
             <div>
               <Label htmlFor="buildingType">Loại tòa nhà</Label>
-              <Input
-                id="buildingType"
-                value={formData.buildingType}
-                onChange={(e) => setFormData({ ...formData, buildingType: e.target.value })}
-                className="mt-1.5"
-                placeholder="Giảng đường"
-              />
+              <Select value={formData.buildingType} onValueChange={(val) => setFormData({ ...formData, buildingType: val })}>
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Giang duong">Giảng đường</SelectItem>
+                  <SelectItem value="Thu vien">Thư viện</SelectItem>
+                  <SelectItem value="Ky tuc xa">Ký túc xá</SelectItem>
+                  <SelectItem value="Hanh chinh">Hành chính</SelectItem>
+                  <SelectItem value="Phong thi nghiem">Phòng thí nghiệm</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Hủy</Button>
             <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">Lưu</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa</DialogTitle>
+          </DialogHeader>
+          <p>Bạn có chắc chắn muốn xóa tòa nhà <span className="font-semibold">{deletingBuilding?.name}</span>?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Hủy</Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>Xóa</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

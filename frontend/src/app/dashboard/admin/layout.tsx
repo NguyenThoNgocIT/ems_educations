@@ -13,8 +13,7 @@ export default function DashboardLayout({
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
-  // Tính toán khoảng trống (margin) để nội dung không bị Sidebar che mất
-  // Cố định 290px khi mở rộng và 90px khi thu nhỏ
+  // Xác định margin cho nội dung chính dựa trên trạng thái Sidebar
   const mainContentMargin = isMobileOpen
     ? "ml-0"
     : isExpanded || isHovered
@@ -22,22 +21,22 @@ export default function DashboardLayout({
       : "lg:ml-[90px]";
 
   return (
-    <div className="min-h-screen bg-slate-50 xl:flex dark:bg-slate-950">
-      {/* 1. Sidebar bên tay trái */}
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+      {/* Sidebar bên trái */}
       <AppSidebar />
 
-      {/* 2. Lớp phủ khi mở Sidebar trên điện thoại */}
+      {/* Lớp phủ khi mở Sidebar trên mobile */}
       <Backdrop />
 
-      {/* 3. Vùng nội dung chính bên tay phải */}
+      {/* Vùng nội dung chính */}
       <div
-        className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
+        className={`transition-all duration-300 ease-in-out ${mainContentMargin}`}
       >
-        {/* Thanh Header nằm trên cùng */}
+        {/* Header trên cùng */}
         <AppHeader />
 
-        {/* Nội dung chi tiết của từng trang (page.tsx) */}
-        <main className="mx-auto max-w-screen-2xl p-4 md:p-6">{children}</main>
+        {/* Nội dung trang */}
+        <main className="p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

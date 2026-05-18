@@ -1,16 +1,28 @@
 package com.quanlydaotao.backend.student.controller;
+
+import com.quanlydaotao.backend.account.dto.AccountCreationResponse;
 import com.quanlydaotao.backend.common.dto.ApiResponse;
-import com.quanlydaotao.backend.student.dto.CreateStudentRequest;
-import com.quanlydaotao.backend.student.dto.EnrollStudentRequest;
-import com.quanlydaotao.backend.student.dto.StudentDto;
-import com.quanlydaotao.backend.student.dto.UpdateStudentRequest;
+import com.quanlydaotao.backend.student.dto.StudentAdminCreateRequest;
+import com.quanlydaotao.backend.student.dto.StudentAdminResponse;
+import com.quanlydaotao.backend.student.dto.StudentAdminUpdateRequest;
+import com.quanlydaotao.backend.student.dto.StudentSelfResponse;
+import com.quanlydaotao.backend.student.dto.StudentSelfUpdateRequest;
 import com.quanlydaotao.backend.student.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;  
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,52 +30,62 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/students")
 @RequiredArgsConstructor
-@Tag(name = "Quản lý Sinh viên", description = "Các API cho phép thực hiện CRUD thông tin sinh viên")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")  // ✅ THÊM DÒNG NÀY
+@Tag(name = "Quản lý sinh viên", description = "API quản trị và tự quản lý thông tin sinh viên")
 public class StudentController {
     private final StudentService studentService;
 
-    @PostMapping
-    @Operation(summary = "Tạo mới sinh viên", description = "Lưu thông tin một sinh viên mới vào hệ thống")
-    public ResponseEntity<ApiResponse<StudentDto>> createStudent(@RequestBody CreateStudentRequest request) {
-        return new ResponseEntity<>(ApiResponse.success("Tạo sinh viên thành công", studentService.createStudent(request)), HttpStatus.CREATED);
+    @PostMapping("/admin")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "Admin tạo sinh viên và tài khoản đăng nhập")
+    public ResponseEntity<ApiResponse<AccountCreationResponse>> createStudentForAdmin(
+            @Valid @RequestBody StudentAdminCreateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Tạo sinh viên và tài khoản thành công", studentService.createStudentForAdmin(request)));
     }
 
-    @PostMapping("/enroll")
-    @Operation(summary = "Nhập học sinh viên", description = "Tạo thông tin cá nhân, mã sinh viên và tài khoản đăng nhập")
-    public ResponseEntity<ApiResponse<StudentDto>> enrollStudent(@RequestBody EnrollStudentRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Sinh viên đã được nhập học và tạo tài khoản thành công", studentService.enrollStudent(request)));
+    @GetMapping("/admin")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "Admin lấy danh sách sinh viên")
+    public ResponseEntity<ApiResponse<List<StudentAdminResponse>>> getAllStudentsForAdmin() {
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sinh viên thành công", studentService.getAllStudentsForAdmin()));
     }
 
-    @PostMapping("/import")
-    @Operation(summary = "Import sinh viên", description = "Import danh sách sinh viên từ file Excel")
-    public ResponseEntity<ApiResponse<String>> importStudents() {
-        // FIXME: Use MultipartFile file, parse excel, and call enrollStudent in a loop
-        return ResponseEntity.ok(ApiResponse.success("Import danh sách sinh viên thành công", null));
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "Admin lấy chi tiết sinh viên")
+    public ResponseEntity<ApiResponse<StudentAdminResponse>> getStudentForAdmin(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin sinh viên thành công", studentService.getStudentForAdmin(id)));
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Lấy chi tiết sinh viên", description = "Tìm kiếm và trả về thông tin chi tiết của một sinh viên dựa trên UUID")
-    public ResponseEntity<ApiResponse<StudentDto>> getStudentById(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin sinh viên thành công", studentService.getStudentById(id)));
+    @PutMapping("/admin/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "Admin cập nhật toàn bộ thông tin sinh viên")
+    public ResponseEntity<ApiResponse<StudentAdminResponse>> updateStudentForAdmin(
+            @PathVariable UUID id,
+            @RequestBody StudentAdminUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật sinh viên thành công", studentService.updateStudentForAdmin(id, request)));
     }
 
-    @GetMapping
-    @Operation(summary = "Danh sách sinh viên", description = "Lấy toàn bộ danh sách sinh viên hiện có")
-    public ResponseEntity<ApiResponse<List<StudentDto>>> getAllStudents() {
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sinh viên thành công", studentService.getAllStudents()));
-    }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Cập nhật sinh viên", description = "Thay đổi thông tin của sinh viên đã tồn tại")
-    public ResponseEntity<ApiResponse<StudentDto>> updateStudent(@PathVariable UUID id, @RequestBody UpdateStudentRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật sinh viên thành công", studentService.updateStudent(id, request)));
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Xóa sinh viên", description = "Xóa (ẩn) thông tin sinh viên khỏi hệ thống")
-    public ResponseEntity<ApiResponse<Void>> deleteStudent(@PathVariable UUID id) {
-        studentService.deleteStudent(id);
+    @DeleteMapping("/admin/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "Admin xóa mềm sinh viên")
+    public ResponseEntity<ApiResponse<Void>> deleteStudentForAdmin(@PathVariable UUID id) {
+        studentService.deleteStudentForAdmin(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa sinh viên thành công", null));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên xem thông tin của chính mình")
+    public ResponseEntity<ApiResponse<StudentSelfResponse>> getCurrentStudent(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin sinh viên thành công", studentService.getCurrentStudent(authentication.getName())));
+    }
+
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên cập nhật thông tin cá nhân trong bảng Persons")
+    public ResponseEntity<ApiResponse<StudentSelfResponse>> updateCurrentStudent(
+            Authentication authentication,
+            @RequestBody StudentSelfUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin cá nhân thành công", studentService.updateCurrentStudent(authentication.getName(), request)));
     }
 }

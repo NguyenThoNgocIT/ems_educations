@@ -43,6 +43,21 @@ public class InstructorProfile extends SoftDeleteEntity {
     @Column(name = "DegreeId")
     private UUID degreeId;
 
+    @Column(name = "AcademicRank", length = 50)
+    private String academicRank;
+
+    @Column(name = "MajorId")
+    private UUID majorId;
+
+    @Column(name = "Specialization", length = 255)
+    private String specialization;
+
+    @Column(name = "Institution", length = 255)
+    private String institution;
+
+    @Column(name = "GraduationYear")
+    private Integer graduationYear;
+
     public UUID getInstructorId() {
         return employeeId;
     }

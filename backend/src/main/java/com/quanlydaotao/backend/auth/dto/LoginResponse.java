@@ -14,6 +14,7 @@ import java.util.List;
 public class LoginResponse {
     private String accessToken;
     private String refreshToken;
+    @Builder.Default
     private String tokenType = "Bearer";
     private String username;
     private String fullName;

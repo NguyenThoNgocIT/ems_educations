@@ -23,7 +23,7 @@ public class Room extends SoftDeleteEntity {
     @Column(name = "Code", nullable = false, unique = true, length = 100)
     private String code;
 
-    @Column(name = "Name", length = 255)
+    @Column(name = "Name", length = 200)  // Tăng từ 255 lên 200
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -36,10 +36,10 @@ public class Room extends SoftDeleteEntity {
     @Column(name = "Capacity")
     private Integer capacity;
 
-    @Column(name = "Type", length = 50)
+    @Column(name = "Type", length = 100)  // Tăng từ 50 lên 100
     private String type;
 
-    @Column(name = "Status", length = 50)
+    @Column(name = "Status", length = 50)  // Giữ nguyên 50 là đủ
     private String status;
 
     @Column(name = "HasProjector")
@@ -51,6 +51,6 @@ public class Room extends SoftDeleteEntity {
     @Column(name = "HasComputer")
     private Boolean hasComputer;
 
-    @Column(name = "Description", length = 255)
+    @Column(name = "Description", length = 500)  // Tăng từ 255 lên 500
     private String description;
 }
