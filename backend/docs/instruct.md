@@ -63,6 +63,7 @@ Phân quyền theo chuẩn RBAC:
 
 - 1 user có nhiều role 1 role năm giữ nhiều permission. có bảng menu permission nào được vào menu nào.
 - Gán vai trò cho người dùng ở đây có Student, Instructor, Admin, Staff... sẽ được vào những quyền gì gán tự động và có thể thêm sửa xoá linh hoạt, quyền sẽ được truy cập vào controllers nào actions nào tưng ứng quyền thì sẽ được vào menu nào setup menu tự động theo phân quyền.
+- user có roles + permissions trong authority, admin quản trị role/permission/menu/gán quyền/gán role, và endpoint trả menu theo user.
 - Mọi request gửi kèm Access Token (JWT) ở header:
   1. Bộ lọc (Filter Chain) chặn Request
   2. Trích xuất và Giải mã Token

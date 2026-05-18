@@ -1,11 +1,15 @@
 package com.quanlydaotao.backend.user.service;
 
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
+import com.quanlydaotao.backend.role.entity.Role;
+import com.quanlydaotao.backend.role.repository.RoleRepository;
+import com.quanlydaotao.backend.user.dto.AssignUserRolesRequest;
 import com.quanlydaotao.backend.user.dto.LockUserAdminRequest;
 import com.quanlydaotao.backend.user.dto.UpdateUserAdminRequest;
 import com.quanlydaotao.backend.user.dto.UserAdminResponse;
 import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.user.entity.UserRole;
+import com.quanlydaotao.backend.user.entity.UserRoleId;
 import com.quanlydaotao.backend.user.entity.UserSession;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import com.quanlydaotao.backend.user.repository.UserRoleRepository;
@@ -27,6 +31,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final UserSessionRepository userSessionRepository;
+    private final RoleRepository roleRepository;
 
     @Transactional(readOnly = true)
     public Page<UserAdminResponse> searchUsersForAdmin(String keyword, Boolean isActive, Boolean isLocked, Pageable pageable) {
@@ -99,6 +104,36 @@ public class UserService {
         List<UserSession> sessions = userSessionRepository.findAllByUser_UserId(id);
         sessions.forEach(s -> s.setRevokedAt(LocalDateTime.now()));
         userSessionRepository.saveAll(sessions);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getUserRoles(UUID id) {
+        findUser(id);
+        return findRoleCodes(id);
+    }
+
+    @Transactional
+    public UserAdminResponse assignRoles(UUID id, AssignUserRolesRequest request) {
+        User user = findUser(id);
+        userRoleRepository.findByUserUserId(id).forEach(userRole -> {
+            userRole.setIsActive(false);
+            userRoleRepository.save(userRole);
+        });
+
+        if (request.getRoleIds() != null) {
+            for (UUID roleId : request.getRoleIds()) {
+                Role role = roleRepository.findById(roleId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vai trò"));
+                UserRoleId userRoleId = new UserRoleId(user.getUserId(), role.getRoleId());
+                UserRole userRole = userRoleRepository.findById(userRoleId).orElseGet(UserRole::new);
+                userRole.setId(userRoleId);
+                userRole.setUser(user);
+                userRole.setRole(role);
+                userRole.setIsActive(true);
+                userRoleRepository.save(userRole);
+            }
+        }
+        return toAdminResponse(user);
     }
 
     private User findUser(UUID id) {

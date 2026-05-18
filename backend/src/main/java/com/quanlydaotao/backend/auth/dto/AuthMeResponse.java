@@ -7,4 +7,5 @@ import java.util.List;
     private String email; 
     private String fullName; 
     private List<String> roles; 
+    private List<String> permissions;
     private boolean requirePasswordChange; }

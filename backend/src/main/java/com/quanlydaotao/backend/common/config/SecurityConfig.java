@@ -2,6 +2,7 @@ package com.quanlydaotao.backend.common.config;
 
 import com.quanlydaotao.backend.infrastructure.security.jwt.JwtAuthenticationEntryPoint;
 import com.quanlydaotao.backend.infrastructure.security.jwt.JwtAuthenticationFilter;
+import com.quanlydaotao.backend.infrastructure.security.rbac.RbacAuthorizationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +35,9 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    private RbacAuthorizationFilter rbacAuthorizationFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -80,6 +84,7 @@ public class SecurityConfig {
             );
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(rbacAuthorizationFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
