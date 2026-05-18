@@ -103,7 +103,7 @@ export default function CreateLecturerPage() {
                 <Label htmlFor="departmentId">Khoa *</Label>
                 <Select 
                   value={formData.departmentId} 
-                  onValueChange={(val) => setFormData({ ...formData, departmentId: val })}
+                  onValueChange={(val) => setFormData({ ...formData, departmentId: val || '' })}
                 >
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn khoa" />
@@ -124,7 +124,7 @@ export default function CreateLecturerPage() {
                 <Label htmlFor="degreeId">Học vị *</Label>
                 <Select 
                   value={formData.degreeId} 
-                  onValueChange={(val) => setFormData({ ...formData, degreeId: val })}
+                  onValueChange={(val) => setFormData({ ...formData, degreeId: val || '' })}
                 >
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn học vị" />

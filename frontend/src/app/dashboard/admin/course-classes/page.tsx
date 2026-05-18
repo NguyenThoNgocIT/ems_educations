@@ -38,8 +38,9 @@ export default function CourseClassesPage() {
   useEffect(() => {
     async function fetchCourseClasses() {
       try {
-        const response = await courseClassApi.getAll();
-        setCourseClasses(response || []);
+        const response: any = await courseClassApi.getAll();
+        const listData = Array.isArray(response) ? response : (response?.data || []);
+        setCourseClasses(listData);
       } catch (error) {
         console.error(error);
         toast.error('Không thể lấy danh sách lớp học phần');
@@ -158,7 +159,7 @@ export default function CourseClassesPage() {
               />
             </div>
             <Select value={filterSemester} onValueChange={(val) => {
-              setFilterSemester(val);
+              setFilterSemester(val || 'all');
               setCurrentPage(1);
             }}>
               <SelectTrigger className="w-full sm:w-48">

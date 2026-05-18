@@ -97,7 +97,7 @@ export default function AttendancePage() {
           <p className="text-muted-foreground">Theo dõi chuyên cần sinh viên</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Select value={filterClass} onValueChange={setFilterClass}>
+          <Select value={filterClass} onValueChange={(val) => setFilterClass(val || 'all')}>
             <SelectTrigger className="w-[250px]">
               <SelectValue placeholder="Chọn lớp học phần" />
             </SelectTrigger>

@@ -25,7 +25,12 @@ export type NavItem = {
   path: string;
 };
 
-// ==================== ADMIN MENU (11 mục chính xác) ====================
+export type NavGroup = {
+  groupName: string;
+  items: NavItem[];
+};
+
+// ==================== ADMIN MENU FLAT LIST (Để tương thích ngược nếu cần) ====================
 export const adminNavItems: NavItem[] = [
   { name: "Sinh viên", icon: <Users className="h-[18px] w-[18px]" />, path: "/dashboard/admin/students" },
   { name: "Giảng viên", icon: <User className="h-[18px] w-[18px]" />, path: "/dashboard/admin/lecturers" },
@@ -39,7 +44,36 @@ export const adminNavItems: NavItem[] = [
   { name: "Thời khóa biểu", icon: <CalendarDays className="h-[18px] w-[18px]" />, path: "/dashboard/admin/schedules" },
 ];
 
-// ==================== LECTURER MENU (6 mục) ====================
+// ==================== ADMIN MENU GROUPED (Giải pháp 1 - Chia nhóm danh mục) ====================
+export const adminNavGroups: NavGroup[] = [
+  {
+    groupName: "Nhân sự & Người dùng",
+    items: [
+      { name: "Sinh viên", icon: <Users className="h-[18px] w-[18px]" />, path: "/dashboard/admin/students" },
+      { name: "Giảng viên", icon: <User className="h-[18px] w-[18px]" />, path: "/dashboard/admin/lecturers" },
+    ],
+  },
+  {
+    groupName: "Quản lý Đào tạo",
+    items: [
+      { name: "Ngành học", icon: <GraduationCap className="h-[18px] w-[18px]" />, path: "/dashboard/admin/majors" },
+      { name: "Chương trình đào tạo", icon: <Target className="h-[18px] w-[18px]" />, path: "/dashboard/admin/training-programs" },
+      { name: "Môn học", icon: <BookOpen className="h-[18px] w-[18px]" />, path: "/dashboard/admin/courses" },
+      { name: "Lớp học phần", icon: <Layers className="h-[18px] w-[18px]" />, path: "/dashboard/admin/course-classes" },
+      { name: "Thời khóa biểu", icon: <CalendarDays className="h-[18px] w-[18px]" />, path: "/dashboard/admin/schedules" },
+    ],
+  },
+  {
+    groupName: "Cơ sở vật chất",
+    items: [
+      { name: "Tòa nhà", icon: <Building className="h-[18px] w-[18px]" />, path: "/dashboard/admin/buildings" },
+      { name: "Phòng học", icon: <DoorOpen className="h-[18px] w-[18px]" />, path: "/dashboard/admin/rooms" },
+      { name: "Ca học", icon: <Clock className="h-[18px] w-[18px]" />, path: "/dashboard/admin/time-slots" },
+    ],
+  },
+];
+
+// ==================== LECTURER MENU (5 mục) ====================
 export const lecturerNavItems: NavItem[] = [
   { name: "Lịch giảng dạy", icon: <Calendar className="h-[18px] w-[18px]" />, path: "/dashboard/lecturer/my-schedule" },
   { name: "Lớp của tôi", icon: <Users className="h-[18px] w-[18px]" />, path: "/dashboard/lecturer/my-classes" },
@@ -48,7 +82,7 @@ export const lecturerNavItems: NavItem[] = [
   { name: "Thông tin phòng", icon: <DoorOpen className="h-[18px] w-[18px]" />, path: "/dashboard/lecturer/room-info" },
 ];
 
-// ==================== STUDENT MENU (4 mục) ====================
+// ==================== STUDENT MENU (3 mục) ====================
 export const studentNavItems: NavItem[] = [
   { name: "Thời khóa biểu", icon: <Calendar className="h-[18px] w-[18px]" />, path: "/dashboard/student/my-schedule" },
   { name: "Kết quả học tập", icon: <Award className="h-[18px] w-[18px]" />, path: "/dashboard/student/academic-results" },

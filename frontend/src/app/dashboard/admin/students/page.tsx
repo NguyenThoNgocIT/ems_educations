@@ -155,7 +155,7 @@ export default function StudentsPage() {
                 className="pl-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
               />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || 'all')}>
               <SelectTrigger className="w-full sm:w-48 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
@@ -259,7 +259,7 @@ export default function StudentsPage() {
               <div className="flex items-center justify-between mt-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">Hiển thị</span>
-                  <Select value={String(rowsPerPage)} onValueChange={(val) => setRowsPerPage(Number(val))}>
+                  <Select value={String(rowsPerPage)} onValueChange={(val) => setRowsPerPage(Number(val || 10))}>
                     <SelectTrigger className="w-20 bg-white dark:bg-gray-800">
                       <SelectValue />
                     </SelectTrigger>

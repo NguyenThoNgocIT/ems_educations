@@ -334,7 +334,7 @@ export default function BuildingsPage() {
             </div>
             <div>
               <Label htmlFor="buildingType">Loại tòa nhà</Label>
-              <Select value={formData.buildingType} onValueChange={(val) => setFormData({ ...formData, buildingType: val })}>
+              <Select value={formData.buildingType} onValueChange={(val) => setFormData({ ...formData, buildingType: val || '' })}>
                 <SelectTrigger className="mt-1.5">
                   <SelectValue />
                 </SelectTrigger>

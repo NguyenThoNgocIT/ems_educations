@@ -96,7 +96,7 @@ export default function SignInForm() {
     setIsLoading(true);
 
     try {
-      const data = await authLogin({
+      const data: any = await authLogin({
         username: username.trim(),
         password: password,
       });

@@ -134,7 +134,7 @@ export default function CreateCourseClassPage() {
               <Label htmlFor="courseId">Môn học *</Label>
               <Select 
                 value={formData.courseId} 
-                onValueChange={(val) => setFormData({ ...formData, courseId: val })}
+                onValueChange={(val) => setFormData({ ...formData, courseId: val || '' })}
               >
                 <SelectTrigger className="mt-1.5">
                   <SelectValue placeholder="Chọn môn học" />
@@ -153,7 +153,7 @@ export default function CreateCourseClassPage() {
                 <Label htmlFor="semesterId">Học kỳ *</Label>
                 <Select 
                   value={formData.semesterId} 
-                  onValueChange={(val) => setFormData({ ...formData, semesterId: val })}
+                  onValueChange={(val) => setFormData({ ...formData, semesterId: val || '' })}
                 >
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn học kỳ" />
@@ -171,7 +171,7 @@ export default function CreateCourseClassPage() {
                 <Label htmlFor="roomId">Phòng học *</Label>
                 <Select 
                   value={formData.roomId} 
-                  onValueChange={(val) => setFormData({ ...formData, roomId: val })}
+                  onValueChange={(val) => setFormData({ ...formData, roomId: val || '' })}
                 >
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn phòng học" />
@@ -190,7 +190,7 @@ export default function CreateCourseClassPage() {
               <Label htmlFor="status">Trạng thái</Label>
               <Select 
                 value={formData.status} 
-                onValueChange={(val) => setFormData({ ...formData, status: val })}
+                onValueChange={(val) => setFormData({ ...formData, status: val || '' })}
               >
                 <SelectTrigger className="mt-1.5">
                   <SelectValue />

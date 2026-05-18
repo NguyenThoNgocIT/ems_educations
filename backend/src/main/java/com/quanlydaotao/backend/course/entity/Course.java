@@ -60,17 +60,13 @@ public class Course extends BaseEntity {
     @Column(name = "Description", length = 1000)
     private String description;
 
-    @Column(name = "IsActive")
-    private Boolean isActive;
-
-    // Mapping chính xác cột DeleteAt/DeleteBy từ dbsql.md
-    @Column(name = "DeleteAt")
+    // Mapping đúng cột DeletedAt/DeletedBy từ dbsql.md
+    @Column(name = "DeletedAt")
     private java.time.LocalDateTime deletedAt;
 
-    @Column(name = "DeleteBy")
+    @Column(name = "DeletedBy")
     private UUID deletedBy;
 
-    // Ghi đè các getter/setter để Hibernate không dùng tên mặc định DeletedAt/DeletedBy
     public java.time.LocalDateTime getDeletedAt() {
         return this.deletedAt;
     }
@@ -87,4 +83,3 @@ public class Course extends BaseEntity {
         this.deletedBy = deletedBy;
     }
 }
-

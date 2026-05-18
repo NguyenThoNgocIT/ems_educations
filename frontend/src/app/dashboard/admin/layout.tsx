@@ -30,7 +30,7 @@ export default function DashboardLayout({
 
       {/* Vùng nội dung chính */}
       <div
-        className={`transition-all duration-300 ease-in-out ${mainContentMargin}`}
+        className={`transition-all duration-300 ease-in-out ${mainContentMargin} pt-[80px]`}
       >
         {/* Header trên cùng */}
         <AppHeader />
