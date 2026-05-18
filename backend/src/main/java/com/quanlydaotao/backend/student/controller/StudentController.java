@@ -19,6 +19,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/students")
 @RequiredArgsConstructor
 @Tag(name = "Quản lý Sinh viên", description = "Các API cho phép thực hiện CRUD thông tin sinh viên")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")  // ✅ THÊM DÒNG NÀY
 public class StudentController {
     private final StudentService studentService;
 

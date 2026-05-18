@@ -37,10 +37,11 @@ public class MajorServiceImpl implements MajorService {
     @Transactional
     public MajorDto createMajor(CreateMajorRequest request) {
         Major major = new Major();
-        major.setMajorCode(request.getMajorCode());
-        major.setMajorName(request.getMajorName());
+        major.setCode(request.getCode());                    // ✅ SỬA
+        major.setName(request.getName());                    // ✅ SỬA
         major.setDescription(request.getDescription());
         major.setDepartmentId(request.getDepartmentId());
+        major.setIsActive(true);
         return mapToDto(majorRepository.save(major));
     }
 
@@ -49,8 +50,8 @@ public class MajorServiceImpl implements MajorService {
     public MajorDto updateMajor(UUID id, CreateMajorRequest request) {
         Major major = majorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Major not found"));
-        major.setMajorCode(request.getMajorCode());
-        major.setMajorName(request.getMajorName());
+        major.setCode(request.getCode());                    // ✅ SỬA
+        major.setName(request.getName());                    // ✅ SỬA
         major.setDescription(request.getDescription());
         major.setDepartmentId(request.getDepartmentId());
         return mapToDto(majorRepository.save(major));
@@ -68,8 +69,8 @@ public class MajorServiceImpl implements MajorService {
     private MajorDto mapToDto(Major major) {
         MajorDto dto = new MajorDto();
         dto.setMajorId(major.getMajorId());
-        dto.setMajorCode(major.getMajorCode());
-        dto.setMajorName(major.getMajorName());
+        dto.setCode(major.getCode());                        // ✅ SỬA
+        dto.setName(major.getName());                        // ✅ SỬA
         dto.setDescription(major.getDescription());
         dto.setDepartmentId(major.getDepartmentId());
         dto.setIsActive(major.getIsActive());

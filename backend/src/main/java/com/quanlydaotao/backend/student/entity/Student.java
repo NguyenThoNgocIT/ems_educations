@@ -1,12 +1,11 @@
 package com.quanlydaotao.backend.student.entity;
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
-import com.quanlydaotao.backend.user.entity.Person;
+import com.quanlydaotao.backend.person.entity.Person;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.time.LocalDate;
 import java.util.UUID;
 @Entity
 @Table(name = "Students")
@@ -33,3 +32,5 @@ public class Student extends SoftDeleteEntity {
     @Column(name = "AdmissionDate")
     private java.time.LocalDate admissionDate;
 }
+
+

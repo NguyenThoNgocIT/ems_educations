@@ -1,6 +1,8 @@
 package com.quanlydaotao.backend;
-
+import com.quanlydaotao.backend.role.repository.RoleRepository;
+import com.quanlydaotao.backend.person.repository.PersonRepository;
 import com.quanlydaotao.backend.user.repository.UserRepository;
+import com.quanlydaotao.backend.user.repository.UserRoleRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,9 +17,16 @@ public class TrainingManagementApplication {
     }
 
     @Bean
-    public CommandLineRunner initData(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public CommandLineRunner initData(
+            PersonRepository personRepository,
+            UserRepository userRepository,
+            RoleRepository roleRepository,
+            UserRoleRepository userRoleRepository,
+            PasswordEncoder passwordEncoder
+    ) {
         return args -> {
             // Initialization logic if any
         };
     }
 }
+
