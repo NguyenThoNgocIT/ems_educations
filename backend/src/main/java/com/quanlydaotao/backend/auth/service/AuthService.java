@@ -18,6 +18,7 @@ import com.quanlydaotao.backend.employee.repository.EmployeeRepository;
 import com.quanlydaotao.backend.infrastructure.security.jwt.JwtTokenProvider;
 import com.quanlydaotao.backend.instructor.repository.InstructorProfileRepository;
 import com.quanlydaotao.backend.notification.service.EmailNotificationService;
+import com.quanlydaotao.backend.role.repository.RolePermissionRepository;
 import com.quanlydaotao.backend.staff.repository.StaffRepository;
 import com.quanlydaotao.backend.student.repository.StudentRepository;
 import com.quanlydaotao.backend.user.entity.User;
@@ -65,6 +66,7 @@ public class AuthService {
     private final PasswordResetRequestRepository passwordResetRequestRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectProvider<EmailNotificationService> emailNotificationServiceProvider;
+    private final RolePermissionRepository rolePermissionRepository;
 
     @Value("${app.auth.password-change-url:http://localhost:3000/change-password}")
     private String passwordChangeUrl;
@@ -99,6 +101,7 @@ public class AuthService {
 
         List<String> roles = authentication.getAuthorities().stream()
                 .map(item -> item.getAuthority())
+                .filter(authority -> authority.startsWith("ROLE_"))
                 .collect(Collectors.toList());
 
         boolean requirePassChange = user.getRequirePasswordChange() != null && user.getRequirePasswordChange();
@@ -113,6 +116,7 @@ public class AuthService {
                 .username(user.getUsername())
                 .fullName(fullName)
                 .roles(roles)
+                .permissions(rolePermissionRepository.findActivePermissionCodesByUserId(user.getUserId()))
                 .requirePasswordChange(requirePassChange)
                 .build();
     }
@@ -170,6 +174,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .fullName(user.getPerson().getFullName())
                 .roles(findRoleCodes(user.getUserId()))
+                .permissions(rolePermissionRepository.findActivePermissionCodesByUserId(user.getUserId()))
                 .requirePasswordChange(requirePassChange)
                 .build();
     }

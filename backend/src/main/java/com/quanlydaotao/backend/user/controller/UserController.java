@@ -1,6 +1,7 @@
 package com.quanlydaotao.backend.user.controller;
 
 import com.quanlydaotao.backend.common.dto.ApiResponse;
+import com.quanlydaotao.backend.user.dto.AssignUserRolesRequest;
 import com.quanlydaotao.backend.user.dto.LockUserAdminRequest;
 import com.quanlydaotao.backend.user.dto.UpdateUserAdminRequest;
 import com.quanlydaotao.backend.user.dto.UserAdminResponse;
@@ -104,5 +105,21 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> revokeAllUserSessions(@PathVariable UUID id) {
         userService.revokeAllUserSessions(id);
         return ResponseEntity.ok(ApiResponse.success("Thu hồi các phiên thành công", null));
+    }
+
+    @GetMapping("/admin/{id}/roles")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "Admin lấy danh sách vai trò của tài khoản")
+    public ResponseEntity<ApiResponse<List<String>>> getUserRoles(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy vai trò của tài khoản thành công", userService.getUserRoles(id)));
+    }
+
+    @PutMapping("/admin/{id}/roles")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "Admin gán vai trò cho tài khoản")
+    public ResponseEntity<ApiResponse<UserAdminResponse>> assignRoles(
+            @PathVariable UUID id,
+            @RequestBody AssignUserRolesRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Gán vai trò cho tài khoản thành công", userService.assignRoles(id, request)));
     }
 }
