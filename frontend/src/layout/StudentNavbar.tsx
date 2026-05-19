@@ -1,73 +1,111 @@
 "use client";
-import React from "react";
+
+import { useSidebar } from "@/context/SidebarContext";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { STUDENT_NAV_ITEMS } from "@/constants/student_navigation";
-import { ShoppingCart } from "lucide-react";
-// 1. IMPORT USER DROPDOWN
-import UserDropdown from "@/components/header/UserDropdown";
-import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
+import { ChevronRight } from "lucide-react";
+import { StudentNavGroups } from "@/constants/student_navigation";
 
-export default function StudentNavbar() {
+export default function StudentSidebar() {
   const pathname = usePathname();
+  const { isExpanded, isHovered, isMobileOpen } = useSidebar(); 
+  const isOpen = isExpanded || isHovered;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-100 bg-white/80 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
-      <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 sm:px-6">
-        {/* Logo & Brand */}
-        <Link href="/dashboard/student" className="flex items-center gap-2">
-          <Image
-            src="/images/logo/logo.svg"
-            alt="Logo"
-            width={110}
-            height={28}
-          />
-          <span className="hidden border-l border-slate-200 pl-2 text-xs font-bold text-pink-500 sm:block">
-            Edutech
-          </span>
+    <aside 
+      className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-100 flex flex-col z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out dark:bg-slate-900 dark:border-slate-800 
+        ${isOpen ? "w-[290px]" : "w-[78px]"} 
+        ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+    >
+      {/* 1. KHU VỰC LOGO ĐẠI HỌC ĐÔNG Á (Thu phóng đồng bộ theo Admin) */}
+      <div className="h-[80px] border-b border-gray-100 flex items-center justify-center px-4 overflow-hidden dark:border-slate-800 flex-shrink-0">
+        <Link href="/dashboard/student/my-schedule" className="relative flex items-center justify-center w-full h-full">
+          {isOpen ? (
+            <div className="relative w-[310px] h-[88px] transition-all duration-300 flex items-center justify-center">
+              <Image
+                src="/images/logo/logo-sidebar-admin-big.png" // Dùng chung logo lớn sắc nét của bạn
+                alt="Đại Học Đông Á"
+                fill
+                priority
+                sizes="310px"
+                className="object-contain"
+              />
+            </div>
+          ) : (
+            <div className="relative w-9 h-9 transition-all duration-300">
+              <Image
+                src="/images/logo/logo-sidebar-admin-small.png" // Dùng chung logo icon khi thu nhỏ
+                alt="UDA"
+                fill
+                priority
+                sizes="36px"
+                className="object-contain"
+              />
+            </div>
+          )}
         </Link>
+      </div>
 
-        {/* Menu giữa dành cho Học viên */}
-        <nav className="hidden items-center gap-8 lg:flex">
-          {STUDENT_NAV_ITEMS.map((item) => (
-            <Link
-              key={item.name}
-              href={item.path}
-              className={`flex items-center gap-2 text-sm font-bold transition-all ${
-                pathname === item.path
-                  ? "text-indigo-600"
-                  : "text-slate-500 hover:text-indigo-500 dark:text-slate-400 dark:hover:text-white"
-              }`}
-            >
-              <span
-                className={
-                  pathname === item.path ? "text-indigo-500" : "text-slate-400"
-                }
-              >
-                {item.icon}
-              </span>
-              {item.name}
-            </Link>
-          ))}
-        </nav>
+      {/* 2. DANH SÁCH MENU ĐIỀU HƯỚNG DỰA TRÊN STUDENTNAVGROUPS */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar overflow-x-hidden">
+        {StudentNavGroups.map((group, groupIdx) => (
+          <div key={group.groupName || groupIdx} className="space-y-1">
+            {isOpen ? (
+              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 tracking-wider uppercase px-4 py-1 mt-2 select-none truncate">
+                {group.groupName}
+              </p>
+            ) : (
+              groupIdx > 0 && <div className="border-t border-gray-100 dark:border-slate-800/80 my-3 mx-2" />
+            )}
 
-        {/* Cụm tính năng bên phải */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 border-r border-slate-100 pr-2 sm:gap-3 sm:pr-4 dark:border-slate-800">
-            <ThemeToggleButton />
-            <button className="relative rounded-xl p-2 text-slate-500 transition-all hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-white/5">
-              <ShoppingCart size={20} />
-              {/* Badge giỏ hàng (nếu cần) */}
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full border-2 border-white bg-rose-500 dark:border-slate-900"></span>
-            </button>
+            {group.items.map((item) => {
+              // Logic check active chuẩn xác cho cả các trang con
+              const active = pathname === item.path || pathname.startsWith(item.path + "/");
+
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  title={!isOpen ? item.name : undefined}
+                  className={`flex items-center py-3 rounded-xl transition-all duration-200 whitespace-nowrap overflow-hidden ${
+                    isOpen ? "justify-between px-4" : "justify-center px-0"
+                  } ${
+                    active
+                      ? "bg-emerald-100 text-emerald-700 font-bold shadow-sm dark:bg-emerald-900/60 dark:text-emerald-300"
+                      : "text-gray-800 hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <span className={`flex-shrink-0 transition-colors ${active ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
+                      {item.icon}
+                    </span>
+                    <span className={`text-[13px] font-medium tracking-wide transition-all duration-200 truncate ${
+                      isOpen ? "opacity-100 w-auto static" : "opacity-0 w-0 absolute pointer-events-none"
+                    }`}>
+                      {item.name}
+                    </span>
+                  </div>
+                  
+                  {isOpen && (
+                    <ChevronRight className={`h-3.5 w-3.5 flex-shrink-0 transition-transform ${active ? "text-emerald-500 translate-x-0.5 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500"}`} />
+                  )}
+                </Link>
+              );
+            })}
           </div>
+        ))}
+      </div>
 
-          {/* 2. THAY THẾ AVATAR TĨNH BẰNG DROPDOWN */}
-          {/* Truyền role="student" để hiện chữ "Học viên" và xử lý đăng xuất */}
-          <UserDropdown role="student" />
+      {/* 3. FOOTER HỆ THỐNG DƯỚI ĐÁY SIDEBAR */}
+      <div className="p-4 border-t border-gray-100 bg-gray-50/50 overflow-hidden dark:border-slate-800 dark:bg-slate-900/50 flex flex-col items-center justify-center flex-shrink-0">
+        <div className="text-center flex flex-col items-center justify-center w-full truncate">
+          <p className="text-[12px] font-bold text-gray-800 dark:text-slate-200 tracking-wider">
+            {isOpen ? "EMS" : "E"}
+          </p>
+          {isOpen && <p className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5 text-center truncate">Education Management System</p>}
         </div>
       </div>
-    </header>
+    </aside>
   );
 }
