@@ -17,6 +17,7 @@ import {
   Award,
   ClipboardList,
   Target,
+  ShieldCheck,
 } from "lucide-react";
 
 export type NavItem = {
@@ -69,6 +70,12 @@ export const adminNavGroups: NavGroup[] = [
       { name: "Tòa nhà", icon: <Building className="h-[18px] w-[18px]" />, path: "/dashboard/admin/buildings" },
       { name: "Phòng học", icon: <DoorOpen className="h-[18px] w-[18px]" />, path: "/dashboard/admin/rooms" },
       { name: "Ca học", icon: <Clock className="h-[18px] w-[18px]" />, path: "/dashboard/admin/time-slots" },
+    ],
+  },
+  {
+    groupName: "Quản trị hệ thống",
+    items: [
+      { name: "Phân quyền (RBAC)", icon: <ShieldCheck className="h-[18px] w-[18px]" />, path: "/dashboard/admin/rbac" },
     ],
   },
 ];
