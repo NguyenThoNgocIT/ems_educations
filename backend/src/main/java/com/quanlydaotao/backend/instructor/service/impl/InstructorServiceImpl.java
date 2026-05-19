@@ -4,7 +4,7 @@ import com.quanlydaotao.backend.account.dto.AccountCreationResponse;
 import com.quanlydaotao.backend.account.service.impl.AccountServiceImpl;
 import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
-import com.quanlydaotao.backend.course.repository.MajorRepository;
+import com.quanlydaotao.backend.major.repository.MajorRepository;
 import com.quanlydaotao.backend.degree.repository.DegreeRepository;
 import com.quanlydaotao.backend.department.repository.DepartmentRepository;
 import com.quanlydaotao.backend.employee.entity.Employee;

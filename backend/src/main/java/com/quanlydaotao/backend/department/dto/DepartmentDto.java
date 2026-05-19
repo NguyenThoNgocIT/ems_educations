@@ -13,8 +13,9 @@ import java.util.UUID;
 @AllArgsConstructor
 public class DepartmentDto {
     private UUID departmentId;
-    private String departmentCode;
-    private String departmentName;
-    private String type;
+    private String code;
+    private String name;
+    private String description;
+    private Boolean isActive;
 }
 

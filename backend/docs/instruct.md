@@ -225,3 +225,10 @@ Phân quyền theo chuẩn RBAC:
 - thêm đối tượng thì nó tự động generate ra tk mk tạo email rồi
 - với lần đăng nhập đầu tiên user có xử lí trường requirePassChange true chuyến đển trang đổi mk đổi thành false. khi tạo có gửi xác nhận click vào để đổi mk có thể vào email để đổi.
 - Đối với xử lí user quên mk thì user sẽ gửi yêu cầu lên admin kèm các thông tin cần thiết mã sinh viên giáo viên nhân viên kèm email edu số điện thoại họ và tên. Sau đó admin sẽ tiến hành reset pass lại cho bạn dạng mặc định là ngày sinh sau đó bạn đăng nhập giống lần đầu tiên nó sẽ chuyển đến trang đổi pass hoặc vào email để đổi pass
+- Thêm validation nghiệp vụ:
+- Ngành phải thuộc khoa.
+- Chương trình đào tạo phải có ngành + khoa + niên khóa, và ngành phải khớp khoa.
+- Học kỳ phải nằm trong năm học.
+- Lớp hành chính phải có khoa + niên khóa, cố vấn nếu có phải là instructor.
+- Chức vụ kiểm tra phòng ban.
+- Hợp đồng kiểm tra employee, ngày hiệu lực, lương/phụ cấp/ngày phép.

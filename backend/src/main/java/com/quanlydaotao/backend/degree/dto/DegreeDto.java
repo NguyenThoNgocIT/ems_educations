@@ -13,7 +13,13 @@ import java.util.UUID;
 @AllArgsConstructor
 public class DegreeDto {
     private UUID degreeId;
+    private String code;
     private String name;
-    private String major;
+    private Integer level;
+    private String academicRank;
+    private String specialization;
+    private String institution;
+    private Integer graduationYear;
+    private UUID majorId;
+    private Boolean isActive;
 }
-
