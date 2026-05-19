@@ -20,14 +20,20 @@ const TABS: TabConfig[] = [
   { id: 'roles',       label: 'Vai trò',         icon: <ShieldCheck size={16} />, description: 'Quản lý các vai trò trong hệ thống' },
   { id: 'permissions', label: 'Quyền hạn',        icon: <Key size={16} />,         description: 'Quản lý quyền truy cập và API endpoints' },
   { id: 'menus',       label: 'Menu',             icon: <Menu size={16} />,        description: 'Cấu hình menu điều hướng theo quyền' },
-  { id: 'users',       label: 'Gán quyền User',   icon: <Users size={16} />,       description: 'Gán vai trò cho người dùng' },
+  { id: 'users',       label: 'Quản lý User',     icon: <Users size={16} />,       description: 'Quản lý người dùng và gán vai trò' },
 ];
 
 export default function RBACPage() {
   const [activeTab, setActiveTab] = useState<TabId>('roles');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [usersSearchPayload, setUsersSearchPayload] = useState<string>('');
 
   const activeConfig = TABS.find(t => t.id === activeTab)!;
+
+  const handleNavigateToUsers = (roleCode: string) => {
+    setUsersSearchPayload(`role:${roleCode}`);
+    setActiveTab('users');
+  };
 
   return (
     <div className="space-y-5 max-w-[1240px] mx-auto">
@@ -74,10 +80,10 @@ export default function RBACPage() {
 
       {/* Tab content */}
       <div key={`${activeTab}-${refreshKey}`}>
-        {activeTab === 'roles'       && <RolesTab />}
+        {activeTab === 'roles'       && <RolesTab onNavigateToUsers={handleNavigateToUsers} />}
         {activeTab === 'permissions' && <PermissionsTab />}
         {activeTab === 'menus'       && <MenusTab />}
-        {activeTab === 'users'       && <UsersTab />}
+        {activeTab === 'users'       && <UsersTab initialSearch={usersSearchPayload} />}
       </div>
     </div>
   );

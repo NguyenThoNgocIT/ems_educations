@@ -11,6 +11,7 @@ import {
   Check,
   AlertTriangle,
   UploadCloud,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
@@ -21,7 +22,7 @@ import { SkeletonRow, EmptyState, ActionMenu, ActionMenuItem } from './shared';
 
 type RoleModalMode = 'create' | 'edit' | 'permissions' | 'delete';
 
-export function RolesTab() {
+export function RolesTab({ onNavigateToUsers }: { onNavigateToUsers?: (roleCode: string) => void }) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +83,14 @@ export function RolesTab() {
   const closeModal = () => setModal(null);
 
   const handleSaveRole = async () => {
-    if (!form.name.trim()) { toast.error('Tên vai trò không được để trống'); return; }
+    if (!form.code?.trim()) {
+      toast.error('Mã vai trò không được để trống');
+      return;
+    }
+    if (!form.name.trim()) {
+      toast.error('Tên vai trò không được để trống');
+      return;
+    }
     setSaving(true);
     try {
       if (modal?.mode === 'create') {
@@ -95,8 +103,8 @@ export function RolesTab() {
       }
       closeModal();
       await fetchData();
-    } catch {
-      toast.error('Thao tác thất bại');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message || 'Thao tác thất bại');
     } finally {
       setSaving(false);
     }
@@ -254,9 +262,13 @@ export function RolesTab() {
                       <span className="block truncate">{role.description || '—'}</span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
+                      <button
+                        onClick={() => onNavigateToUsers?.(role.code)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-emerald-50 hover:text-emerald-700 transition"
+                      >
+                        <Users size={11} />
                         {role.userCount ?? 0} user
-                      </span>
+                      </button>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
@@ -296,28 +308,25 @@ export function RolesTab() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Mã vai trò <span className="text-red-500">*</span>
+              </label>
+              <input
+                value={form.code || ''}
+                onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
+                placeholder="VD: ADMIN"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Tên vai trò <span className="text-red-500">*</span>
               </label>
-              <select
-                value={form.code || ''}
-                onChange={e => {
-                  const val = e.target.value;
-                  const selectedText = e.target.options[e.target.selectedIndex].text;
-                  const cleanName = selectedText.split(' (')[0];
-                  setForm(f => ({ ...f, code: val, name: cleanName }));
-                }}
+              <input
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="VD: Quản trị viên"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
-              >
-                <option value="" disabled>-- Chọn vai trò --</option>
-                <option value="ADMIN">Quản trị viên (ADMIN)</option>
-                <option value="STUDENT">Sinh viên/Học viên (STUDENT)</option>
-                <option value="TEACHER">Giáo viên (TEACHER)</option>
-                <option value="LECTURER">Giảng viên (LECTURER)</option>
-                <option value="STAFF">Nhân viên (STAFF)</option>
-                <option value="CONSULTANT">Tư vấn viên (CONSULTANT)</option>
-                <option value="BRANCH_MANAGER">Quản lý chi nhánh (BRANCH_MANAGER)</option>
-                <option value="PARENT">Phụ huynh (PARENT)</option>
-              </select>
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mô tả</label>
@@ -460,10 +469,6 @@ export function RolesTab() {
         onImport={handleImportExcel}
         title="Nhập danh sách Vai trò"
         expectedColumns={['Code', 'Name']}
-        sampleData={[
-          { Code: 'STUDENT', Name: 'Sinh viên', Description: 'Sinh viên đang học' },
-          { Code: 'TEACHER', Name: 'Giảng viên', Description: 'Giảng viên cơ hữu' },
-        ]}
       />
     </div>
   );

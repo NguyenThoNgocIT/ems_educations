@@ -63,14 +63,23 @@ export function MenusTab() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const buildTree = (items: MenuItemType[], parentId: string | null = null): MenuItemType[] => {
+  const buildTree = (items: MenuItemType[], parentId: string | null = null, visited = new Set<string>()): MenuItemType[] => {
     return items
       .filter(item => (item.parentId ?? null) === parentId)
       .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-      .map(item => ({ ...item, children: buildTree(items, item.id) }));
+      .map(item => {
+        if (visited.has(item.id)) {
+          return { ...item, children: [] };
+        }
+
+        const nextVisited = new Set(visited);
+        nextVisited.add(item.id);
+
+        return { ...item, children: buildTree(items, item.id, nextVisited) };
+      });
   };
 
-  const tree = buildTree(menus);
+  const tree = buildTree(menus, null, new Set());
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -165,13 +174,13 @@ export function MenusTab() {
     setShowImport(false);
   };
 
-  const renderMenuNode = (item: MenuItemType, depth = 0) => {
+  const MenuNode = ({ item, depth }: { item: MenuItemType; depth: number }) => {
     const hasChildren = (item.children?.length ?? 0) > 0;
     const isExpanded = expandedIds.has(item.id);
     const linkedPerm = allPermissions.find(p => p.id === item.permissionId);
 
     return (
-      <div key={item.id}>
+      <div>
         <div
           className={`flex items-center gap-2 py-2.5 px-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/40 transition group ${depth > 0 ? 'ml-6' : ''}`}
           style={{ paddingLeft: `${12 + depth * 20}px` }}
@@ -223,11 +232,16 @@ export function MenusTab() {
 
         {/* Children */}
         {hasChildren && isExpanded && (
-          <div>{item.children!.map(child => renderMenuNode(child, depth + 1))}</div>
+          <div>
+            {item.children!.map((child, index) => (
+              <MenuNode key={child.id || `${item.id}-child-${index}`} item={child} depth={depth + 1} />
+            ))}
+          </div>
         )}
       </div>
     );
   };
+
 
   return (
     <div className="space-y-4">
@@ -264,7 +278,9 @@ export function MenusTab() {
           />
         ) : (
           <div className="p-2 space-y-0.5">
-            {tree.map(item => renderMenuNode(item))}
+            {tree.map((item, index) => (
+              <MenuNode key={item.id || `root-${index}`} item={item} depth={0} />
+            ))}
           </div>
         )}
       </div>
@@ -360,7 +376,11 @@ export function MenusTab() {
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
                 >
                   <option value="">— Công khai —</option>
-                  {allPermissions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  {allPermissions.map((p, permIndex) => (
+                    <option key={p.id ?? p.permissionId ?? p.code ?? `perm-${permIndex}`} value={p.id ?? p.permissionId ?? ''}>
+                      {p.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -405,10 +425,6 @@ export function MenusTab() {
         onImport={handleImportExcel}
         title="Nhập danh sách Menu gốc"
         expectedColumns={['Name', 'Path', 'Icon']}
-        sampleData={[
-          { Name: 'Quản lý sinh viên', Path: '/dashboard/admin/students', Icon: '👥', OrderIndex: 0 },
-          { Name: 'Quản lý khóa học', Path: '/dashboard/admin/courses', Icon: '📚', OrderIndex: 1 },
-        ]}
       />
     </div>
   );
