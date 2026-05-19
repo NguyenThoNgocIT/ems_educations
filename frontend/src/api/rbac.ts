@@ -36,6 +36,9 @@ export const roleApi = {
 
   updatePermissions: (id: string, permissionIds: string[]): Promise<Role> =>
     request.put(`/api/v1/roles/admin/${id}/permissions`, { permissionIds }),
+
+  getAllWithPermissions: (): Promise<Role[]> =>
+    request.get('/api/v1/roles/admin/with-permissions'),
 };
 
 // ─── Permissions ──────────────────────────────────────────────────────────────

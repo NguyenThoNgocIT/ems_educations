@@ -15,33 +15,12 @@ import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { ExcelImportModal } from './excel-import-modal';
 import { permissionApi } from '@/api/rbac';
-import { useAuth } from '@/context/AuthContext';
 import type { Permission, RbacApi, CreatePermissionDto, CreateRbacApiDto, HttpMethod } from '@/types/rbac';
 import { SkeletonRow, EmptyState, ActionMenu, ActionMenuItem, MethodBadge, METHODS } from './shared';
 
 type PermModalMode = 'create' | 'edit' | 'apis' | 'delete';
 
-const PREDEFINED_PERMISSIONS = [
-  { module: 'Sinh viên', code: 'VIEW_STUDENTS', name: 'Xem danh sách sinh viên' },
-  { module: 'Sinh viên', code: 'CREATE_STUDENT', name: 'Tạo sinh viên mới' },
-  { module: 'Sinh viên', code: 'UPDATE_STUDENT', name: 'Cập nhật sinh viên' },
-  { module: 'Sinh viên', code: 'DELETE_STUDENT', name: 'Xóa sinh viên' },
-  { module: 'Khóa học', code: 'VIEW_COURSES', name: 'Xem danh sách khóa học' },
-  { module: 'Khóa học', code: 'CREATE_COURSE', name: 'Tạo khóa học' },
-  { module: 'Khóa học', code: 'UPDATE_COURSE', name: 'Cập nhật khóa học' },
-  { module: 'Khóa học', code: 'DELETE_COURSE', name: 'Xóa khóa học' },
-  { module: 'Lớp học', code: 'VIEW_CLASSES', name: 'Xem danh sách lớp' },
-  { module: 'Lớp học', code: 'CREATE_CLASS', name: 'Tạo lớp học' },
-  { module: 'Điểm số', code: 'VIEW_GRADES', name: 'Xem điểm số' },
-  { module: 'Điểm số', code: 'ENTER_GRADES', name: 'Nhập điểm' },
-  { module: 'Hệ thống', code: 'MANAGE_USERS', name: 'Quản lý người dùng' },
-  { module: 'Hệ thống', code: 'MANAGE_ROLES', name: 'Quản lý vai trò' },
-  { module: 'Hệ thống', code: 'MANAGE_PERMISSIONS', name: 'Quản lý quyền hạn' },
-  { module: 'Khác', code: 'CUSTOM', name: '--- Tùy chỉnh (Tự nhập) ---' }
-];
-
 export function PermissionsTab() {
-  const { user } = useAuth();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -51,7 +30,6 @@ export function PermissionsTab() {
   const [apiForm, setApiForm] = useState<CreateRbacApiDto>({ method: 'GET', path: '' });
   const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const [isCustom, setIsCustom] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -67,18 +45,13 @@ export function PermissionsTab() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const templateOptions = PREDEFINED_PERMISSIONS.filter(p => p.code !== 'CUSTOM' || user?.role === 'admin');
-
   const openCreate = () => {
-    const defaultTemplate = templateOptions[0] ?? PREDEFINED_PERMISSIONS[0];
-    setForm({ code: defaultTemplate.code, name: defaultTemplate.name, description: '', module: defaultTemplate.module });
-    setIsCustom(false);
+    setForm({ code: '', name: '', description: '', module: '' });
     setModal({ mode: 'create' });
   };
 
   const openEdit = (perm: Permission) => {
     setForm({ code: perm.code || '', name: perm.name, description: perm.description || '', module: perm.module || '' });
-    setIsCustom(true); // Always custom when editing
     setModal({ mode: 'edit', perm });
   };
 
@@ -307,67 +280,35 @@ export function PermissionsTab() {
             </div>
           </div>
           <div className="space-y-4">
-            {modal?.mode === 'create' && !isCustom && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Chọn quyền mẫu <span className="text-red-500">*</span></label>
-                <select
-                  value={form.code}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === 'CUSTOM') {
-                      setIsCustom(true);
-                      setForm(f => ({ ...f, code: '', name: '', module: '' }));
-                    } else {
-                      const selected = PREDEFINED_PERMISSIONS.find(p => p.code === val);
-                      if (selected) {
-                        setForm(f => ({ ...f, code: selected.code, name: selected.name, module: selected.module }));
-                      }
-                    }
-                  }}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mã quyền <span className="text-red-500">*</span></label>
+              <input
+                value={form.code}
+                onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+                placeholder="VD: READ_STUDENTS, MANAGE_COURSES..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
+              />
+            </div>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tên hiển thị <span className="text-red-500">*</span></label>
+                <input
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="VD: Xem sinh viên, Quản lý..."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
-                >
-                  {templateOptions.map(p => (
-                    <option key={p.code} value={p.code}>
-                      {p.module} - {p.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
-            )}
-
-            {(modal?.mode === 'edit' || isCustom) && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mã quyền <span className="text-red-500">*</span></label>
-                  <input
-                    value={form.code}
-                    onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
-                    placeholder="VD: READ_STUDENTS, MANAGE_COURSES..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tên hiển thị <span className="text-red-500">*</span></label>
-                    <input
-                      value={form.name}
-                      onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                      placeholder="VD: Xem sinh viên, Quản lý..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
-                    />
-                  </div>
-                  <div className="w-1/3">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Module</label>
-                    <input
-                      value={form.module}
-                      onChange={e => setForm(f => ({ ...f, module: e.target.value }))}
-                      placeholder="VD: Học vụ"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
+              <div className="w-1/3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Module</label>
+                <input
+                  value={form.module}
+                  onChange={e => setForm(f => ({ ...f, module: e.target.value }))}
+                  placeholder="VD: Học vụ"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
+                />
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mô tả</label>
               <textarea
@@ -485,10 +426,6 @@ export function PermissionsTab() {
         onImport={handleImportExcel}
         title="Nhập danh sách Quyền hạn"
         expectedColumns={['Module', 'Code', 'Name']}
-        sampleData={[
-          { Module: 'Sinh viên', Code: 'CREATE_STUDENT', Name: 'Tạo sinh viên mới', Description: 'Cho phép tạo mới hồ sơ sinh viên' },
-          { Module: 'Khóa học', Code: 'MANAGE_COURSES', Name: 'Quản lý khóa học', Description: 'Full quyền thao tác khóa học' },
-        ]}
       />
     </div>
   );

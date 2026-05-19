@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
+import { useAuth } from '@/context/AuthContext';
 import { roleApi, userRoleApi } from '@/api/rbac';
 import type { Role, UserWithRoles, Permission } from '@/types/rbac';
 import { EmptyState, ActionMenu, ActionMenuItem, parseUserList, useDebounce, UserTableSkeleton, MethodBadge } from './shared';
@@ -24,12 +25,31 @@ interface UsersTabProps {
 }
 
 export function UsersTab({ initialSearch = '' }: UsersTabProps) {
-  const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [rawUsers, setRawUsers] = useState<any[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState(initialSearch);
   const searchDebounced = useDebounce(search, 300);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+
+  const users: UserWithRoles[] = useMemo(() => rawUsers.map((user: any) => {
+    const mappedRoles = Array.isArray(user.roles)
+      ? user.roles.map((role: any) => {
+          if (typeof role === 'string') {
+            const match = allRoles.find(r => r.code === role || r.name === role);
+            return match || { code: role, name: role, id: '', roleId: '' };
+          }
+          return role;
+        })
+      : [];
+
+    return {
+      ...user,
+      id: user.id || user.userId || user.userId?.toString() || '',
+      roles: mappedRoles,
+    };
+  }), [rawUsers, allRoles]);
 
   // Modal states
   const [modalUser, setModalUser] = useState<UserWithRoles | null>(null);
@@ -39,14 +59,21 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   const [roleSearch, setRoleSearch] = useState('');
   const [permMethodFilter, setPermMethodFilter] = useState<string>('ALL');
 
-  // Dummy current user for self-edit protection
-  const currentUserEmail = 'admin@gmail.com'; 
+  const { user: authUser } = useAuth();
+  const currentUserEmail = authUser?.email || authUser?.username || '';
 
   const fetchRoles = useCallback(async () => {
+    setRolesLoading(true);
     try {
-      const res: any = await roleApi.getAll();
+      // Use the new endpoint that returns roles with their permissions
+      const res: any = await roleApi.getAllWithPermissions();
       setAllRoles(parseUserList(res));
-    } catch { /* silent */ }
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách role:', error);
+      toast.error('Không thể tải danh sách vai trò. Vui lòng kiểm tra backend.');
+    } finally {
+      setRolesLoading(false);
+    }
   }, []);
 
   const fetchUsers = useCallback(async () => {
@@ -62,7 +89,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         keyword,
         size: 50,
       });
-      setUsers(parseUserList(res));
+      setRawUsers(parseUserList(res));
     } catch {
       toast.error('Không thể tải danh sách người dùng');
     } finally {
@@ -75,6 +102,25 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   useEffect(() => {
     if (initialSearch) setSearch(initialSearch);
   }, [initialSearch]);
+
+  useEffect(() => {
+    if (!modalUser || selectedRoleIds.size > 0) return;
+
+    const initialSelected = new Set<string>();
+    modalUser.roles?.forEach(role => {
+      if (typeof role === 'string') {
+        const match = allRoles.find(r => r.code === role || r.name === role);
+        if (match) initialSelected.add(match.id || match.roleId || '');
+      } else {
+        const roleId = role.id || role.roleId || role.code || role.name;
+        if (roleId) initialSelected.add(roleId);
+      }
+    });
+
+    if (initialSelected.size > 0) {
+      setSelectedRoleIds(initialSelected);
+    }
+  }, [modalUser, allRoles, selectedRoleIds.size]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -92,10 +138,26 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   };
 
   const openAssign = (user: UserWithRoles) => {
-    setModalUser(user);
+    // Find the full user object from the memoized users list
+    const fullUser = users.find(u => u.id === user.id);
+    setModalUser(fullUser || user); // Fallback to the provided user
     setModalTab('roles');
     setRoleSearch('');
-    setSelectedRoleIds(new Set(user.roles?.map(r => r.id || r.roleId!).filter(Boolean) as string[]));
+
+    const initialSelected = new Set<string>();
+    (fullUser || user).roles?.forEach(role => {
+      if (typeof role === 'string') {
+        const match = allRoles.find(r => r.code === role || r.name === role);
+        if (match) {
+          initialSelected.add(match.id || match.roleId || '');
+        }
+      } else {
+        const roleId = role.id || role.roleId || role.code || role.name;
+        if (roleId) initialSelected.add(roleId);
+      }
+    });
+
+    setSelectedRoleIds(initialSelected);
   };
 
   const closeModal = () => {
@@ -112,7 +174,11 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
 
     setSaving(true);
     try {
-      const roleIdsArray = Array.from(selectedRoleIds);
+      const roleIdsArray = Array.from(selectedRoleIds).map(sel => {
+        const match = allRoles.find(r => r.id === sel || r.roleId === sel || r.code === sel || r.name === sel);
+        return match?.id || match?.roleId || sel;
+      }).filter(Boolean);
+
       await userRoleApi.updateUserRoles(modalUser.id, roleIdsArray);
       
       // Optimistic update local users state
@@ -120,7 +186,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         const rId = r.id || r.roleId;
         return rId && selectedRoleIds.has(rId);
       });
-      setUsers(prev => prev.map(u => u.id === modalUser.id ? { ...u, roles: updatedRoles } : u));
+      setRawUsers(prev => prev.map(u => u.id === modalUser.id ? { ...u, roles: updatedRoles } : u));
       
       toast.success(`Đã cập nhật roles cho user ${modalUser.fullName || modalUser.email}`);
       closeModal();
@@ -161,19 +227,29 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   const userInheritedPermissions = useMemo(() => {
     const permsMap = new Map<string, Permission>();
     if (modalUser) {
-      modalUser.roles?.forEach(role => {
-        // Fallback to allRoles if modalUser.roles doesn't include populated permissions
-        const fullRole = allRoles.find(r => (r.id || r.roleId) === (role.id || role.roleId));
-        (fullRole?.permissions || role.permissions || []).forEach(p => {
-          const pId = p.id || p.permissionId;
-          if (pId && !permsMap.has(pId)) permsMap.set(pId, p);
-        });
+      // Ensure we are iterating over the roles of the user currently in the modal
+      const userRoles = users.find(u => u.id === modalUser.id)?.roles || modalUser.roles || [];
+      
+      userRoles.forEach(role => {
+        // Find the full role object from the master 'allRoles' list
+        const fullRole = allRoles.find(r => 
+          r.id === (role.id || role.roleId) || r.code === role.code
+        );
+
+        if (fullRole && fullRole.permissions) {
+          fullRole.permissions.forEach(p => {
+            const pId = p.id || p.permissionId;
+            if (pId && !permsMap.has(pId)) {
+              permsMap.set(pId, p);
+            }
+          });
+        }
       });
     }
     const list = Array.from(permsMap.values());
     if (permMethodFilter === 'ALL') return list;
     return list.filter(p => p.apis?.some(api => api.method === permMethodFilter));
-  }, [modalUser, allRoles, permMethodFilter]);
+  }, [modalUser, users, allRoles, permMethodFilter]);
 
   const filteredRoles = allRoles.filter(r => 
     r.name.toLowerCase().includes(roleSearch.toLowerCase()) || 
@@ -335,9 +411,9 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
       </div>
 
       {/* Modal User Detail (XL) */}
-      <Modal isOpen={!!modalUser} onClose={closeModal} className="max-w-7xl w-full mx-4">
+      <Modal isOpen={!!modalUser} onClose={closeModal} className="max-w-7xl w-full mx-4 h-[90vh] flex flex-col">
         {modalUser && (
-          <div className="flex flex-col h-[85vh] bg-gray-50/30 dark:bg-gray-900/20 rounded-3xl overflow-hidden">
+          <div className="flex flex-col h-full bg-gray-50/30 dark:bg-gray-900/20">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col gap-4 flex-shrink-0">
               <div className="flex items-start justify-between">
@@ -420,7 +496,19 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredRoles.map(role => {
+                          {rolesLoading ? (
+                            <tr>
+                              <td colSpan={5} className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+                                Đang tải danh sách vai trò...
+                              </td>
+                            </tr>
+                          ) : filteredRoles.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+                                Không tìm thấy Role phù hợp.
+                              </td>
+                            </tr>
+                          ) : filteredRoles.map(role => {
                             const rId = role.id || role.roleId;
                             if (!rId) return null;
                             const isSelected = selectedRoleIds.has(rId);
@@ -465,9 +553,6 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                           })}
                         </tbody>
                       </table>
-                      {filteredRoles.length === 0 && (
-                        <div className="p-8 text-center text-gray-500">Không tìm thấy Role phù hợp.</div>
-                      )}
                     </div>
                   </div>
 

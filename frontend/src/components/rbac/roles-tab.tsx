@@ -329,29 +329,6 @@ export function RolesTab({ onNavigateToUsers }: { onNavigateToUsers?: (roleCode:
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Chọn nhanh vai trò mẫu</label>
-              <select
-                value={form.code || ''}
-                onChange={e => {
-                  const val = e.target.value;
-                  const selectedText = e.target.options[e.target.selectedIndex].text;
-                  const cleanName = selectedText.split(' (')[0];
-                  setForm(f => ({ ...f, code: val, name: cleanName }));
-                }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
-              >
-                <option value="">-- Chọn vai trò mẫu --</option>
-                <option value="ADMIN">Quản trị viên (ADMIN)</option>
-                <option value="STUDENT">Sinh viên/Học viên (STUDENT)</option>
-                <option value="TEACHER">Giáo viên (TEACHER)</option>
-                <option value="LECTURER">Giảng viên (LECTURER)</option>
-                <option value="STAFF">Nhân viên (STAFF)</option>
-                <option value="CONSULTANT">Tư vấn viên (CONSULTANT)</option>
-                <option value="BRANCH_MANAGER">Quản lý chi nhánh (BRANCH_MANAGER)</option>
-                <option value="PARENT">Phụ huynh (PARENT)</option>
-              </select>
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mô tả</label>
               <textarea
                 value={form.description}
@@ -492,10 +469,6 @@ export function RolesTab({ onNavigateToUsers }: { onNavigateToUsers?: (roleCode:
         onImport={handleImportExcel}
         title="Nhập danh sách Vai trò"
         expectedColumns={['Code', 'Name']}
-        sampleData={[
-          { Code: 'STUDENT', Name: 'Sinh viên', Description: 'Sinh viên đang học' },
-          { Code: 'TEACHER', Name: 'Giảng viên', Description: 'Giảng viên cơ hữu' },
-        ]}
       />
     </div>
   );
