@@ -103,7 +103,7 @@ export default function CreateSchedulePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <Label htmlFor="courseClassId">Lớp học phần *</Label>
-                <Select value={formData.courseClassId} onValueChange={(val) => setFormData({ ...formData, courseClassId: val })}>
+                <Select value={formData.courseClassId} onValueChange={(val) => setFormData({ ...formData, courseClassId: val || '' })}>
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn lớp học phần" />
                   </SelectTrigger>
@@ -117,7 +117,7 @@ export default function CreateSchedulePage() {
 
               <div>
                 <Label htmlFor="instructorId">Giảng viên *</Label>
-                <Select value={formData.instructorId} onValueChange={(val) => setFormData({ ...formData, instructorId: val })}>
+                <Select value={formData.instructorId} onValueChange={(val) => setFormData({ ...formData, instructorId: val || '' })}>
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn giảng viên" />
                   </SelectTrigger>
@@ -133,7 +133,7 @@ export default function CreateSchedulePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <Label htmlFor="roomId">Phòng học *</Label>
-                <Select value={formData.roomId} onValueChange={(val) => setFormData({ ...formData, roomId: val })}>
+                <Select value={formData.roomId} onValueChange={(val) => setFormData({ ...formData, roomId: val || '' })}>
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn phòng học" />
                   </SelectTrigger>
@@ -147,7 +147,7 @@ export default function CreateSchedulePage() {
 
               <div>
                 <Label htmlFor="timeSlotId">Ca học *</Label>
-                <Select value={formData.timeSlotId} onValueChange={(val) => setFormData({ ...formData, timeSlotId: val })}>
+                <Select value={formData.timeSlotId} onValueChange={(val) => setFormData({ ...formData, timeSlotId: val || '' })}>
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn ca học" />
                   </SelectTrigger>
@@ -163,7 +163,7 @@ export default function CreateSchedulePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div>
                 <Label htmlFor="dayOfWeek">Thứ *</Label>
-                <Select value={formData.dayOfWeek} onValueChange={(val) => setFormData({ ...formData, dayOfWeek: val })}>
+                <Select value={formData.dayOfWeek} onValueChange={(val) => setFormData({ ...formData, dayOfWeek: val || '' })}>
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn thứ" />
                   </SelectTrigger>

@@ -24,13 +24,13 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-slate-50 xl:flex dark:bg-slate-950">
       {/* 1. Sidebar bên tay trái */}
-      <AppSidebar role="branch-management" />
+      <AppSidebar />
 
       {/* 2. Lớp phủ khi mở Sidebar trên điện thoại */}
       <Backdrop />
       {/* 3. Vùng nội dung chính bên tay phải */}
       <div
-        className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}
+        className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin} pt-[80px]`}
       >
         {/* Thanh Header nằm trên cùng */}
         <AppHeader role="branch-management" />

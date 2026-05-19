@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -127,11 +126,20 @@ export default function EditTimeSlotPage() {
 
             <div className="flex items-center justify-between">
               <Label htmlFor="isActive">Trạng thái hoạt động</Label>
-              <Switch
+              <button
+                type="button"
                 id="isActive"
-                checked={formData.isActive}
-                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-              />
+                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                  formData.isActive ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    formData.isActive ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
 
             <div className="flex gap-3 pt-4">

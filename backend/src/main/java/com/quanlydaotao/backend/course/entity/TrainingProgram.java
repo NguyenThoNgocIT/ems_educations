@@ -95,7 +95,4 @@ public class TrainingProgram extends SoftDeleteEntity {
 
     @Column(name = "Status", length = 50)
     private String status;
-
-    @Column(name = "IsActive")
-    private Boolean isActive;
 }

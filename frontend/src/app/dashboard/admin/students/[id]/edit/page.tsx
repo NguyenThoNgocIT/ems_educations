@@ -7,15 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-<<<<<<< HEAD
-import { ArrowLeft, Save } from 'lucide-react';
-import { toast } from 'sonner';
-import { studentApi } from '@/api/student';
-import { courseApi } from '@/api/course';
-
-interface StudentDetail {
-  id: string;
-=======
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, User, Calendar, Phone, Mail, GraduationCap, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -28,69 +19,22 @@ interface StudentFormData {
   gender: string;
   phoneNumber: string;
   contactEmail: string;
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
   studentCode: string;
-  fullName: string;
   trainingProgramId: string;
   note: string;
   isActive: boolean;
-<<<<<<< HEAD
-  createdAt: string;
-  phoneNumber?: string;
-  contactEmail?: string;
-}
-
-interface TrainingProgram {
-  trainingProgramId: string;
-  code: string;
-  name: string;
-=======
 }
 
 interface FormErrors {
   fullName?: string;
   studentCode?: string;
   trainingProgramId?: string;
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
 }
-
-// Hàm tính năm đào tạo
-const getTrainingYear = (createdAt: string): string => {
-  const createdDate = new Date(createdAt);
-  const currentDate = new Date();
-  const yearDiff = currentDate.getFullYear() - createdDate.getFullYear();
-  
-  if (yearDiff >= 5) return 'Đã tốt nghiệp';
-  if (yearDiff >= 4) return 'Sinh viên năm 5';
-  if (yearDiff >= 3) return 'Sinh viên năm 4';
-  if (yearDiff >= 2) return 'Sinh viên năm 3';
-  if (yearDiff >= 1) return 'Sinh viên năm 2';
-  return 'Sinh viên năm 1';
-};
-
-// Hàm tính thời gian còn lại
-const getRemainingTime = (createdAt: string): string => {
-  const createdDate = new Date(createdAt);
-  const expiryDate = new Date(createdDate);
-  expiryDate.setFullYear(expiryDate.getFullYear() + 5);
-  const currentDate = new Date();
-  
-  if (currentDate > expiryDate) return 'Đã hết hạn';
-  
-  const diffTime = expiryDate.getTime() - currentDate.getTime();
-  const diffMonths = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
-  
-  if (diffMonths >= 12) return `${Math.floor(diffMonths / 12)} năm ${diffMonths % 12} tháng`;
-  if (diffMonths >= 1) return `${diffMonths} tháng`;
-  return `${Math.floor(diffTime / (1000 * 60 * 60 * 24))} ngày`;
-};
 
 export default function EditStudentPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
-<<<<<<< HEAD
-=======
   
   const [loading, setLoading] = useState<boolean>(false);
   const [pageLoading, setPageLoading] = useState<boolean>(true);
@@ -107,61 +51,8 @@ export default function EditStudentPage() {
     isActive: true
   });
   const [errors, setErrors] = useState<FormErrors>({});
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
-
-  const [loading, setLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true);
-  const [trainingPrograms, setTrainingPrograms] = useState<TrainingProgram[]>([]);
-  const [formData, setFormData] = useState({
-    note: '',
-    trainingProgramId: '',
-    isActive: true,
-    phoneNumber: '',
-    contactEmail: ''
-  });
-  const [studentInfo, setStudentInfo] = useState<StudentDetail | null>(null);
-
-  // Lấy danh sách chương trình đào tạo từ API
-  useEffect(() => {
-    fetchTrainingPrograms();
-  }, []);
-
-  const fetchTrainingPrograms = async () => {
-    try {
-      const response = await courseApi.getTrainingPrograms();
-      const data = response?.data || response || [];
-      setTrainingPrograms(data);
-    } catch (error) {
-      console.error('Không thể lấy danh sách chương trình đào tạo');
-    }
-  };
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (id) {
-      fetchStudentDetail();
-    }
-  }, [id]);
-
-  const fetchStudentDetail = async () => {
-    try {
-      const response = await studentApi.getById(id);
-      const data = response?.data || response;
-      setStudentInfo(data);
-      setFormData({
-        note: data?.note || '',
-        trainingProgramId: data?.trainingProgramId || '',
-        isActive: data?.isActive ?? true,
-        phoneNumber: data?.phoneNumber || '',
-        contactEmail: data?.contactEmail || ''
-      });
-    } catch (error) {
-      toast.error('Không thể lấy thông tin sinh viên');
-      router.push('/dashboard/admin/students');
-    } finally {
-      setPageLoading(false);
-    }
-=======
     const fetchData = async () => {
       if (!id) return;
       try {
@@ -171,7 +62,18 @@ export default function EditStudentPage() {
         ]);
 
         const student = studentRes?.data || studentRes;
-        setPrograms(programRes.content || []);
+        
+        let programsList = [];
+        if (programRes && Array.isArray(programRes)) {
+          programsList = programRes;
+        } else if (programRes && programRes.data && Array.isArray(programRes.data)) {
+          programsList = programRes.data;
+        } else if (programRes && programRes.content && Array.isArray(programRes.content)) {
+          programsList = programRes.content;
+        } else if (programRes && programRes.data?.content && Array.isArray(programRes.data.content)) {
+          programsList = programRes.data.content;
+        }
+        setPrograms(programsList);
         
         setFormData({
           fullName: student.fullName || '',
@@ -201,33 +103,20 @@ export default function EditStudentPage() {
     if (!formData.trainingProgramId) newErrors.trainingProgramId = 'Vui lòng chọn chương trình đào tạo';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
+    
     setLoading(true);
     try {
-<<<<<<< HEAD
-      await studentApi.update(id, {
-        note: formData.note,
-        trainingProgramId: formData.trainingProgramId,
-        isActive: formData.isActive,
-        phoneNumber: formData.phoneNumber,
-        contactEmail: formData.contactEmail
-      });
-      toast.success('Cập nhật sinh viên thành công');
-      router.push('/dashboard/admin/students');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Cập nhật thất bại');
-=======
       await studentApi.update(id, formData);
       toast.success('Cập nhật sinh viên thành công');
       router.push('/dashboard/admin/students');
     } catch (error: any) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Cập nhật sinh viên thất bại');
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
     } finally {
       setLoading(false);
     }
@@ -240,9 +129,6 @@ export default function EditStudentPage() {
       </div>
     );
   }
-
-  const trainingYear = studentInfo ? getTrainingYear(studentInfo.createdAt) : '';
-  const remainingTime = studentInfo ? getRemainingTime(studentInfo.createdAt) : '';
 
   return (
     <div className="space-y-6">
@@ -258,122 +144,6 @@ export default function EditStudentPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-<<<<<<< HEAD
-          {/* Thông tin sinh viên */}
-          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Mã sinh viên</span>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{studentInfo?.studentCode}</p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Họ và tên</span>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{studentInfo?.fullName}</p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Ngày tạo</span>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  {studentInfo?.createdAt ? new Date(studentInfo.createdAt).toLocaleDateString('vi-VN') : 'Chưa có'}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Năm học</span>
-                <p className="text-sm">
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                    {trainingYear}
-                  </span>
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Thời gian còn lại</span>
-                <p className="text-sm">
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
-                    ⏳ {remainingTime}
-                  </span>
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Trạng thái hiện tại</span>
-                <p className="text-sm">
-                  {studentInfo?.isActive ? (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                      ● Hoạt động
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
-                      ● Ngừng hoạt động
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Chương trình đào tạo - Lấy từ API, không hardcode */}
-            <div>
-              <Label htmlFor="trainingProgramId" className="font-semibold text-gray-700 dark:text-gray-300">
-                Chương trình đào tạo
-              </Label>
-              <select
-                id="trainingProgramId"
-                value={formData.trainingProgramId}
-                onChange={(e) => setFormData({ ...formData, trainingProgramId: e.target.value })}
-                className="mt-1.5 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-              >
-                <option value="">-- Chọn chương trình --</option>
-                {trainingPrograms.map((program) => (
-                  <option key={program.trainingProgramId} value={program.trainingProgramId}>
-                    {program.code} - {program.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Số điện thoại */}
-            <div>
-              <Label htmlFor="phoneNumber" className="font-semibold text-gray-700 dark:text-gray-300">
-                Số điện thoại
-              </Label>
-              <Input
-                id="phoneNumber"
-                type="tel"
-                value={formData.phoneNumber}
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                className="mt-1.5"
-                placeholder="VD: 0987654321"
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <Label htmlFor="contactEmail" className="font-semibold text-gray-700 dark:text-gray-300">
-                Email
-              </Label>
-              <Input
-                id="contactEmail"
-                type="email"
-                value={formData.contactEmail}
-                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                className="mt-1.5"
-                placeholder="example@donga.edu.vn"
-              />
-            </div>
-
-            {/* Ghi chú */}
-            <div>
-              <Label htmlFor="note" className="font-semibold text-gray-700 dark:text-gray-300">
-                Ghi chú
-              </Label>
-              <Textarea
-                id="note"
-                value={formData.note}
-                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                className="mt-1.5"
-                rows={4}
-                placeholder="Nhập ghi chú (nếu có)"
-              />
-=======
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Section 1: Thông tin cá nhân */}
             <div className="space-y-4">
@@ -412,7 +182,7 @@ export default function EditStudentPage() {
                   <Label htmlFor="gender">Giới tính</Label>
                   <Select 
                     value={formData.gender} 
-                    onValueChange={(val) => setFormData({ ...formData, gender: val })}
+                    onValueChange={(val) => setFormData({ ...formData, gender: val || '' })}
                   >
                     <SelectTrigger className="mt-1.5">
                       <SelectValue placeholder="Chọn giới tính" />
@@ -480,15 +250,15 @@ export default function EditStudentPage() {
                   <Label htmlFor="trainingProgramId">Chương trình đào tạo *</Label>
                   <Select 
                     value={formData.trainingProgramId} 
-                    onValueChange={(val) => setFormData({ ...formData, trainingProgramId: val })}
+                    onValueChange={(val) => setFormData({ ...formData, trainingProgramId: val || '' })}
                   >
                     <SelectTrigger className="mt-1.5">
                       <SelectValue placeholder="Chọn chương trình" />
                     </SelectTrigger>
                     <SelectContent>
                       {programs.map(p => (
-                        <SelectItem key={p.programId} value={p.programId}>
-                          {p.programName}
+                        <SelectItem key={p.trainingProgramId || p.programId || p.id} value={p.trainingProgramId || p.programId || p.id}>
+                          {p.code || p.programCode || ''} - {p.name || p.programName || ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -501,7 +271,7 @@ export default function EditStudentPage() {
                 <Label htmlFor="isActive">Trạng thái sinh viên</Label>
                 <Select 
                   value={formData.isActive ? 'active' : 'inactive'} 
-                  onValueChange={(val) => setFormData({ ...formData, isActive: val === 'active' })}
+                  onValueChange={(val) => setFormData({ ...formData, isActive: (val || 'active') === 'active' })}
                 >
                   <SelectTrigger className="mt-1.5">
                     <SelectValue />
@@ -525,36 +295,6 @@ export default function EditStudentPage() {
                   placeholder="Nhập ghi chú (nếu có)"
                   rows={3}
                 />
-              </div>
->>>>>>> eb2033de817f51357d899eb8aec3941270d66d64
-            </div>
-
-            {/* Trạng thái */}
-            <div>
-              <Label className="font-semibold text-gray-700 dark:text-gray-300 mb-2 block">Trạng thái</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={formData.isActive === true}
-                    onChange={() => setFormData({ ...formData, isActive: true })}
-                    className="w-4 h-4 text-green-600 focus:ring-green-500"
-                  />
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                    ● Hoạt động
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={formData.isActive === false}
-                    onChange={() => setFormData({ ...formData, isActive: false })}
-                    className="w-4 h-4 text-red-600 focus:ring-red-500"
-                  />
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
-                    ● Ngừng hoạt động
-                  </span>
-                </label>
               </div>
             </div>
 

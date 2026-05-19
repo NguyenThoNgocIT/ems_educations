@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { adminNavItems } from "@/constants/navigation";
+import { adminNavGroups } from "@/constants/navigation";
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -51,42 +51,55 @@ export default function AppSidebar() {
       </div>
 
       {/* DANH SÁCH MENU - GIỮ NGUYÊN CĂN TRÁI CHUẨN UI KHI MỞ TO */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar overflow-x-hidden">
-        {adminNavItems.map((item) => {
-          const active = pathname === item.path || pathname.startsWith(item.path + "/");
+      <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar overflow-x-hidden">
+        {adminNavGroups.map((group, groupIdx) => (
+          <div key={group.groupName || groupIdx} className="space-y-1">
+            {/* Tên nhóm danh mục */}
+            {isOpen ? (
+              <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 tracking-wider uppercase px-4 py-1 mt-2 select-none">
+                {group.groupName}
+              </p>
+            ) : (
+              groupIdx > 0 && <div className="border-t border-gray-100 dark:border-slate-800/80 my-3 mx-2" />
+            )}
 
-          return (
-            <Link
-              key={item.path}
-              href={item.path}
-              title={!isOpen ? item.name : undefined} // Tooltip khi thu nhỏ sidebar
-              className={`flex items-center py-3 rounded-xl transition-all duration-200 whitespace-nowrap ${
-                isOpen 
-                  ? "justify-between px-4" // Khi mở to: chữ bám trái, mũi tên bám phải
-                  : "justify-center px-0"  // Khi thu nhỏ: icon căn giữa
-              } ${
-                active
-                  ? "bg-emerald-100 text-emerald-700 font-bold shadow-sm dark:bg-emerald-900/60 dark:text-emerald-300"
-                  : "text-gray-800 hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300"
-              }`}
-            >
-              <div className="flex items-center gap-3.5">
-                <span className={`transition-colors ${active ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
-                  {item.icon}
-                </span>
-                {/* Ẩn / Hiện tên text của danh mục menu */}
-                <span className={`text-[13px] font-medium tracking-wide transition-opacity duration-200 ${isOpen ? "opacity-100" : "opacity-0 md:w-0 overflow-hidden"}`}>
-                  {item.name}
-                </span>
-              </div>
-              
-              {/* Mũi tên góc phải */}
-              {isOpen && (
-                <ChevronRight className={`h-3.5 w-3.5 transition-transform ${active ? "text-emerald-500 translate-x-0.5 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500"}`} />
-              )}
-            </Link>
-          );
-        })}
+            {group.items.map((item) => {
+              const active = pathname === item.path || pathname.startsWith(item.path + "/");
+
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  title={!isOpen ? item.name : undefined} // Tooltip khi thu nhỏ sidebar
+                  className={`flex items-center py-3 rounded-xl transition-all duration-200 whitespace-nowrap ${
+                    isOpen 
+                      ? "justify-between px-4" // Khi mở to: chữ bám trái, mũi tên bám phải
+                      : "justify-center px-0"  // Khi thu nhỏ: icon căn giữa
+                  } ${
+                    active
+                      ? "bg-emerald-100 text-emerald-700 font-bold shadow-sm dark:bg-emerald-900/60 dark:text-emerald-300"
+                      : "text-gray-800 hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <span className={`transition-colors ${active ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
+                      {item.icon}
+                    </span>
+                    {/* Ẩn / Hiện tên text của danh mục menu */}
+                    <span className={`text-[13px] font-medium tracking-wide transition-opacity duration-200 ${isOpen ? "opacity-100" : "opacity-0 md:w-0 overflow-hidden"}`}>
+                      {item.name}
+                    </span>
+                  </div>
+                  
+                  {/* Mũi tên góc phải */}
+                  {isOpen && (
+                    <ChevronRight className={`h-3.5 w-3.5 transition-transform ${active ? "text-emerald-500 translate-x-0.5 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500"}`} />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       {/* FOOTER */}

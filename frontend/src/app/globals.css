@@ -38,6 +38,10 @@
   --color-white: #ffffff;
   --color-black: #101828;
 
+  /* Cấu hình màu chủ đạo hệ thống (Primary) */
+  --color-primary: #059669;
+  --color-primary-foreground: #ffffff;
+
   /* Màu Brand - Xanh lá cây */
   --color-brand-25: #f6fef9;
   --color-brand-50: #ecfdf5;
