@@ -132,7 +132,7 @@ export default function RoomsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={filterBuilding} onValueChange={setFilterBuilding}>
+            <Select value={filterBuilding} onValueChange={(val) => setFilterBuilding(val || 'all')}>
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Chọn tòa nhà" />
               </SelectTrigger>
@@ -206,7 +206,7 @@ export default function RoomsPage() {
           <div className="flex items-center justify-between mt-4">
             <div className="flex items-center gap-2">
               <span className="text-sm">Hiển thị</span>
-              <Select value={String(rowsPerPage)} onValueChange={(val) => setRowsPerPage(Number(val))}>
+              <Select value={String(rowsPerPage)} onValueChange={(val) => setRowsPerPage(Number(val || 10))}>
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>

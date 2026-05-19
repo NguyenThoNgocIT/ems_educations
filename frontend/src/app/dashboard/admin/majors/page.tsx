@@ -76,7 +76,7 @@ export default function MajorsPage() {
   const fetchMajors = async () => {
     setLoading(true);
     try {
-      const response = await request.get('/api/majors');
+      const response: any = await request.get('/api/majors');
       let data = [];
       if (response?.data?.content) {
         data = response.data.content;

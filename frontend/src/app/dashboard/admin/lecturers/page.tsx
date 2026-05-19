@@ -37,8 +37,9 @@ export default function LecturersPage() {
   useEffect(() => {
     async function fetchLecturers() {
       try {
-        const response = await lecturerApi.getAll();
-        setLecturers(response || []);
+        const response: any = await lecturerApi.getAll();
+        const listData = Array.isArray(response) ? response : (response?.data || []);
+        setLecturers(listData);
       } catch (error) {
         console.error(error);
         toast.error('Không thể lấy danh sách giảng viên');
@@ -112,7 +113,7 @@ export default function LecturersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value)}>
+            <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value || 'all')}>
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>

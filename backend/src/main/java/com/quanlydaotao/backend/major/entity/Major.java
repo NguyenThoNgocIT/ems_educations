@@ -32,9 +32,6 @@ public class Major extends SoftDeleteEntity {
     @Column(name = "Description", columnDefinition = "nvarchar(max)")
     private String description;
 
-    @Column(name = "IsActive")
-    private Boolean isActive;
-
     @Column(name = "EffectiveDate")
     private LocalDate effectiveDate;
 

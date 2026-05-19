@@ -17,9 +17,9 @@ export default function AdminDashboard() {
 
   const userName = 
     user?.fullName || 
-    user?.name || 
-    user?.displayName || 
-    user?.username || 
+    (user as any)?.name || 
+    (user as any)?.displayName || 
+    (user as any)?.username || 
     user?.email || 
     'Tài khoản Admin';
 

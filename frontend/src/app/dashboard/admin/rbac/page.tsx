@@ -5,6 +5,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -160,11 +161,11 @@ export default function RBACPage() {
         <Table className="text-left w-full border-collapse">
           <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
             <TableRow>
-              <TableCell isHeader className="p-4 text-slate-600 dark:text-slate-300 font-semibold">Vai trò</TableCell>
-              <TableCell isHeader className="p-4 text-slate-600 dark:text-slate-300 font-semibold">Mô tả</TableCell>
-              <TableCell isHeader className="p-4 text-slate-600 dark:text-slate-300 font-semibold text-center">Người dùng</TableCell>
-              <TableCell isHeader className="p-4 text-slate-600 dark:text-slate-300 font-semibold">Quyền hạn</TableCell>
-              <TableCell isHeader className="p-4 text-slate-600 dark:text-slate-300 font-semibold text-right">Thao tác</TableCell>
+              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold">Vai trò</TableHead>
+              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold">Mô tả</TableHead>
+              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold text-center">Người dùng</TableHead>
+              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold">Quyền hạn</TableHead>
+              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

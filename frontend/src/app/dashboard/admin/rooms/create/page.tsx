@@ -149,7 +149,7 @@ export default function CreateRoomPage() {
 
             <div>
               <Label>Tòa nhà *</Label>
-              <Select value={formData.buildingId} onValueChange={(val) => setFormData({ ...formData, buildingId: val })}>
+              <Select value={formData.buildingId} onValueChange={(val) => setFormData({ ...formData, buildingId: val || '' })}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Chọn tòa nhà" />
                 </SelectTrigger>
@@ -193,7 +193,7 @@ export default function CreateRoomPage() {
           <CardContent className="space-y-4">
             <div>
               <Label>Loại phòng</Label>
-              <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })}>
+              <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val || '' })}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
@@ -207,7 +207,7 @@ export default function CreateRoomPage() {
 
             <div>
               <Label>Trạng thái</Label>
-              <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val })}>
+              <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val || '' })}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>

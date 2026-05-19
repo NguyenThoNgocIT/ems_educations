@@ -137,7 +137,7 @@ export default function CreateAttendancePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <Label htmlFor="classId">Lớp học phần *</Label>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <Select value={selectedClass} onValueChange={(val) => setSelectedClass(val || '')}>
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Chọn lớp học phần" />
                   </SelectTrigger>

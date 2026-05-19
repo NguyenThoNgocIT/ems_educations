@@ -38,8 +38,9 @@ export default function TimeSlotPage() {
   useEffect(() => {
     async function fetchTimeSlots() {
       try {
-        const response = await timeSlotApi.getAll();
-        setTimeSlots(response || []);
+        const response: any = await timeSlotApi.getAll();
+        const listData = Array.isArray(response) ? response : (response?.data || []);
+        setTimeSlots(listData);
       } catch (error) {
         console.error(error);
         toast.error('Không thể lấy danh sách ca học');
