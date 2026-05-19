@@ -3,11 +3,11 @@ import { MoreVertical } from 'lucide-react';
 import type { HttpMethod } from '@/types/rbac';
 
 export const METHOD_COLORS: Record<HttpMethod, string> = {
-  GET: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  POST: 'bg-blue-100 text-blue-700 border-blue-200',
-  PUT: 'bg-amber-100 text-amber-700 border-amber-200',
-  PATCH: 'bg-purple-100 text-purple-700 border-purple-200',
-  DELETE: 'bg-red-100 text-red-700 border-red-200',
+  GET: 'bg-emerald-100 text-emerald-600 border-emerald-200',
+  POST: 'bg-blue-100 text-blue-600 border-blue-200',
+  PUT: 'bg-amber-100 text-amber-600 border-amber-200',
+  PATCH: 'bg-purple-100 text-purple-600 border-purple-200',
+  DELETE: 'bg-red-100 text-red-600 border-red-200',
 };
 
 export const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
@@ -30,6 +30,51 @@ export function SkeletonRow({ cols }: { cols: number }) {
       ))}
     </tr>
   );
+}
+
+export function UserTableSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, i) => (
+        <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
+          <td className="py-3 px-4"><div className="w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" /></td>
+          <td className="py-3 px-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
+            <div className="w-32 h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+          </td>
+          <td className="py-3 px-4"><div className="w-40 h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" /></td>
+          <td className="py-3 px-4"><div className="w-16 h-5 bg-gray-100 dark:bg-gray-800 rounded-full animate-pulse" /></td>
+          <td className="py-3 px-4"><div className="w-16 h-5 bg-gray-100 dark:bg-gray-800 rounded-full animate-pulse" /></td>
+          <td className="py-3 px-4"><div className="w-16 h-5 bg-gray-100 dark:bg-gray-800 rounded-full animate-pulse" /></td>
+          <td className="py-3 px-4 text-right"><div className="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse inline-block" /></td>
+        </tr>
+      ))}
+    </>
+  );
+}
+
+export function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
+
+export function parseUserList(response: any): any[] {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (response.data) {
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data.content && Array.isArray(response.data.content)) return response.data.content;
+  }
+  if (response.content && Array.isArray(response.content)) return response.content;
+  return [];
 }
 
 export function EmptyState({ icon, title, description, action }: {

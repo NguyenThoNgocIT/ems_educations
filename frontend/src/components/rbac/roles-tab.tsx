@@ -11,6 +11,7 @@ import {
   Check,
   AlertTriangle,
   UploadCloud,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
@@ -21,7 +22,7 @@ import { SkeletonRow, EmptyState, ActionMenu, ActionMenuItem } from './shared';
 
 type RoleModalMode = 'create' | 'edit' | 'permissions' | 'delete';
 
-export function RolesTab() {
+export function RolesTab({ onNavigateToUsers }: { onNavigateToUsers?: (roleCode: string) => void }) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -261,9 +262,13 @@ export function RolesTab() {
                       <span className="block truncate">{role.description || '—'}</span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
+                      <button
+                        onClick={() => onNavigateToUsers?.(role.code)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-emerald-50 hover:text-emerald-700 transition"
+                      >
+                        <Users size={11} />
                         {role.userCount ?? 0} user
-                      </span>
+                      </button>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
