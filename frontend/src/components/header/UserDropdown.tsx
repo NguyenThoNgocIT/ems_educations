@@ -21,7 +21,7 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
     admin: "Admin",
     "branch-management": "Quản lý chi nhánh",
     consultant: "Tư vấn viên",
-    teacher: "Giáo Viên",
+    lecturer: "Giáo Viên",
     student: "Học viên",
     parents: "Phụ huynh",
   };
