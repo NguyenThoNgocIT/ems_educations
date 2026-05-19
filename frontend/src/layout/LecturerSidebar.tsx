@@ -5,9 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { adminNavGroups } from "@/constants/navigation";
+import { LecturerNavGroups } from "@/constants/Lecturer_navigation";
 
-export default function AppSidebar() {
+export default function LecturerSidebar() {
   const pathname = usePathname();
   const { isExpanded, isHovered, isMobileOpen } = useSidebar(); 
   const isOpen = isExpanded || isHovered;
@@ -18,10 +18,11 @@ export default function AppSidebar() {
         ${isOpen ? "w-[290px]" : "w-[78px]"} 
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
     >
-      {/* LOGO BOX */}
+      {/* 💥 LOGO ĐỒNG BỘ CHIỀU CAO h-[80px] VÀ KÍCH THƯỚC CHUẨN ĐỂ HIỂN THỊ */}
       <div className="h-[80px] border-b border-gray-100 flex items-center justify-center px-4 overflow-hidden dark:border-slate-800 flex-shrink-0">
-        <Link href="/dashboard/admin" className="relative flex items-center justify-center w-full h-full">
+        <Link href="/dashboard/lecturer" className="relative flex items-center justify-center w-full h-full">
           {isOpen ? (
+            /* Khi Sidebar MỞ TO -> Khung chứa 310x88 chuẩn khít logo lớn */
             <div className="relative w-[310px] h-[88px] transition-all duration-300 flex items-center justify-center">
               <Image
                 src="/images/logo/logo-sidebar-admin-big.png"
@@ -33,6 +34,7 @@ export default function AppSidebar() {
               />
             </div>
           ) : (
+            /* Khi Sidebar THU NHỎ -> Giữ nguyên icon 36x36 nằm giữa */
             <div className="relative w-9 h-9 transition-all duration-300">
               <Image
                 src="/images/logo/logo-sidebar-admin-small.png"
@@ -47,10 +49,11 @@ export default function AppSidebar() {
         </Link>
       </div>
 
-      {/* DANH SÁCH MENU */}
+      {/* DANH SÁCH MENU GIẢNG VIÊN */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar overflow-x-hidden">
-        {adminNavGroups.map((group, groupIdx) => (
+        {LecturerNavGroups && LecturerNavGroups.map((group, groupIdx) => (
           <div key={group.groupName || groupIdx} className="space-y-1">
+            {/* Tên nhóm danh mục */}
             {isOpen ? (
               <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 tracking-wider uppercase px-4 py-1 mt-2 select-none truncate">
                 {group.groupName}
@@ -59,7 +62,7 @@ export default function AppSidebar() {
               groupIdx > 0 && <div className="border-t border-gray-100 dark:border-slate-800/80 my-3 mx-2" />
             )}
 
-            {group.items.map((item) => {
+            {group.items && group.items.map((item) => {
               const active = pathname === item.path || pathname.startsWith(item.path + "/");
 
               return (
@@ -68,7 +71,9 @@ export default function AppSidebar() {
                   href={item.path}
                   title={!isOpen ? item.name : undefined}
                   className={`flex items-center py-3 rounded-xl transition-all duration-200 whitespace-nowrap overflow-hidden ${
-                    isOpen ? "justify-between px-4" : "justify-center px-0"
+                    isOpen 
+                      ? "justify-between px-4" 
+                      : "justify-center px-0"  
                   } ${
                     active
                       ? "bg-emerald-100 text-emerald-700 font-bold shadow-sm dark:bg-emerald-900/60 dark:text-emerald-300"
@@ -79,6 +84,7 @@ export default function AppSidebar() {
                     <span className={`flex-shrink-0 transition-colors ${active ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-slate-400"}`}>
                       {item.icon}
                     </span>
+                    {/* Ẩn / Hiện chữ mượt mà không lấn chiếm không gian */}
                     <span className={`text-[13px] font-medium tracking-wide transition-all duration-200 truncate ${
                       isOpen ? "opacity-100 w-auto static" : "opacity-0 w-0 absolute pointer-events-none"
                     }`}>
@@ -96,7 +102,7 @@ export default function AppSidebar() {
         ))}
       </div>
 
-      {/* FOOTER */}
+      {/* FOOTER ĐỒNG BỘ */}
       <div className="p-4 border-t border-gray-100 bg-gray-50/50 overflow-hidden dark:border-slate-800 dark:bg-slate-900/50 flex flex-col items-center justify-center flex-shrink-0">
         <div className="text-center flex flex-col items-center justify-center w-full truncate">
           <p className="text-[12px] font-bold text-gray-800 dark:text-slate-200 tracking-wider">
