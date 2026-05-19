@@ -134,8 +134,8 @@ export function UsersTab() {
                     />
                   </td></tr>
                 )
-                : users.map(user => (
-                  <tr key={user.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors">
+                : users.map((user, userIndex) => (
+                  <tr key={user.id ?? user.email ?? user.username ?? userIndex} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center flex-shrink-0">
@@ -153,8 +153,8 @@ export function UsersTab() {
                     <td className="py-3 px-4">
                       <div className="flex flex-wrap gap-1.5">
                         {user.roles?.length > 0
-                          ? user.roles.map(role => {
-                            const rId = role.id || role.roleId;
+                          ? user.roles.map((role, roleIndex) => {
+                            const rId = role.id || role.roleId || role.code || role.name || `role-${roleIndex}`;
                             return (
                             <span
                               key={rId}
@@ -203,9 +203,8 @@ export function UsersTab() {
           </div>
 
           <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-            {allRoles.map(role => {
-              const rId = role.id || role.roleId;
-              if (!rId) return null;
+            {allRoles.map((role, roleIndex) => {
+              const rId = role.id || role.roleId || role.code || `role-${roleIndex}`;
               return (
               <label
                 key={rId}

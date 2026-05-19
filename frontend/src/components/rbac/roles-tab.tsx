@@ -82,7 +82,14 @@ export function RolesTab() {
   const closeModal = () => setModal(null);
 
   const handleSaveRole = async () => {
-    if (!form.name.trim()) { toast.error('Tên vai trò không được để trống'); return; }
+    if (!form.code?.trim()) {
+      toast.error('Mã vai trò không được để trống');
+      return;
+    }
+    if (!form.name.trim()) {
+      toast.error('Tên vai trò không được để trống');
+      return;
+    }
     setSaving(true);
     try {
       if (modal?.mode === 'create') {
@@ -95,8 +102,8 @@ export function RolesTab() {
       }
       closeModal();
       await fetchData();
-    } catch {
-      toast.error('Thao tác thất bại');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message || 'Thao tác thất bại');
     } finally {
       setSaving(false);
     }
@@ -296,8 +303,28 @@ export function RolesTab() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Mã vai trò <span className="text-red-500">*</span>
+              </label>
+              <input
+                value={form.code || ''}
+                onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
+                placeholder="VD: ADMIN"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Tên vai trò <span className="text-red-500">*</span>
               </label>
+              <input
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="VD: Quản trị viên"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Chọn nhanh vai trò mẫu</label>
               <select
                 value={form.code || ''}
                 onChange={e => {
@@ -308,7 +335,7 @@ export function RolesTab() {
                 }}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
               >
-                <option value="" disabled>-- Chọn vai trò --</option>
+                <option value="">-- Chọn vai trò mẫu --</option>
                 <option value="ADMIN">Quản trị viên (ADMIN)</option>
                 <option value="STUDENT">Sinh viên/Học viên (STUDENT)</option>
                 <option value="TEACHER">Giáo viên (TEACHER)</option>

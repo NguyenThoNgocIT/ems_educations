@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { ExcelImportModal } from './excel-import-modal';
 import { permissionApi } from '@/api/rbac';
+import { useAuth } from '@/context/AuthContext';
 import type { Permission, RbacApi, CreatePermissionDto, CreateRbacApiDto, HttpMethod } from '@/types/rbac';
 import { SkeletonRow, EmptyState, ActionMenu, ActionMenuItem, MethodBadge, METHODS } from './shared';
 
@@ -40,6 +41,7 @@ const PREDEFINED_PERMISSIONS = [
 ];
 
 export function PermissionsTab() {
+  const { user } = useAuth();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -65,8 +67,11 @@ export function PermissionsTab() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const templateOptions = PREDEFINED_PERMISSIONS.filter(p => p.code !== 'CUSTOM' || user?.role === 'admin');
+
   const openCreate = () => {
-    setForm({ code: PREDEFINED_PERMISSIONS[0].code, name: PREDEFINED_PERMISSIONS[0].name, description: '', module: PREDEFINED_PERMISSIONS[0].module });
+    const defaultTemplate = templateOptions[0] ?? PREDEFINED_PERMISSIONS[0];
+    setForm({ code: defaultTemplate.code, name: defaultTemplate.name, description: '', module: defaultTemplate.module });
     setIsCustom(false);
     setModal({ mode: 'create' });
   };
@@ -321,8 +326,10 @@ export function PermissionsTab() {
                   }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
                 >
-                  {PREDEFINED_PERMISSIONS.map(p => (
-                    <option key={p.code} value={p.code}>{p.module} - {p.name}</option>
+                  {templateOptions.map(p => (
+                    <option key={p.code} value={p.code}>
+                      {p.module} - {p.name}
+                    </option>
                   ))}
                 </select>
               </div>

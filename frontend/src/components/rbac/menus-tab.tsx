@@ -63,14 +63,23 @@ export function MenusTab() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const buildTree = (items: MenuItemType[], parentId: string | null = null): MenuItemType[] => {
+  const buildTree = (items: MenuItemType[], parentId: string | null = null, visited = new Set<string>()): MenuItemType[] => {
     return items
       .filter(item => (item.parentId ?? null) === parentId)
       .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-      .map(item => ({ ...item, children: buildTree(items, item.id) }));
+      .map(item => {
+        if (visited.has(item.id)) {
+          return { ...item, children: [] };
+        }
+
+        const nextVisited = new Set(visited);
+        nextVisited.add(item.id);
+
+        return { ...item, children: buildTree(items, item.id, nextVisited) };
+      });
   };
 
-  const tree = buildTree(menus);
+  const tree = buildTree(menus, null, new Set());
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -360,7 +369,11 @@ export function MenusTab() {
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
                 >
                   <option value="">— Công khai —</option>
-                  {allPermissions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  {allPermissions.map((p, permIndex) => (
+                    <option key={p.id ?? p.permissionId ?? p.code ?? `perm-${permIndex}`} value={p.id ?? p.permissionId ?? ''}>
+                      {p.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
