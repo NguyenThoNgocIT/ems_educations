@@ -335,9 +335,9 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
       </div>
 
       {/* Modal User Detail (XL) */}
-      <Modal isOpen={!!modalUser} onClose={closeModal} className="max-w-7xl w-full mx-4 h-[90vh] flex flex-col">
+      <Modal isOpen={!!modalUser} onClose={closeModal} className="max-w-7xl w-full mx-4">
         {modalUser && (
-          <div className="flex flex-col h-full bg-gray-50/30 dark:bg-gray-900/20">
+          <div className="flex flex-col h-[85vh] bg-gray-50/30 dark:bg-gray-900/20 rounded-3xl overflow-hidden">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col gap-4 flex-shrink-0">
               <div className="flex items-start justify-between">
