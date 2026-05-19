@@ -1,316 +1,84 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Modal } from "@/components/ui/modal";
-import Button from "@/components/ui/button/Button";
-import Badge from "@/components/ui/badge/Badge";
-import {
-  ShieldCheck,
-  UserPlus,
-  Settings,
-  Trash2,
-  Lock,
-  Search,
-  Plus,
-} from "lucide-react";
+import React, { useState } from 'react';
+import { ShieldCheck, Key, Menu, Users, RefreshCw } from 'lucide-react';
+import { RolesTab } from '@/components/rbac/roles-tab';
+import { PermissionsTab } from '@/components/rbac/permissions-tab';
+import { MenusTab } from '@/components/rbac/menus-tab';
+import { UsersTab } from '@/components/rbac/users-tab';
 
-// Mock data for roles and permissions
-const MOCK_ROLES = [
-  {
-    id: "1",
-    name: "ADMIN",
-    description: "Toàn quyền hệ thống",
-    userCount: 3,
-    permissions: ["READ_ALL", "WRITE_ALL", "DELETE_ALL", "MANAGE_USERS"],
-  },
-  {
-    id: "2",
-    name: "BRANCH_MANAGER",
-    description: "Quản lý tại chi nhánh",
-    userCount: 5,
-    permissions: ["READ_BRANCH", "WRITE_BRANCH", "MANAGE_STUDENTS"],
-  },
-  {
-    id: "3",
-    name: "TEACHER",
-    description: "Giảng viên - xem lịch và nhập điểm",
-    userCount: 12,
-    permissions: ["READ_SCHEDULE", "WRITE_GRADES"],
-  },
-  {
-    id: "4",
-    name: "STUDENT",
-    description: "Sinh viên - xem thông tin đào tạo",
-    userCount: 150,
-    permissions: ["READ_OWN_INFO", "REGISTER_COURSE"],
-  },
-];
+type TabId = 'roles' | 'permissions' | 'menus' | 'users';
 
-const ALL_PERMISSIONS = [
-  "READ_ALL",
-  "WRITE_ALL",
-  "DELETE_ALL",
-  "MANAGE_USERS",
-  "READ_BRANCH",
-  "WRITE_BRANCH",
-  "MANAGE_STUDENTS",
-  "READ_SCHEDULE",
-  "WRITE_GRADES",
-  "READ_OWN_INFO",
-  "REGISTER_COURSE",
+interface TabConfig {
+  id: TabId;
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+}
+
+const TABS: TabConfig[] = [
+  { id: 'roles',       label: 'Vai trò',         icon: <ShieldCheck size={16} />, description: 'Quản lý các vai trò trong hệ thống' },
+  { id: 'permissions', label: 'Quyền hạn',        icon: <Key size={16} />,         description: 'Quản lý quyền truy cập và API endpoints' },
+  { id: 'menus',       label: 'Menu',             icon: <Menu size={16} />,        description: 'Cấu hình menu điều hướng theo quyền' },
+  { id: 'users',       label: 'Gán quyền User',   icon: <Users size={16} />,       description: 'Gán vai trò cho người dùng' },
 ];
 
 export default function RBACPage() {
-  const [roles, setRoles] = useState(MOCK_ROLES);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<any>(null);
-  const [roleToDelete, setRoleToDelete] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('roles');
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Form states
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    permissions: [] as string[],
-  });
-
-  const handleOpenModal = (role: any = null) => {
-    if (role) {
-      setEditingRole(role);
-      setFormData({
-        name: role.name,
-        description: role.description,
-        permissions: role.permissions,
-      });
-    } else {
-      setEditingRole(null);
-      setFormData({
-        name: "",
-        description: "",
-        permissions: [],
-      });
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleTogglePermission = (perm: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      permissions: prev.permissions.includes(perm)
-        ? prev.permissions.filter((p) => p !== perm)
-        : [...prev.permissions, perm],
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingRole) {
-      setRoles(
-        roles.map((r) =>
-          r.id === editingRole.id ? { ...r, ...formData } : r
-        )
-      );
-    } else {
-      setRoles([
-        ...roles,
-        {
-          id: Math.random().toString(36).substr(2, 9),
-          ...formData,
-          userCount: 0,
-        },
-      ]);
-    }
-    setIsModalOpen(false);
-  };
-
-  const handleDeleteRole = () => {
-    setRoles(roles.filter((r) => r.id !== roleToDelete.id));
-    setIsDeleteModalOpen(false);
-  };
+  const activeConfig = TABS.find(t => t.id === activeTab)!;
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1240px] mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div className="space-y-5 max-w-[1240px] mx-auto">
+      {/* Page header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <ShieldCheck className="text-indigo-600" />
-            Phân quyền hệ thống (RBAC)
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Quản lý vai trò và các quyền truy cập tương ứng
+          <div className="flex items-center gap-2.5 mb-1">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+              <ShieldCheck size={20} className="text-emerald-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quản trị Phân quyền (RBAC)</h1>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 ml-11.5">
+            {activeConfig.description}
           </p>
         </div>
-        <Button
-          onClick={() => handleOpenModal()}
-          startIcon={<UserPlus size={18} />}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white"
+        <button
+          onClick={() => setRefreshKey(k => k + 1)}
+          className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          title="Làm mới dữ liệu"
         >
-          Tạo vai trò mới
-        </Button>
+          <RefreshCw size={14} />
+          Làm mới
+        </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <Table className="text-left w-full border-collapse">
-          <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
-            <TableRow>
-              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold">Vai trò</TableHead>
-              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold">Mô tả</TableHead>
-              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold text-center">Người dùng</TableHead>
-              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold">Quyền hạn</TableHead>
-              <TableHead className="p-4 text-slate-600 dark:text-slate-300 font-semibold text-right">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {roles.map((role) => (
-              <TableRow key={role.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                <TableCell className="p-4">
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{role.name}</span>
-                </TableCell>
-                <TableCell className="p-4 text-slate-600 dark:text-slate-400 text-sm">
-                  {role.description}
-                </TableCell>
-                <TableCell className="p-4 text-center">
-                  <Badge color="info" variant="light" size="sm">
-                    {role.userCount} thành viên
-                  </Badge>
-                </TableCell>
-                <TableCell className="p-4 overflow-hidden">
-                  <div className="flex flex-wrap gap-1 max-w-xs">
-                    {role.permissions.map((perm) => (
-                      <Badge key={perm} color="primary" variant="light" size="sm">
-                        {perm}
-                      </Badge>
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell className="p-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => handleOpenModal(role)}
-                      className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
-                      title="Chỉnh sửa"
-                    >
-                      <Settings size={18} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setRoleToDelete(role);
-                        setIsDeleteModalOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-error-600 transition-colors"
-                      title="Xóa"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      {/* Tabs */}
+      <div className="flex gap-1.5 p-1.5 bg-gray-100 dark:bg-gray-800/60 rounded-2xl w-fit flex-wrap">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-white dark:bg-gray-900 text-emerald-700 dark:text-emerald-400 shadow-sm border border-emerald-100 dark:border-emerald-900/50'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-700/50'
+            }`}
+          >
+            <span className={activeTab === tab.id ? 'text-emerald-600' : ''}>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Modal create/edit */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        className="max-w-xl"
-      >
-        <div className="p-6">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2 dark:text-white">
-            <Lock className="text-indigo-600" />
-            {editingRole ? "Chỉnh sửa vai trò" : "Thêm vai trò mới"}
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Tên vai trò
-              </label>
-              <input
-                type="text"
-                required
-                className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                placeholder="Ví dụ: ADMIN, TEACHER..."
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value.toUpperCase() })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Mô tả
-              </label>
-              <textarea
-                className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 min-h-[80px]"
-                placeholder="Mô tả quyền hạn của vai trò này"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Danh sách quyền hạn
-              </label>
-              <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto p-3 border border-slate-100 dark:border-slate-800 rounded-lg">
-                {ALL_PERMISSIONS.map((perm) => (
-                  <label key={perm} className="flex items-center gap-2 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                      checked={formData.permissions.includes(perm)}
-                      onChange={() => handleTogglePermission(perm)}
-                    />
-                    <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 transition-colors">
-                      {perm}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                Hủy
-              </Button>
-              <Button type="submit" className="bg-indigo-600 text-white">
-                {editingRole ? "Cập nhật" : "Tạo mới"}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </Modal>
-
-      {/* Delete confirmation modal */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        className="max-w-md"
-      >
-        <div className="p-6 text-center">
-          <div className="w-16 h-16 bg-error-50 dark:bg-error-900/20 text-error-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 size={32} />
-          </div>
-          <h2 className="text-xl font-bold mb-2 dark:text-white">Xác nhận xóa?</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-            Bạn có chắc chắn muốn xóa vai trò <span className="font-bold text-slate-800 dark:text-white">{roleToDelete?.name}</span>? 
-            Hành động này không thể hoàn tác và có thể ảnh hưởng đến người dùng thuộc vai trò này.
-          </p>
-          <div className="flex justify-center gap-3">
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
-              Hủy
-            </Button>
-            <Button className="bg-error-600 hover:bg-error-700 text-white" onClick={handleDeleteRole}>
-              Xác nhận xóa
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Tab content */}
+      <div key={`${activeTab}-${refreshKey}`}>
+        {activeTab === 'roles'       && <RolesTab />}
+        {activeTab === 'permissions' && <PermissionsTab />}
+        {activeTab === 'menus'       && <MenusTab />}
+        {activeTab === 'users'       && <UsersTab />}
+      </div>
     </div>
   );
 }
