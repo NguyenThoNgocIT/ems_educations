@@ -16,6 +16,7 @@ import com.quanlydaotao.backend.student.dto.StudentAdminUpdateRequest;
 import com.quanlydaotao.backend.student.dto.StudentSelfResponse;
 import com.quanlydaotao.backend.student.dto.StudentSelfUpdateRequest;
 import com.quanlydaotao.backend.student.entity.Student;
+import com.quanlydaotao.backend.student.mapper.StudentMapper;
 import com.quanlydaotao.backend.student.repository.StudentRepository;
 import com.quanlydaotao.backend.student.service.StudentService;
 import com.quanlydaotao.backend.user.entity.User;
@@ -41,6 +42,7 @@ public class StudentServiceImpl implements StudentService {
     private final AccountServiceImpl accountService;
     private final MajorRepository majorRepository;
     private final AcademicCohortRepository academicCohortRepository;
+    private final StudentMapper studentMapper;
 
     @Override
     @Transactional
@@ -51,15 +53,13 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(readOnly = true)
     public List<StudentAdminResponse> getAllStudentsForAdmin() {
-        return studentRepository.findAll().stream()
-                .map(this::toAdminResponse)
-                .toList();
+        return studentMapper.toDtoList(studentRepository.findAll());
     }
 
     @Override
     @Transactional(readOnly = true)
     public StudentAdminResponse getStudentForAdmin(UUID id) {
-        return toAdminResponse(findStudent(id));
+        return studentMapper.toDto(findStudent(id));
     }
 
     @Override
@@ -106,7 +106,7 @@ public class StudentServiceImpl implements StudentService {
 
         updatePersonForAdmin(person, request);
         personRepository.save(person);
-        return toAdminResponse(studentRepository.save(student));
+        return studentMapper.toDto(studentRepository.save(student));
     }
 
     @Override
@@ -126,7 +126,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(readOnly = true)
     public StudentSelfResponse getCurrentStudent(String username) {
-        return toSelfResponse(findCurrentStudent(username));
+        return studentMapper.toSelfDto(findCurrentStudent(username));
     }
 
     @Override
@@ -136,7 +136,7 @@ public class StudentServiceImpl implements StudentService {
         Person person = student.getPerson();
         updatePersonForSelf(person, request);
         personRepository.save(person);
-        return toSelfResponse(student);
+        return studentMapper.toSelfDto(student);
     }
 
     private Student findStudent(UUID id) {
@@ -192,73 +192,6 @@ public class StudentServiceImpl implements StudentService {
         if (request.getPermanentAddress() != null) person.setPermanentAddress(request.getPermanentAddress());
         if (request.getTemporaryAddress() != null) person.setTemporaryAddress(request.getTemporaryAddress());
         if (request.getAvatarUrl() != null) person.setAvatarUrl(request.getAvatarUrl());
-    }
-
-    private StudentAdminResponse toAdminResponse(Student student) {
-        Person person = student.getPerson();
-        StudentAdminResponse response = new StudentAdminResponse();
-        response.setStudentId(student.getStudentId());
-        response.setPersonId(person.getPersonId());
-        response.setStudentCode(student.getStudentCode());
-        response.setMajorId(student.getMajorId());
-        response.setTrainingProgramId(student.getTrainingProgramId());
-        response.setAcademicCohortId(student.getAcademicCohortId());
-        response.setClassId(student.getClassId());
-        response.setAdmissionDate(student.getAdmissionDate());
-        response.setNote(student.getNote());
-        response.setIsActive(student.getIsActive());
-        response.setCreatedAt(student.getCreatedAt());
-        response.setUpdatedAt(student.getUpdatedAt());
-        fillPerson(response, person);
-        return response;
-    }
-
-    private StudentSelfResponse toSelfResponse(Student student) {
-        Person person = student.getPerson();
-        StudentSelfResponse response = new StudentSelfResponse();
-        response.setStudentId(student.getStudentId());
-        response.setStudentCode(student.getStudentCode());
-        response.setMajorId(student.getMajorId());
-        response.setTrainingProgramId(student.getTrainingProgramId());
-        response.setAcademicCohortId(student.getAcademicCohortId());
-        response.setClassId(student.getClassId());
-        response.setAdmissionDate(student.getAdmissionDate());
-        response.setNote(student.getNote());
-        response.setPersonId(person.getPersonId());
-        response.setFullName(person.getFullName());
-        response.setFullNameNoAccent(person.getFullNameNoAccent());
-        response.setGender(person.getGender());
-        response.setDateOfBirth(person.getDateOfBirth());
-        response.setPlaceOfBirth(person.getPlaceOfBirth());
-        response.setEthnicity(person.getEthnicity());
-        response.setPersonalIdentificationNumber(person.getPersonalIdentificationNumber());
-        response.setDateOfIssue(person.getDateOfIssue());
-        response.setCardPlace(person.getCardPlace());
-        response.setNationality(person.getNationality());
-        response.setContactEmail(person.getContactEmail());
-        response.setPhoneNumber(person.getPhoneNumber());
-        response.setPermanentAddress(person.getPermanentAddress());
-        response.setTemporaryAddress(person.getTemporaryAddress());
-        response.setAvatarUrl(person.getAvatarUrl());
-        return response;
-    }
-
-    private void fillPerson(StudentAdminResponse response, Person person) {
-        response.setFullName(person.getFullName());
-        response.setFullNameNoAccent(person.getFullNameNoAccent());
-        response.setGender(person.getGender());
-        response.setDateOfBirth(person.getDateOfBirth());
-        response.setPlaceOfBirth(person.getPlaceOfBirth());
-        response.setEthnicity(person.getEthnicity());
-        response.setPersonalIdentificationNumber(person.getPersonalIdentificationNumber());
-        response.setDateOfIssue(person.getDateOfIssue());
-        response.setCardPlace(person.getCardPlace());
-        response.setNationality(person.getNationality());
-        response.setContactEmail(person.getContactEmail());
-        response.setPhoneNumber(person.getPhoneNumber());
-        response.setPermanentAddress(person.getPermanentAddress());
-        response.setTemporaryAddress(person.getTemporaryAddress());
-        response.setAvatarUrl(person.getAvatarUrl());
     }
 
     private void validateStudentProgramSelection(UUID majorId, UUID trainingProgramId, UUID academicCohortId) {

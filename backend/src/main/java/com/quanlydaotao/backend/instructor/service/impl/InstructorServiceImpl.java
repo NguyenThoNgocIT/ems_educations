@@ -15,6 +15,7 @@ import com.quanlydaotao.backend.instructor.dto.InstructorAdminUpdateRequest;
 import com.quanlydaotao.backend.instructor.dto.InstructorSelfResponse;
 import com.quanlydaotao.backend.instructor.dto.InstructorSelfUpdateRequest;
 import com.quanlydaotao.backend.instructor.entity.InstructorProfile;
+import com.quanlydaotao.backend.instructor.mapper.InstructorMapper;
 import com.quanlydaotao.backend.instructor.repository.InstructorProfileRepository;
 import com.quanlydaotao.backend.instructor.service.InstructorService;
 import com.quanlydaotao.backend.person.entity.Person;
@@ -42,6 +43,7 @@ public class InstructorServiceImpl implements InstructorService {
     private final DegreeRepository degreeRepository;
     private final AccountServiceImpl accountService;
     private final MajorRepository majorRepository;
+    private final InstructorMapper instructorMapper;
 
     @Override
     @Transactional
@@ -52,15 +54,13 @@ public class InstructorServiceImpl implements InstructorService {
     @Override
     @Transactional(readOnly = true)
     public List<InstructorAdminResponse> getAllInstructorsForAdmin() {
-        return instructorProfileRepository.findAll().stream()
-                .map(this::toAdminResponse)
-                .toList();
+        return instructorMapper.toDtoList(instructorProfileRepository.findAll());
     }
 
     @Override
     @Transactional(readOnly = true)
     public InstructorAdminResponse getInstructorForAdmin(UUID id) {
-        return toAdminResponse(findInstructor(id));
+        return instructorMapper.toDto(findInstructor(id));
     }
 
     @Override
@@ -119,7 +119,7 @@ public class InstructorServiceImpl implements InstructorService {
         updatePersonForAdmin(person, request);
         personRepository.save(person);
         employeeRepository.save(employee);
-        return toAdminResponse(instructorProfileRepository.save(instructor));
+        return instructorMapper.toDto(instructorProfileRepository.save(instructor));
     }
 
     @Override
@@ -143,7 +143,7 @@ public class InstructorServiceImpl implements InstructorService {
     @Override
     @Transactional(readOnly = true)
     public InstructorSelfResponse getCurrentInstructor(String username) {
-        return toSelfResponse(findCurrentInstructor(username));
+        return instructorMapper.toSelfDto(findCurrentInstructor(username));
     }
 
     @Override
@@ -153,7 +153,7 @@ public class InstructorServiceImpl implements InstructorService {
         Person person = instructor.getEmployee().getPerson();
         updatePersonForSelf(person, request);
         personRepository.save(person);
-        return toSelfResponse(instructor);
+        return instructorMapper.toSelfDto(instructor);
     }
 
     private InstructorProfile findInstructor(UUID id) {
@@ -213,85 +213,4 @@ public class InstructorServiceImpl implements InstructorService {
         if (request.getAvatarUrl() != null) person.setAvatarUrl(request.getAvatarUrl());
     }
 
-    private InstructorAdminResponse toAdminResponse(InstructorProfile instructor) {
-        Employee employee = instructor.getEmployee();
-        Person person = employee.getPerson();
-        InstructorAdminResponse response = new InstructorAdminResponse();
-        response.setEmployeeId(employee.getEmployeeId());
-        response.setEmployeeCode(employee.getEmployeeCode());
-        response.setInstructorCode(instructor.getInstructorCode());
-        response.setStartWorkDate(employee.getStartWorkDate());
-        response.setEndWorkDate(employee.getEndWorkDate());
-        response.setEmployeeStatus(employee.getStatus());
-        response.setEmployeeType(employee.getEmployeeType());
-        response.setContractType(employee.getContractType());
-        response.setNote(employee.getNote());
-        response.setDepartmentId(instructor.getDepartmentId());
-        response.setDegreeId(instructor.getDegreeId());
-        response.setAcademicRank(instructor.getAcademicRank());
-        response.setMajorId(instructor.getMajorId());
-        response.setSpecialization(instructor.getSpecialization());
-        response.setInstitution(instructor.getInstitution());
-        response.setGraduationYear(instructor.getGraduationYear());
-        response.setIsActive(instructor.getIsActive());
-        response.setCreatedAt(instructor.getCreatedAt());
-        response.setUpdatedAt(instructor.getUpdatedAt());
-        fillPerson(response, person);
-        return response;
-    }
-
-    private InstructorSelfResponse toSelfResponse(InstructorProfile instructor) {
-        Employee employee = instructor.getEmployee();
-        Person person = employee.getPerson();
-        InstructorSelfResponse response = new InstructorSelfResponse();
-        response.setEmployeeId(employee.getEmployeeId());
-        response.setEmployeeCode(employee.getEmployeeCode());
-        response.setInstructorCode(instructor.getInstructorCode());
-        response.setStartWorkDate(employee.getStartWorkDate());
-        response.setEmployeeStatus(employee.getStatus());
-        response.setContractType(employee.getContractType());
-        response.setDepartmentId(instructor.getDepartmentId());
-        response.setDegreeId(instructor.getDegreeId());
-        response.setAcademicRank(instructor.getAcademicRank());
-        response.setMajorId(instructor.getMajorId());
-        response.setSpecialization(instructor.getSpecialization());
-        response.setInstitution(instructor.getInstitution());
-        response.setGraduationYear(instructor.getGraduationYear());
-        response.setPersonId(person.getPersonId());
-        response.setFullName(person.getFullName());
-        response.setFullNameNoAccent(person.getFullNameNoAccent());
-        response.setGender(person.getGender());
-        response.setDateOfBirth(person.getDateOfBirth());
-        response.setPlaceOfBirth(person.getPlaceOfBirth());
-        response.setEthnicity(person.getEthnicity());
-        response.setPersonalIdentificationNumber(person.getPersonalIdentificationNumber());
-        response.setDateOfIssue(person.getDateOfIssue());
-        response.setCardPlace(person.getCardPlace());
-        response.setNationality(person.getNationality());
-        response.setContactEmail(person.getContactEmail());
-        response.setPhoneNumber(person.getPhoneNumber());
-        response.setPermanentAddress(person.getPermanentAddress());
-        response.setTemporaryAddress(person.getTemporaryAddress());
-        response.setAvatarUrl(person.getAvatarUrl());
-        return response;
-    }
-
-    private void fillPerson(InstructorAdminResponse response, Person person) {
-        response.setPersonId(person.getPersonId());
-        response.setFullName(person.getFullName());
-        response.setFullNameNoAccent(person.getFullNameNoAccent());
-        response.setGender(person.getGender());
-        response.setDateOfBirth(person.getDateOfBirth());
-        response.setPlaceOfBirth(person.getPlaceOfBirth());
-        response.setEthnicity(person.getEthnicity());
-        response.setPersonalIdentificationNumber(person.getPersonalIdentificationNumber());
-        response.setDateOfIssue(person.getDateOfIssue());
-        response.setCardPlace(person.getCardPlace());
-        response.setNationality(person.getNationality());
-        response.setContactEmail(person.getContactEmail());
-        response.setPhoneNumber(person.getPhoneNumber());
-        response.setPermanentAddress(person.getPermanentAddress());
-        response.setTemporaryAddress(person.getTemporaryAddress());
-        response.setAvatarUrl(person.getAvatarUrl());
-    }
 }

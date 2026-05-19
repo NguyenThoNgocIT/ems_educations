@@ -4,6 +4,7 @@ import com.quanlydaotao.backend.course.dto.CreatePrerequisiteRequest;
 import com.quanlydaotao.backend.course.dto.PrerequisiteDto;
 import com.quanlydaotao.backend.course.entity.CoursePrerequisite;
 import com.quanlydaotao.backend.course.entity.CoursePrerequisiteId;
+import com.quanlydaotao.backend.course.mapper.CoursePrerequisiteMapper;
 import com.quanlydaotao.backend.course.repository.CoursePrerequisiteRepository;
 import com.quanlydaotao.backend.course.repository.CourseRepository;
 import com.quanlydaotao.backend.course.service.CoursePrerequisiteService;
@@ -13,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,14 +21,15 @@ public class CoursePrerequisiteServiceImpl implements CoursePrerequisiteService 
 
     private final CoursePrerequisiteRepository prerequisiteRepository;
     private final CourseRepository courseRepository;
+    private final CoursePrerequisiteMapper coursePrerequisiteMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<PrerequisiteDto> getPrerequisitesByCourse(UUID courseId) {
         return prerequisiteRepository.findAll().stream()
                 .filter(p -> p.getCourseId().equals(courseId))
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+                .map(coursePrerequisiteMapper::toDto)
+                .toList();
     }
 
     @Override
@@ -44,7 +45,7 @@ public class CoursePrerequisiteServiceImpl implements CoursePrerequisiteService 
         entity.setPrerequisiteCourseId(request.getPrerequisiteId());
         entity.setType(request.getType() != null ? request.getType() : "PREREQUISITE");
 
-        return mapToDto(prerequisiteRepository.save(entity));
+        return coursePrerequisiteMapper.toDto(prerequisiteRepository.save(entity));
     }
 
     @Override
@@ -66,15 +67,4 @@ public class CoursePrerequisiteServiceImpl implements CoursePrerequisiteService 
         return prerequisiteRepository.existsById(new CoursePrerequisiteId(courseId, prereqId));
     }
 
-    private PrerequisiteDto mapToDto(CoursePrerequisite entity) {
-        PrerequisiteDto dto = new PrerequisiteDto();
-        dto.setCourseId(entity.getCourseId());
-        dto.setPrerequisiteCourseId(entity.getPrerequisiteCourseId());
-        dto.setType(entity.getType());
-        dto.setIsActive(entity.getIsActive());
-        dto.setCreatedAt(entity.getCreatedAt());
-        dto.setUpdatedAt(entity.getUpdatedAt());
-
-        return dto;
-    }
 }

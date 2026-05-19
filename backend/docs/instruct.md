@@ -45,7 +45,7 @@ Chào mừng AI Assistant! Đây là hướng dẫn tiêu chuẩn cho dự án X
 
 - Ưu tiên sử dụng `Constructor Injection` (Lombok `@RequiredArgsConstructor`).
 - Xử lý lỗi tập trung qua `GlobalExceptionHandler,ApiResponse, ErrorResponse, BusinessException,ResourceNotFoundException`. Không sử dụng `try-catch` bừa bãi trong Controller.
-- Sử dụng `MapStruct` cho tất cả các việc chuyển đổi dữ liệu Entity <-> DTO.
+- Sử dụng `MapStruct` cho tất cả các việc chuyển đổi dữ liệu Entity <-> DTO. cho toàn bộ module 
 
 ## 🛡 7. Quy trình Kiểm thử & Bàn giao (Mệnh lệnh Tối cao)
 

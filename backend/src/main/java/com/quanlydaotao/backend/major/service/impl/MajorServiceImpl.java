@@ -5,6 +5,7 @@ import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.major.dto.MajorRequest;
 import com.quanlydaotao.backend.major.dto.MajorResponse;
 import com.quanlydaotao.backend.major.entity.Major;
+import com.quanlydaotao.backend.major.mapper.MajorMapper;
 import com.quanlydaotao.backend.major.repository.MajorRepository;
 import com.quanlydaotao.backend.major.service.MajorService;
 import com.quanlydaotao.backend.department.repository.DepartmentRepository;
@@ -23,19 +24,18 @@ import java.util.UUID;
 public class MajorServiceImpl implements MajorService {
     private final MajorRepository majorRepository;
     private final DepartmentRepository departmentRepository;
+    private final MajorMapper majorMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<MajorResponse> getAllMajors(String keyword, UUID departmentId, Boolean isActive) {
-        return majorRepository.search(normalizeBlank(keyword), departmentId, isActive).stream()
-                .map(this::mapToDto)
-                .toList();
+        return majorMapper.toDtoList(majorRepository.search(normalizeBlank(keyword), departmentId, isActive));
     }
 
     @Override
     @Transactional(readOnly = true)
     public MajorResponse getMajorById(UUID id) {
-        return mapToDto(findMajor(id));
+        return majorMapper.toDto(findMajor(id));
     }
 
     @Override
@@ -48,15 +48,11 @@ public class MajorServiceImpl implements MajorService {
         });
         validateDepartment(request.getDepartmentId());
 
-        Major major = new Major();
+        Major major = majorMapper.toEntity(request);
         major.setCode(code);
         major.setName(request.getName().trim());
-        major.setDescription(request.getDescription());
-        major.setDepartmentId(request.getDepartmentId());
-        major.setEffectiveDate(request.getEffectiveDate());
-        major.setExpiryDate(request.getExpiryDate());
         major.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return mapToDto(majorRepository.save(major));
+        return majorMapper.toDto(majorRepository.save(major));
     }
 
     @Override
@@ -74,14 +70,11 @@ public class MajorServiceImpl implements MajorService {
         }
         if (request.getDepartmentId() != null) {
             validateDepartment(request.getDepartmentId());
-            major.setDepartmentId(request.getDepartmentId());
         }
+        majorMapper.updateEntityFromDto(request, major);
+        if (StringUtils.hasText(request.getCode())) major.setCode(normalizeCode(request.getCode()));
         if (StringUtils.hasText(request.getName())) major.setName(request.getName().trim());
-        if (request.getDescription() != null) major.setDescription(request.getDescription());
-        if (request.getEffectiveDate() != null) major.setEffectiveDate(request.getEffectiveDate());
-        if (request.getExpiryDate() != null) major.setExpiryDate(request.getExpiryDate());
-        if (request.getIsActive() != null) major.setIsActive(request.getIsActive());
-        return mapToDto(majorRepository.save(major));
+        return majorMapper.toDto(majorRepository.save(major));
     }
 
     @Override
@@ -108,19 +101,6 @@ public class MajorServiceImpl implements MajorService {
         if (!departmentRepository.existsById(departmentId)) {
             throw new ResourceNotFoundException("Không tìm thấy khoa của ngành");
         }
-    }
-
-    private MajorResponse mapToDto(Major major) {
-        MajorResponse dto = new MajorResponse();
-        dto.setMajorId(major.getMajorId());
-        dto.setCode(major.getCode());
-        dto.setName(major.getName());
-        dto.setDescription(major.getDescription());
-        dto.setDepartmentId(major.getDepartmentId());
-        dto.setIsActive(major.getIsActive());
-        dto.setEffectiveDate(major.getEffectiveDate());
-        dto.setExpiryDate(major.getExpiryDate());
-        return dto;
     }
 
     private String normalizeCode(String code) {

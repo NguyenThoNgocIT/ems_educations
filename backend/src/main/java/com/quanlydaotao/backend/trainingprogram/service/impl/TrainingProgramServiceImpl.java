@@ -8,6 +8,7 @@ import com.quanlydaotao.backend.major.entity.Major;
 import com.quanlydaotao.backend.trainingprogram.entity.TrainingProgram;
 import com.quanlydaotao.backend.academiccohort.repository.AcademicCohortRepository;
 import com.quanlydaotao.backend.major.repository.MajorRepository;
+import com.quanlydaotao.backend.trainingprogram.mapper.TrainingProgramMapper;
 import com.quanlydaotao.backend.trainingprogram.repository.TrainingProgramRepository;
 import com.quanlydaotao.backend.trainingprogram.service.TrainingProgramService;
 import com.quanlydaotao.backend.department.repository.DepartmentRepository;
@@ -28,6 +29,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
     private final MajorRepository majorRepository;
     private final DepartmentRepository departmentRepository;
     private final AcademicCohortRepository academicCohortRepository;
+    private final TrainingProgramMapper trainingProgramMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -35,14 +37,14 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                                                    UUID academicCohortId, Boolean isActive) {
         return trainingProgramRepository.search(normalizeBlank(keyword), majorId, departmentId, academicCohortId, isActive)
                 .stream()
-                .map(this::mapToDto)
+                .map(trainingProgramMapper::toDto)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public TrainingProgramResponse getProgramById(UUID id) {
-        return mapToDto(findProgram(id));
+        return trainingProgramMapper.toDto(findProgram(id));
     }
 
     @Override
@@ -59,15 +61,14 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         Major major = validateMajorAndDepartment(request.getMajorId(), request.getDepartmentId());
         validateCohort(request.getAcademicCohortId());
 
-        TrainingProgram program = new TrainingProgram();
+        TrainingProgram program = trainingProgramMapper.toEntity(request);
         program.setCode(code);
         program.setName(name);
         program.setMajorId(major.getMajorId());
         program.setDepartmentId(request.getDepartmentId());
         program.setAcademicCohortId(request.getAcademicCohortId());
-        apply(program, request);
         program.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return mapToDto(trainingProgramRepository.save(program));
+        return trainingProgramMapper.toDto(trainingProgramRepository.save(program));
     }
 
     @Override
@@ -98,8 +99,14 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
             validateCohort(request.getAcademicCohortId());
             program.setAcademicCohortId(request.getAcademicCohortId());
         }
-        apply(program, request);
-        return mapToDto(trainingProgramRepository.save(program));
+        trainingProgramMapper.updateEntityFromDto(request, program);
+        if (StringUtils.hasText(request.getCode()) || StringUtils.hasText(request.getProgramCode())) {
+            program.setCode(resolveCode(request));
+        }
+        if (StringUtils.hasText(request.getName()) || StringUtils.hasText(request.getProgramName())) {
+            program.setName(resolveName(request));
+        }
+        return trainingProgramMapper.toDto(trainingProgramRepository.save(program));
     }
 
     @Override
@@ -156,58 +163,6 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 && request.getDurationYears().compareTo(request.getMaxDurationYears()) > 0) {
             throw new BusinessException("Thời gian đào tạo chuẩn không được lớn hơn thời gian đào tạo tối đa");
         }
-    }
-
-    private void apply(TrainingProgram program, TrainingProgramRequest request) {
-        if (request.getNameEn() != null) program.setNameEn(request.getNameEn());
-        if (request.getDegreeLevel() != null) program.setDegreeLevel(request.getDegreeLevel());
-        if (request.getEducationType() != null) program.setEducationType(request.getEducationType());
-        if (request.getTotalCredits() != null) program.setTotalCredits(request.getTotalCredits());
-        if (request.getRequiredCredits() != null) program.setRequiredCredits(request.getRequiredCredits());
-        if (request.getElectiveCredits() != null) program.setElectiveCredits(request.getElectiveCredits());
-        if (request.getInternshipCredits() != null) program.setInternshipCredits(request.getInternshipCredits());
-        if (request.getThesisCredits() != null) program.setThesisCredits(request.getThesisCredits());
-        if (request.getAdmissionYear() != null) program.setAdmissionYear(request.getAdmissionYear());
-        if (request.getDurationYears() != null) program.setDurationYears(request.getDurationYears());
-        if (request.getMaxDurationYears() != null) program.setMaxDurationYears(request.getMaxDurationYears());
-        if (request.getEffectiveDate() != null) program.setEffectiveDate(request.getEffectiveDate());
-        if (request.getExpiryDate() != null) program.setExpiryDate(request.getExpiryDate());
-        if (request.getDescription() != null) program.setDescription(request.getDescription());
-        if (request.getObjectives() != null) program.setObjectives(request.getObjectives());
-        if (request.getLearningOutcomes() != null) program.setLearningOutcomes(request.getLearningOutcomes());
-        if (request.getVersion() != null) program.setVersion(request.getVersion());
-        if (request.getStatus() != null) program.setStatus(request.getStatus());
-        if (request.getIsActive() != null) program.setIsActive(request.getIsActive());
-    }
-
-    private TrainingProgramResponse mapToDto(TrainingProgram entity) {
-        TrainingProgramResponse dto = new TrainingProgramResponse();
-        dto.setTrainingProgramId(entity.getTrainingProgramId());
-        dto.setCode(entity.getCode());
-        dto.setName(entity.getName());
-        dto.setNameEn(entity.getNameEn());
-        dto.setMajorId(entity.getMajorId());
-        dto.setDepartmentId(entity.getDepartmentId());
-        dto.setAcademicCohortId(entity.getAcademicCohortId());
-        dto.setDegreeLevel(entity.getDegreeLevel());
-        dto.setEducationType(entity.getEducationType());
-        dto.setTotalCredits(entity.getTotalCredits());
-        dto.setRequiredCredits(entity.getRequiredCredits());
-        dto.setElectiveCredits(entity.getElectiveCredits());
-        dto.setInternshipCredits(entity.getInternshipCredits());
-        dto.setThesisCredits(entity.getThesisCredits());
-        dto.setAdmissionYear(entity.getAdmissionYear());
-        dto.setDurationYears(entity.getDurationYears());
-        dto.setMaxDurationYears(entity.getMaxDurationYears());
-        dto.setEffectiveDate(entity.getEffectiveDate());
-        dto.setExpiryDate(entity.getExpiryDate());
-        dto.setDescription(entity.getDescription());
-        dto.setObjectives(entity.getObjectives());
-        dto.setLearningOutcomes(entity.getLearningOutcomes());
-        dto.setVersion(entity.getVersion());
-        dto.setStatus(entity.getStatus());
-        dto.setIsActive(entity.getIsActive());
-        return dto;
     }
 
     private String resolveCode(TrainingProgramRequest request) {

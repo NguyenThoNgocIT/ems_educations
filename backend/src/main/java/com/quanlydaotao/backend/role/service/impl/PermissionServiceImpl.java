@@ -7,6 +7,7 @@ import com.quanlydaotao.backend.role.dto.PermissionDto;
 import com.quanlydaotao.backend.role.entity.Permission;
 import com.quanlydaotao.backend.role.entity.PermissionApiId;
 import com.quanlydaotao.backend.role.entity.PermissionApis;
+import com.quanlydaotao.backend.role.mapper.PermissionMapper;
 import com.quanlydaotao.backend.role.repository.PermissionApiRepository;
 import com.quanlydaotao.backend.role.repository.PermissionRepository;
 import com.quanlydaotao.backend.role.service.PermissionService;
@@ -24,19 +25,20 @@ import java.util.UUID;
 public class PermissionServiceImpl implements PermissionService {
     private final PermissionRepository permissionRepository;
     private final PermissionApiRepository permissionApiRepository;
+    private final PermissionMapper permissionMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<PermissionDto> searchPermissions(String module, String keyword) {
         return permissionRepository.search(normalizeBlank(module), normalizeBlank(keyword)).stream()
-                .map(this::toDto)
+                .map(permissionMapper::toDto)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public PermissionDto getPermission(UUID id) {
-        return toDto(findPermission(id));
+        return permissionMapper.toDto(findPermission(id));
     }
 
     @Override
@@ -47,10 +49,9 @@ public class PermissionServiceImpl implements PermissionService {
         permissionRepository.findByCode(code).ifPresent(existing -> {
             throw new BusinessException("Mã quyền đã tồn tại");
         });
-        Permission permission = new Permission();
+        Permission permission = permissionMapper.toEntity(request);
         permission.setCode(code);
-        apply(permission, request);
-        return toDto(permissionRepository.save(permission));
+        return permissionMapper.toDto(permissionRepository.save(permission));
     }
 
     @Override
@@ -66,8 +67,9 @@ public class PermissionServiceImpl implements PermissionService {
                     });
             permission.setCode(code);
         }
-        apply(permission, request);
-        return toDto(permissionRepository.save(permission));
+        permissionMapper.updateEntityFromDto(request, permission);
+        if (StringUtils.hasText(request.getCode())) permission.setCode(normalizeCode(request.getCode()));
+        return permissionMapper.toDto(permissionRepository.save(permission));
     }
 
     @Override
@@ -83,7 +85,7 @@ public class PermissionServiceImpl implements PermissionService {
     public List<PermissionApiDto> getPermissionApis(UUID permissionId) {
         findPermission(permissionId);
         return permissionApiRepository.findByPermissionPermissionIdAndIsActiveTrue(permissionId).stream()
-                .map(this::toApiDto)
+                .map(permissionMapper::toApiDto)
                 .toList();
     }
 
@@ -107,7 +109,7 @@ public class PermissionServiceImpl implements PermissionService {
         permissionApi.setPermission(permission);
         permissionApi.setDescription(request.getDescription());
         permissionApi.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return toApiDto(permissionApiRepository.save(permissionApi));
+        return permissionMapper.toApiDto(permissionApiRepository.save(permissionApi));
     }
 
     @Override
@@ -129,37 +131,6 @@ public class PermissionServiceImpl implements PermissionService {
         if (!StringUtils.hasText(request.getCode()) || !StringUtils.hasText(request.getName())) {
             throw new BusinessException("Mã quyền và tên quyền không được để trống");
         }
-    }
-
-    private void apply(Permission permission, PermissionDto request) {
-        if (request.getName() != null) permission.setName(request.getName());
-        if (request.getDescription() != null) permission.setDescription(request.getDescription());
-        if (request.getModule() != null) permission.setModule(request.getModule());
-        if (request.getIsActive() != null) permission.setIsActive(request.getIsActive());
-    }
-
-    private PermissionDto toDto(Permission permission) {
-        PermissionDto dto = new PermissionDto();
-        dto.setPermissionId(permission.getPermissionId());
-        dto.setCode(permission.getCode());
-        dto.setName(permission.getName());
-        dto.setDescription(permission.getDescription());
-        dto.setModule(permission.getModule());
-        dto.setIsActive(permission.getIsActive());
-        dto.setCreatedAt(permission.getCreatedAt());
-        dto.setUpdatedAt(permission.getUpdatedAt());
-        return dto;
-    }
-
-    private PermissionApiDto toApiDto(PermissionApis permissionApi) {
-        PermissionApiDto dto = new PermissionApiDto();
-        dto.setPermissionId(permissionApi.getPermission().getPermissionId());
-        dto.setPermissionCode(permissionApi.getPermission().getCode());
-        dto.setApiPath(permissionApi.getId().getApiPath());
-        dto.setHttpMethod(permissionApi.getId().getHttpMethod());
-        dto.setDescription(permissionApi.getDescription());
-        dto.setIsActive(permissionApi.getIsActive());
-        return dto;
     }
 
     private String normalizeCode(String code) {

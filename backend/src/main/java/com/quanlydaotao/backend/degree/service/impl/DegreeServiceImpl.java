@@ -5,6 +5,7 @@ import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.major.repository.MajorRepository;
 import com.quanlydaotao.backend.degree.dto.DegreeDto;
 import com.quanlydaotao.backend.degree.entity.Degree;
+import com.quanlydaotao.backend.degree.mapper.DegreeMapper;
 import com.quanlydaotao.backend.degree.repository.DegreeRepository;
 import com.quanlydaotao.backend.degree.service.DegreeService;
 import lombok.RequiredArgsConstructor;
@@ -23,17 +24,18 @@ import java.util.UUID;
 public class DegreeServiceImpl implements DegreeService {
     private final DegreeRepository degreeRepository;
     private final MajorRepository majorRepository;
+    private final DegreeMapper degreeMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<DegreeDto> searchDegrees(String keyword, UUID majorId, Boolean isActive) {
-        return degreeRepository.search(normalizeBlank(keyword), majorId, isActive).stream().map(this::toDto).toList();
+        return degreeMapper.toDtoList(degreeRepository.search(normalizeBlank(keyword), majorId, isActive));
     }
 
     @Override
     @Transactional(readOnly = true)
     public DegreeDto getDegree(UUID id) {
-        return toDto(findDegree(id));
+        return degreeMapper.toDto(findDegree(id));
     }
 
     @Override
@@ -46,12 +48,11 @@ public class DegreeServiceImpl implements DegreeService {
             throw new BusinessException("Mã trình độ đã tồn tại");
         });
 
-        Degree degree = new Degree();
+        Degree degree = degreeMapper.toEntity(request);
         degree.setCode(code);
         degree.setName(request.getName().trim());
-        apply(degree, request);
         degree.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return toDto(degreeRepository.save(degree));
+        return degreeMapper.toDto(degreeRepository.save(degree));
     }
 
     @Override
@@ -68,9 +69,10 @@ public class DegreeServiceImpl implements DegreeService {
                     });
             degree.setCode(code);
         }
+        degreeMapper.updateEntityFromDto(request, degree);
+        if (StringUtils.hasText(request.getCode())) degree.setCode(normalizeCode(request.getCode()));
         if (StringUtils.hasText(request.getName())) degree.setName(request.getName().trim());
-        apply(degree, request);
-        return toDto(degreeRepository.save(degree));
+        return degreeMapper.toDto(degreeRepository.save(degree));
     }
 
     @Override
@@ -100,31 +102,6 @@ public class DegreeServiceImpl implements DegreeService {
         if (request.getMajorId() != null && !majorRepository.existsById(request.getMajorId())) {
             throw new ResourceNotFoundException("Không tìm thấy ngành của trình độ");
         }
-    }
-
-    private void apply(Degree degree, DegreeDto request) {
-        if (request.getLevel() != null) degree.setLevel(request.getLevel());
-        if (request.getAcademicRank() != null) degree.setAcademicRank(request.getAcademicRank());
-        if (request.getSpecialization() != null) degree.setSpecialization(request.getSpecialization());
-        if (request.getInstitution() != null) degree.setInstitution(request.getInstitution());
-        if (request.getGraduationYear() != null) degree.setGraduationYear(request.getGraduationYear());
-        if (request.getMajorId() != null) degree.setMajorId(request.getMajorId());
-        if (request.getIsActive() != null) degree.setIsActive(request.getIsActive());
-    }
-
-    private DegreeDto toDto(Degree degree) {
-        return DegreeDto.builder()
-                .degreeId(degree.getDegreeId())
-                .code(degree.getCode())
-                .name(degree.getName())
-                .level(degree.getLevel())
-                .academicRank(degree.getAcademicRank())
-                .specialization(degree.getSpecialization())
-                .institution(degree.getInstitution())
-                .graduationYear(degree.getGraduationYear())
-                .majorId(degree.getMajorId())
-                .isActive(degree.getIsActive())
-                .build();
     }
 
     private String normalizeCode(String code) {

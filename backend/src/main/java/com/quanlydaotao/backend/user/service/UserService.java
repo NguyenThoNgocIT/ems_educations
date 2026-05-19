@@ -11,6 +11,7 @@ import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.user.entity.UserRole;
 import com.quanlydaotao.backend.user.entity.UserRoleId;
 import com.quanlydaotao.backend.user.entity.UserSession;
+import com.quanlydaotao.backend.user.mapper.UserMapper;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import com.quanlydaotao.backend.user.repository.UserRoleRepository;
 import com.quanlydaotao.backend.user.repository.UserSessionRepository;
@@ -32,6 +33,7 @@ public class UserService {
     private final UserRoleRepository userRoleRepository;
     private final UserSessionRepository userSessionRepository;
     private final RoleRepository roleRepository;
+    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public Page<UserAdminResponse> searchUsersForAdmin(String keyword, Boolean isActive, Boolean isLocked, Pageable pageable) {
@@ -46,18 +48,12 @@ public class UserService {
     @Transactional
     public UserAdminResponse updateUserForAdmin(UUID id, UpdateUserAdminRequest request) {
         User user = findUser(id);
+        userMapper.updateEntityFromDto(request, user);
         if (request.getIsActive() != null) {
-            user.setIsActive(request.getIsActive());
             if (request.getIsActive()) {
                 user.setDeletedAt(null);
             }
         }
-        if (request.getRequirePasswordChange() != null) user.setRequirePasswordChange(request.getRequirePasswordChange());
-        if (request.getEmailConfirmed() != null) user.setEmailConfirmed(request.getEmailConfirmed());
-        if (request.getConfirmationToken() != null) user.setConfirmationToken(request.getConfirmationToken());
-        if (request.getAccessFailedCount() != null) user.setAccessFailedCount(request.getAccessFailedCount());
-        if (request.getLockoutEndAt() != null) user.setLockoutEndAt(request.getLockoutEndAt());
-        if (request.getLockReason() != null) user.setLockReason(request.getLockReason());
         return toAdminResponse(userRepository.save(user));
     }
 
@@ -142,22 +138,7 @@ public class UserService {
     }
 
     private UserAdminResponse toAdminResponse(User user) {
-        UserAdminResponse response = new UserAdminResponse();
-        response.setUserId(user.getUserId());
-        response.setPersonId(user.getPerson() != null ? user.getPerson().getPersonId() : null);
-        response.setUsername(user.getUsername());
-        response.setEmail(user.getEmail());
-        response.setLastLoginAt(user.getLastLoginAt());
-        response.setAccessFailedCount(user.getAccessFailedCount());
-        response.setLockoutEndAt(user.getLockoutEndAt());
-        response.setLockReason(user.getLockReason());
-        response.setRequirePasswordChange(user.getRequirePasswordChange());
-        response.setEmailConfirmed(user.getEmailConfirmed());
-        response.setConfirmationToken(user.getConfirmationToken());
-        response.setIsActive(user.getIsActive());
-        response.setCreatedAt(user.getCreatedAt());
-        response.setUpdatedAt(user.getUpdatedAt());
-        response.setDeletedAt(user.getDeletedAt());
+        UserAdminResponse response = userMapper.toDto(user);
         response.setRoles(findRoleCodes(user.getUserId()));
         return response;
     }

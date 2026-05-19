@@ -5,6 +5,7 @@ import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.academiccohort.dto.AcademicCohortRequest;
 import com.quanlydaotao.backend.academiccohort.dto.AcademicCohortResponse;
 import com.quanlydaotao.backend.academiccohort.entity.AcademicCohort;
+import com.quanlydaotao.backend.academiccohort.mapper.AcademicCohortMapper;
 import com.quanlydaotao.backend.academiccohort.repository.AcademicCohortRepository;
 import com.quanlydaotao.backend.academiccohort.service.AcademicCohortService;
 import lombok.RequiredArgsConstructor;
@@ -21,19 +22,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AcademicCohortServiceImpl implements AcademicCohortService {
     private final AcademicCohortRepository academicCohortRepository;
+    private final AcademicCohortMapper academicCohortMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<AcademicCohortResponse> searchCohorts(String keyword, Boolean isActive) {
-        return academicCohortRepository.search(normalizeBlank(keyword), isActive).stream()
-                .map(this::toResponse)
-                .toList();
+        return academicCohortMapper.toDtoList(academicCohortRepository.search(normalizeBlank(keyword), isActive));
     }
 
     @Override
     @Transactional(readOnly = true)
     public AcademicCohortResponse getCohort(UUID id) {
-        return toResponse(findCohort(id));
+        return academicCohortMapper.toDto(findCohort(id));
     }
 
     @Override
@@ -46,14 +46,11 @@ public class AcademicCohortServiceImpl implements AcademicCohortService {
             throw new BusinessException("Mã niên khóa đã tồn tại");
         });
 
-        AcademicCohort cohort = new AcademicCohort();
+        AcademicCohort cohort = academicCohortMapper.toEntity(request);
         cohort.setCode(code);
         cohort.setName(request.getName().trim());
-        cohort.setStartYear(request.getStartYear());
-        cohort.setEndYear(request.getEndYear());
-        applyOptional(cohort, request);
         cohort.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return toResponse(academicCohortRepository.save(cohort));
+        return academicCohortMapper.toDto(academicCohortRepository.save(cohort));
     }
 
     @Override
@@ -70,11 +67,10 @@ public class AcademicCohortServiceImpl implements AcademicCohortService {
                     });
             cohort.setCode(code);
         }
+        academicCohortMapper.updateEntityFromDto(request, cohort);
+        if (StringUtils.hasText(request.getCode())) cohort.setCode(normalizeCode(request.getCode()));
         if (StringUtils.hasText(request.getName())) cohort.setName(request.getName().trim());
-        if (request.getStartYear() != null) cohort.setStartYear(request.getStartYear());
-        if (request.getEndYear() != null) cohort.setEndYear(request.getEndYear());
-        applyOptional(cohort, request);
-        return toResponse(academicCohortRepository.save(cohort));
+        return academicCohortMapper.toDto(academicCohortRepository.save(cohort));
     }
 
     @Override
@@ -107,27 +103,6 @@ public class AcademicCohortServiceImpl implements AcademicCohortService {
                 && !request.getStartDate().isBefore(request.getEndDate())) {
             throw new BusinessException("Ngày bắt đầu niên khóa phải nhỏ hơn ngày kết thúc");
         }
-    }
-
-    private void applyOptional(AcademicCohort cohort, AcademicCohortRequest request) {
-        if (request.getStartDate() != null) cohort.setStartDate(request.getStartDate());
-        if (request.getEndDate() != null) cohort.setEndDate(request.getEndDate());
-        if (request.getDescription() != null) cohort.setDescription(request.getDescription());
-        if (request.getIsActive() != null) cohort.setIsActive(request.getIsActive());
-    }
-
-    private AcademicCohortResponse toResponse(AcademicCohort cohort) {
-        return AcademicCohortResponse.builder()
-                .cohortId(cohort.getCohortId())
-                .code(cohort.getCode())
-                .name(cohort.getName())
-                .startYear(cohort.getStartYear())
-                .endYear(cohort.getEndYear())
-                .startDate(cohort.getStartDate())
-                .endDate(cohort.getEndDate())
-                .description(cohort.getDescription())
-                .isActive(cohort.getIsActive())
-                .build();
     }
 
     private String normalizeCode(String code) {

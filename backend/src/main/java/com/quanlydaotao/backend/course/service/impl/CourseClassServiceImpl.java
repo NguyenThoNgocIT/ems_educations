@@ -5,6 +5,7 @@ import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.course.dto.CourseClassDto;
 import com.quanlydaotao.backend.course.entity.Course;
 import com.quanlydaotao.backend.course.entity.CourseClass;
+import com.quanlydaotao.backend.course.mapper.CourseClassMapper;
 import com.quanlydaotao.backend.course.repository.CourseClassRepository;
 import com.quanlydaotao.backend.course.repository.CourseRepository;
 import com.quanlydaotao.backend.course.service.CourseClassService;
@@ -15,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +23,7 @@ public class CourseClassServiceImpl implements CourseClassService {
 
     private final CourseClassRepository courseClassRepository;
     private final CourseRepository courseRepository;
+    private final CourseClassMapper courseClassMapper;
 
     @Override
     @Transactional
@@ -43,18 +44,12 @@ public class CourseClassServiceImpl implements CourseClassService {
             throw new BusinessException("Mã lớp học phần này đã tồn tại trong học kỳ");
         }
 
-        CourseClass courseClass = new CourseClass();
-        courseClass.setClassCode(courseClassDto.getClassCode());
-        courseClass.setMaxStudent(courseClassDto.getMaxStudent());
+        CourseClass courseClass = courseClassMapper.toEntity(courseClassDto);
         courseClass.setCurrentStudent(0);
-        courseClass.setRoomId(courseClassDto.getRoomId());
-        courseClass.setStatus(courseClassDto.getStatus());
-        courseClass.setSemesterId(courseClassDto.getSemesterId());
-        courseClass.setCourseId(courseClassDto.getCourseId());
         courseClass.setIsActive(true);
 
         courseClass = courseClassRepository.save(courseClass);
-        return mapToDto(courseClass);
+        return courseClassMapper.toDto(courseClass);
     }
 
     @Override
@@ -62,31 +57,25 @@ public class CourseClassServiceImpl implements CourseClassService {
     public CourseClassDto getCourseClassById(UUID id) {
         CourseClass courseClass = courseClassRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course class not found with id: " + id));
-        return mapToDto(courseClass);
+        return courseClassMapper.toDto(courseClass);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseClassDto> getAllCourseClasses() {
-        return courseClassRepository.findAll().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return courseClassMapper.toDtoList(courseClassRepository.findAll());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseClassDto> getCourseClassesByCourse(UUID courseId) {
-        return courseClassRepository.findByCourseId(courseId).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return courseClassMapper.toDtoList(courseClassRepository.findByCourseId(courseId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseClassDto> getCourseClassesBySemester(UUID semesterId) {
-        return courseClassRepository.findBySemesterId(semesterId).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return courseClassMapper.toDtoList(courseClassRepository.findBySemesterId(semesterId));
     }
 
     @Override
@@ -95,19 +84,10 @@ public class CourseClassServiceImpl implements CourseClassService {
         CourseClass courseClass = courseClassRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course class not found with id: " + id));
 
-        courseClass.setClassCode(courseClassDto.getClassCode());
-        courseClass.setMaxStudent(courseClassDto.getMaxStudent());
-        courseClass.setRoomId(courseClassDto.getRoomId());
-        courseClass.setStatus(courseClassDto.getStatus());
-        if (courseClassDto.getCurrentStudent() != null) {
-            courseClass.setCurrentStudent(courseClassDto.getCurrentStudent());
-        }
-        if (courseClassDto.getIsActive() != null) {
-            courseClass.setIsActive(courseClassDto.getIsActive());
-        }
+        courseClassMapper.updateEntityFromDto(courseClassDto, courseClass);
 
         courseClass = courseClassRepository.save(courseClass);
-        return mapToDto(courseClass);
+        return courseClassMapper.toDto(courseClass);
     }
 
     @Override
@@ -120,19 +100,4 @@ public class CourseClassServiceImpl implements CourseClassService {
         courseClassRepository.save(courseClass);
     }
 
-    private CourseClassDto mapToDto(CourseClass courseClass) {
-        CourseClassDto dto = new CourseClassDto();
-        dto.setId(courseClass.getCourseClassId());
-        dto.setClassCode(courseClass.getClassCode());
-        dto.setMaxStudent(courseClass.getMaxStudent());
-        dto.setCurrentStudent(courseClass.getCurrentStudent());
-        dto.setRoomId(courseClass.getRoomId());
-        dto.setStatus(courseClass.getStatus());
-        dto.setSemesterId(courseClass.getSemesterId());
-        dto.setCourseId(courseClass.getCourseId());
-        dto.setIsActive(courseClass.getIsActive());
-        dto.setCreatedAt(courseClass.getCreatedAt());
-        dto.setUpdatedAt(courseClass.getUpdatedAt());
-        return dto;
-    }
 }

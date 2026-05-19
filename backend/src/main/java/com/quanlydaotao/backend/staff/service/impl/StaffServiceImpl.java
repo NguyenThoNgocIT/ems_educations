@@ -14,6 +14,7 @@ import com.quanlydaotao.backend.staff.dto.StaffAdminUpdateRequest;
 import com.quanlydaotao.backend.staff.dto.StaffSelfResponse;
 import com.quanlydaotao.backend.staff.dto.StaffSelfUpdateRequest;
 import com.quanlydaotao.backend.staff.entity.Staff;
+import com.quanlydaotao.backend.staff.mapper.StaffMapper;
 import com.quanlydaotao.backend.staff.repository.StaffRepository;
 import com.quanlydaotao.backend.staff.service.StaffService;
 import com.quanlydaotao.backend.user.entity.User;
@@ -38,6 +39,7 @@ public class StaffServiceImpl implements StaffService {
     private final UserRepository userRepository;
     private final EntityManager entityManager;
     private final AccountServiceImpl accountService;
+    private final StaffMapper staffMapper;
 
     @Override
     @Transactional
@@ -48,15 +50,13 @@ public class StaffServiceImpl implements StaffService {
     @Override
     @Transactional(readOnly = true)
     public List<StaffAdminResponse> getAllStaffsForAdmin() {
-        return staffRepository.findAll().stream()
-                .map(this::toAdminResponse)
-                .toList();
+        return staffMapper.toDtoList(staffRepository.findAll());
     }
 
     @Override
     @Transactional(readOnly = true)
     public StaffAdminResponse getStaffForAdmin(UUID id) {
-        return toAdminResponse(findStaff(id));
+        return staffMapper.toDto(findStaff(id));
     }
 
     @Override
@@ -105,7 +105,7 @@ public class StaffServiceImpl implements StaffService {
         updatePersonForAdmin(person, request);
         personRepository.save(person);
         employeeRepository.save(employee);
-        return toAdminResponse(staffRepository.save(staff));
+        return staffMapper.toDto(staffRepository.save(staff));
     }
 
     @Override
@@ -129,7 +129,7 @@ public class StaffServiceImpl implements StaffService {
     @Override
     @Transactional(readOnly = true)
     public StaffSelfResponse getCurrentStaff(String username) {
-        return toSelfResponse(findCurrentStaff(username));
+        return staffMapper.toSelfDto(findCurrentStaff(username));
     }
 
     @Override
@@ -139,7 +139,7 @@ public class StaffServiceImpl implements StaffService {
         Person person = staff.getEmployee().getPerson();
         updatePersonForSelf(person, request);
         personRepository.save(person);
-        return toSelfResponse(staff);
+        return staffMapper.toSelfDto(staff);
     }
 
     private Staff findStaff(UUID id) {
@@ -207,75 +207,4 @@ public class StaffServiceImpl implements StaffService {
         if (request.getAvatarUrl() != null) person.setAvatarUrl(request.getAvatarUrl());
     }
 
-    private StaffAdminResponse toAdminResponse(Staff staff) {
-        Employee employee = staff.getEmployee();
-        Person person = employee.getPerson();
-        StaffAdminResponse response = new StaffAdminResponse();
-        response.setEmployeeId(employee.getEmployeeId());
-        response.setEmployeeCode(employee.getEmployeeCode());
-        response.setStaffCode(staff.getStaffCode());
-        response.setStartWorkDate(employee.getStartWorkDate());
-        response.setEndWorkDate(employee.getEndWorkDate());
-        response.setEmployeeStatus(employee.getStatus());
-        response.setEmployeeType(employee.getEmployeeType());
-        response.setContractType(employee.getContractType());
-        response.setNote(employee.getNote());
-        response.setDivisionId(staff.getDivisionId());
-        response.setPositionId(staff.getPositionId());
-        response.setIsActive(staff.getIsActive());
-        response.setCreatedAt(staff.getCreatedAt());
-        response.setUpdatedAt(staff.getUpdatedAt());
-        fillPerson(response, person);
-        return response;
-    }
-
-    private StaffSelfResponse toSelfResponse(Staff staff) {
-        Employee employee = staff.getEmployee();
-        Person person = employee.getPerson();
-        StaffSelfResponse response = new StaffSelfResponse();
-        response.setEmployeeId(employee.getEmployeeId());
-        response.setEmployeeCode(employee.getEmployeeCode());
-        response.setStaffCode(staff.getStaffCode());
-        response.setStartWorkDate(employee.getStartWorkDate());
-        response.setEmployeeStatus(employee.getStatus());
-        response.setContractType(employee.getContractType());
-        response.setDivisionId(staff.getDivisionId());
-        response.setPositionId(staff.getPositionId());
-        response.setPersonId(person.getPersonId());
-        response.setFullName(person.getFullName());
-        response.setFullNameNoAccent(person.getFullNameNoAccent());
-        response.setGender(person.getGender());
-        response.setDateOfBirth(person.getDateOfBirth());
-        response.setPlaceOfBirth(person.getPlaceOfBirth());
-        response.setEthnicity(person.getEthnicity());
-        response.setPersonalIdentificationNumber(person.getPersonalIdentificationNumber());
-        response.setDateOfIssue(person.getDateOfIssue());
-        response.setCardPlace(person.getCardPlace());
-        response.setNationality(person.getNationality());
-        response.setContactEmail(person.getContactEmail());
-        response.setPhoneNumber(person.getPhoneNumber());
-        response.setPermanentAddress(person.getPermanentAddress());
-        response.setTemporaryAddress(person.getTemporaryAddress());
-        response.setAvatarUrl(person.getAvatarUrl());
-        return response;
-    }
-
-    private void fillPerson(StaffAdminResponse response, Person person) {
-        response.setPersonId(person.getPersonId());
-        response.setFullName(person.getFullName());
-        response.setFullNameNoAccent(person.getFullNameNoAccent());
-        response.setGender(person.getGender());
-        response.setDateOfBirth(person.getDateOfBirth());
-        response.setPlaceOfBirth(person.getPlaceOfBirth());
-        response.setEthnicity(person.getEthnicity());
-        response.setPersonalIdentificationNumber(person.getPersonalIdentificationNumber());
-        response.setDateOfIssue(person.getDateOfIssue());
-        response.setCardPlace(person.getCardPlace());
-        response.setNationality(person.getNationality());
-        response.setContactEmail(person.getContactEmail());
-        response.setPhoneNumber(person.getPhoneNumber());
-        response.setPermanentAddress(person.getPermanentAddress());
-        response.setTemporaryAddress(person.getTemporaryAddress());
-        response.setAvatarUrl(person.getAvatarUrl());
-    }
 }

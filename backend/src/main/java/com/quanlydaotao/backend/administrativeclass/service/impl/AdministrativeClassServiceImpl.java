@@ -6,6 +6,7 @@ import com.quanlydaotao.backend.administrativeclass.dto.AdministrativeClassReque
 import com.quanlydaotao.backend.administrativeclass.dto.AdministrativeClassResponse;
 import com.quanlydaotao.backend.administrativeclass.entity.AdministrativeClass;
 import com.quanlydaotao.backend.academiccohort.repository.AcademicCohortRepository;
+import com.quanlydaotao.backend.administrativeclass.mapper.AdministrativeClassMapper;
 import com.quanlydaotao.backend.administrativeclass.repository.AdministrativeClassRepository;
 import com.quanlydaotao.backend.administrativeclass.service.AdministrativeClassService;
 import com.quanlydaotao.backend.department.repository.DepartmentRepository;
@@ -27,19 +28,20 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
     private final DepartmentRepository departmentRepository;
     private final AcademicCohortRepository academicCohortRepository;
     private final InstructorProfileRepository instructorProfileRepository;
+    private final AdministrativeClassMapper administrativeClassMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<AdministrativeClassResponse> searchClasses(String keyword, UUID departmentId, UUID academicCohortId, Boolean isActive) {
         return administrativeClassRepository.search(normalizeBlank(keyword), departmentId, academicCohortId, isActive).stream()
-                .map(this::toResponse)
+                .map(administrativeClassMapper::toDto)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public AdministrativeClassResponse getClass(UUID id) {
-        return toResponse(findClass(id));
+        return administrativeClassMapper.toDto(findClass(id));
     }
 
     @Override
@@ -52,14 +54,11 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         });
         validateReferences(request);
 
-        AdministrativeClass administrativeClass = new AdministrativeClass();
+        AdministrativeClass administrativeClass = administrativeClassMapper.toEntity(request);
         administrativeClass.setClassCode(classCode);
         administrativeClass.setClassName(request.getClassName().trim());
-        administrativeClass.setDepartmentId(request.getDepartmentId());
-        administrativeClass.setAcademicCohortId(request.getAcademicCohortId());
-        apply(administrativeClass, request);
         administrativeClass.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return toResponse(administrativeClassRepository.save(administrativeClass));
+        return administrativeClassMapper.toDto(administrativeClassRepository.save(administrativeClass));
     }
 
     @Override
@@ -76,11 +75,10 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
                     });
             administrativeClass.setClassCode(classCode);
         }
+        administrativeClassMapper.updateEntityFromDto(request, administrativeClass);
+        if (StringUtils.hasText(request.getClassCode())) administrativeClass.setClassCode(normalizeCode(request.getClassCode()));
         if (StringUtils.hasText(request.getClassName())) administrativeClass.setClassName(request.getClassName().trim());
-        if (request.getDepartmentId() != null) administrativeClass.setDepartmentId(request.getDepartmentId());
-        if (request.getAcademicCohortId() != null) administrativeClass.setAcademicCohortId(request.getAcademicCohortId());
-        apply(administrativeClass, request);
-        return toResponse(administrativeClassRepository.save(administrativeClass));
+        return administrativeClassMapper.toDto(administrativeClassRepository.save(administrativeClass));
     }
 
     @Override
@@ -117,29 +115,6 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         if (request.getMaxSize() != null && request.getMaxSize() <= 0) {
             throw new BusinessException("Sĩ số tối đa của lớp hành chính phải lớn hơn 0");
         }
-    }
-
-    private void apply(AdministrativeClass administrativeClass, AdministrativeClassRequest request) {
-        if (request.getAdvisorId() != null) administrativeClass.setAdvisorId(request.getAdvisorId());
-        if (request.getMaxSize() != null) administrativeClass.setMaxSize(request.getMaxSize());
-        if (request.getStatus() != null) administrativeClass.setStatus(request.getStatus());
-        if (request.getNote() != null) administrativeClass.setNote(request.getNote());
-        if (request.getIsActive() != null) administrativeClass.setIsActive(request.getIsActive());
-    }
-
-    private AdministrativeClassResponse toResponse(AdministrativeClass administrativeClass) {
-        return AdministrativeClassResponse.builder()
-                .classId(administrativeClass.getClassId())
-                .classCode(administrativeClass.getClassCode())
-                .className(administrativeClass.getClassName())
-                .departmentId(administrativeClass.getDepartmentId())
-                .advisorId(administrativeClass.getAdvisorId())
-                .academicCohortId(administrativeClass.getAcademicCohortId())
-                .maxSize(administrativeClass.getMaxSize())
-                .status(administrativeClass.getStatus())
-                .note(administrativeClass.getNote())
-                .isActive(administrativeClass.getIsActive())
-                .build();
     }
 
     private String normalizeCode(String code) {

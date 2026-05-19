@@ -5,6 +5,7 @@ import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.schoolyear.dto.SchoolYearRequest;
 import com.quanlydaotao.backend.schoolyear.dto.SchoolYearResponse;
 import com.quanlydaotao.backend.schoolyear.entity.SchoolYear;
+import com.quanlydaotao.backend.schoolyear.mapper.SchoolYearMapper;
 import com.quanlydaotao.backend.schoolyear.repository.SchoolYearRepository;
 import com.quanlydaotao.backend.schoolyear.service.SchoolYearService;
 import lombok.RequiredArgsConstructor;
@@ -21,19 +22,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SchoolYearServiceImpl implements SchoolYearService {
     private final SchoolYearRepository schoolYearRepository;
+    private final SchoolYearMapper schoolYearMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<SchoolYearResponse> searchSchoolYears(String keyword, Boolean isActive) {
-        return schoolYearRepository.search(normalizeBlank(keyword), isActive).stream()
-                .map(this::toResponse)
-                .toList();
+        return schoolYearMapper.toDtoList(schoolYearRepository.search(normalizeBlank(keyword), isActive));
     }
 
     @Override
     @Transactional(readOnly = true)
     public SchoolYearResponse getSchoolYear(UUID id) {
-        return toResponse(findSchoolYear(id));
+        return schoolYearMapper.toDto(findSchoolYear(id));
     }
 
     @Override
@@ -46,14 +46,11 @@ public class SchoolYearServiceImpl implements SchoolYearService {
             throw new BusinessException("Mã năm học đã tồn tại");
         });
 
-        SchoolYear schoolYear = new SchoolYear();
+        SchoolYear schoolYear = schoolYearMapper.toEntity(request);
         schoolYear.setCode(code);
         schoolYear.setName(resolveName(request));
-        schoolYear.setStartDate(request.getStartDate());
-        schoolYear.setEndDate(request.getEndDate());
-        apply(schoolYear, request);
         schoolYear.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return toResponse(schoolYearRepository.save(schoolYear));
+        return schoolYearMapper.toDto(schoolYearRepository.save(schoolYear));
     }
 
     @Override
@@ -73,10 +70,12 @@ public class SchoolYearServiceImpl implements SchoolYearService {
         if (StringUtils.hasText(request.getName()) || StringUtils.hasText(request.getSchoolYearName())) {
             schoolYear.setName(resolveName(request));
         }
-        if (request.getStartDate() != null) schoolYear.setStartDate(request.getStartDate());
-        if (request.getEndDate() != null) schoolYear.setEndDate(request.getEndDate());
-        apply(schoolYear, request);
-        return toResponse(schoolYearRepository.save(schoolYear));
+        schoolYearMapper.updateEntityFromDto(request, schoolYear);
+        if (StringUtils.hasText(request.getCode())) schoolYear.setCode(normalizeCode(request.getCode()));
+        if (StringUtils.hasText(request.getName()) || StringUtils.hasText(request.getSchoolYearName())) {
+            schoolYear.setName(resolveName(request));
+        }
+        return schoolYearMapper.toDto(schoolYearRepository.save(schoolYear));
     }
 
     @Override
@@ -105,27 +104,6 @@ public class SchoolYearServiceImpl implements SchoolYearService {
                 && !request.getStartDate().isBefore(request.getEndDate())) {
             throw new BusinessException("Ngày bắt đầu năm học phải nhỏ hơn ngày kết thúc");
         }
-    }
-
-    private void apply(SchoolYear schoolYear, SchoolYearRequest request) {
-        if (request.getDescription() != null) schoolYear.setDescription(request.getDescription());
-        if (request.getSchoolYearName() != null) schoolYear.setSchoolYearName(request.getSchoolYearName());
-        if (request.getNote() != null) schoolYear.setNote(request.getNote());
-        if (request.getIsActive() != null) schoolYear.setIsActive(request.getIsActive());
-    }
-
-    private SchoolYearResponse toResponse(SchoolYear schoolYear) {
-        return SchoolYearResponse.builder()
-                .schoolYearId(schoolYear.getSchoolYearId())
-                .code(schoolYear.getCode())
-                .name(schoolYear.getName())
-                .startDate(schoolYear.getStartDate())
-                .endDate(schoolYear.getEndDate())
-                .description(schoolYear.getDescription())
-                .schoolYearName(schoolYear.getSchoolYearName())
-                .note(schoolYear.getNote())
-                .isActive(schoolYear.getIsActive())
-                .build();
     }
 
     private String resolveName(SchoolYearRequest request) {

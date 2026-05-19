@@ -4,6 +4,7 @@ import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.course.dto.CourseDto;
 import com.quanlydaotao.backend.course.entity.Course;
+import com.quanlydaotao.backend.course.mapper.CourseMapper;
 import com.quanlydaotao.backend.course.repository.CourseClassRepository;
 import com.quanlydaotao.backend.course.repository.CourseRepository;
 import com.quanlydaotao.backend.course.service.CourseService;
@@ -15,7 +16,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +23,7 @@ public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
     private final CourseClassRepository courseClassRepository;
+    private final CourseMapper courseMapper;
 
     @Override
     @Transactional
@@ -43,15 +44,7 @@ public class CourseServiceImpl implements CourseService {
             throw new BusinessException("Mã môn học đã tồn tại: " + courseDto.getCode());
         }
 
-        Course course = new Course();
-        course.setDepartmentId(courseDto.getDepartmentId());
-        course.setCode(courseDto.getCode());
-        course.setName(courseDto.getName());
-        course.setNameEn(courseDto.getNameEn());
-        course.setCourseType(courseDto.getCourseType());
-        course.setCredits(courseDto.getCredits());
-        course.setTheoryHours(courseDto.getTheoryHours());
-        course.setPracticeHours(courseDto.getPracticeHours());
+        Course course = courseMapper.toEntity(courseDto);
         
         // 4. Tự động tính giờ tự học: credits * 2
         course.setSelfStudyHours(courseDto.getCredits() * 2);
@@ -61,7 +54,7 @@ public class CourseServiceImpl implements CourseService {
         course.setIsActive(true);
 
         course = courseRepository.save(course);
-        return mapToDto(course);
+        return courseMapper.toDto(course);
     }
 
     @Override
@@ -69,7 +62,7 @@ public class CourseServiceImpl implements CourseService {
     public CourseDto getCourseById(UUID id) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
-        return mapToDto(course);
+        return courseMapper.toDto(course);
     }
 
     @Override
@@ -77,15 +70,13 @@ public class CourseServiceImpl implements CourseService {
     public CourseDto getCourseByCode(String code) {
         Course course = courseRepository.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with code: " + code));
-        return mapToDto(course);
+        return courseMapper.toDto(course);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseDto> getAllCourses() {
-        return courseRepository.findAll().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return courseMapper.toDtoList(courseRepository.findAll());
     }
 
     @Override
@@ -93,8 +84,8 @@ public class CourseServiceImpl implements CourseService {
     public List<CourseDto> getCoursesByDepartment(UUID departmentId) {
         return courseRepository.findAll().stream()
                 .filter(course -> departmentId.equals(course.getDepartmentId()))
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+                .map(courseMapper::toDto)
+                .toList();
     }
 
     @Override
@@ -145,7 +136,7 @@ public class CourseServiceImpl implements CourseService {
         }
 
         course = courseRepository.save(course);
-        return mapToDto(course);
+        return courseMapper.toDto(course);
     }
 
     @Override
@@ -170,23 +161,4 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
-    private CourseDto mapToDto(Course course) {
-        CourseDto dto = new CourseDto();
-        dto.setId(course.getCourseId());
-        dto.setDepartmentId(course.getDepartmentId());
-        dto.setCode(course.getCode());
-        dto.setName(course.getName());
-        dto.setNameEn(course.getNameEn());
-        dto.setCourseType(course.getCourseType());
-        dto.setCredits(course.getCredits());
-        dto.setTheoryHours(course.getTheoryHours());
-        dto.setPracticeHours(course.getPracticeHours());
-        dto.setSelfStudyHours(course.getSelfStudyHours());
-        dto.setInternshipCredits(course.getInternshipCredits());
-        dto.setDescription(course.getDescription());
-        dto.setIsActive(course.getIsActive());
-        dto.setCreatedAt(course.getCreatedAt());
-        dto.setUpdatedAt(course.getUpdatedAt());
-        return dto;
-    }
 }

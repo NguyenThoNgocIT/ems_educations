@@ -4,6 +4,7 @@ import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.contract.dto.ContractDto;
 import com.quanlydaotao.backend.contract.entity.Contract;
+import com.quanlydaotao.backend.contract.mapper.ContractMapper;
 import com.quanlydaotao.backend.contract.repository.ContractRepository;
 import com.quanlydaotao.backend.contract.service.ContractService;
 import com.quanlydaotao.backend.employee.entity.Employee;
@@ -23,19 +24,18 @@ import java.util.UUID;
 public class ContractServiceImpl implements ContractService {
     private final ContractRepository contractRepository;
     private final EmployeeRepository employeeRepository;
+    private final ContractMapper contractMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<ContractDto> searchContracts(String keyword, UUID employeeId, Integer status, Boolean isActive) {
-        return contractRepository.search(normalizeBlank(keyword), employeeId, status, isActive).stream()
-                .map(this::toDto)
-                .toList();
+        return contractMapper.toDtoList(contractRepository.search(normalizeBlank(keyword), employeeId, status, isActive));
     }
 
     @Override
     @Transactional(readOnly = true)
     public ContractDto getContract(UUID id) {
-        return toDto(findContract(id));
+        return contractMapper.toDto(findContract(id));
     }
 
     @Override
@@ -51,14 +51,13 @@ public class ContractServiceImpl implements ContractService {
         Employee employee = employeeRepository.findById(request.getEmployeeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhân sự của hợp đồng"));
 
-        Contract contract = new Contract();
+        Contract contract = contractMapper.toEntity(request);
         contract.setEmployee(employee);
         contract.setContractNo(normalizeBlank(request.getContractNo()));
         contract.setContractType(request.getContractType().trim());
         contract.setStatus(request.getStatus() == null ? 1 : request.getStatus());
-        apply(contract, request);
         contract.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return toDto(contractRepository.save(contract));
+        return contractMapper.toDto(contractRepository.save(contract));
     }
 
     @Override
@@ -80,10 +79,10 @@ public class ContractServiceImpl implements ContractService {
                     });
             contract.setContractNo(contractNo);
         }
+        contractMapper.updateEntityFromDto(request, contract);
+        if (StringUtils.hasText(request.getContractNo())) contract.setContractNo(request.getContractNo().trim());
         if (StringUtils.hasText(request.getContractType())) contract.setContractType(request.getContractType().trim());
-        if (request.getStatus() != null) contract.setStatus(request.getStatus());
-        apply(contract, request);
-        return toDto(contractRepository.save(contract));
+        return contractMapper.toDto(contractRepository.save(contract));
     }
 
     @Override
@@ -120,37 +119,6 @@ public class ContractServiceImpl implements ContractService {
         if (request.getAnnualLeave() != null && request.getAnnualLeave() < 0) {
             throw new BusinessException("Số ngày phép năm không được âm");
         }
-    }
-
-    private void apply(Contract contract, ContractDto request) {
-        if (request.getSignedDate() != null) contract.setSignedDate(request.getSignedDate());
-        if (request.getEffectiveDate() != null) contract.setEffectiveDate(request.getEffectiveDate());
-        if (request.getExpiredDate() != null) contract.setExpiredDate(request.getExpiredDate());
-        if (request.getBaseSalary() != null) contract.setBaseSalary(request.getBaseSalary());
-        if (request.getNote() != null) contract.setNote(request.getNote());
-        if (request.getAllowance() != null) contract.setAllowance(request.getAllowance());
-        if (request.getSignedBy() != null) contract.setSignedBy(request.getSignedBy());
-        if (request.getAnnualLeave() != null) contract.setAnnualLeave(request.getAnnualLeave());
-        if (request.getIsActive() != null) contract.setIsActive(request.getIsActive());
-    }
-
-    private ContractDto toDto(Contract contract) {
-        return ContractDto.builder()
-                .contractId(contract.getContractId())
-                .employeeId(contract.getEmployee().getEmployeeId())
-                .contractNo(contract.getContractNo())
-                .contractType(contract.getContractType())
-                .signedDate(contract.getSignedDate())
-                .effectiveDate(contract.getEffectiveDate())
-                .expiredDate(contract.getExpiredDate())
-                .baseSalary(contract.getBaseSalary())
-                .status(contract.getStatus())
-                .note(contract.getNote())
-                .allowance(contract.getAllowance())
-                .signedBy(contract.getSignedBy())
-                .annualLeave(contract.getAnnualLeave())
-                .isActive(contract.getIsActive())
-                .build();
     }
 
     private String normalizeBlank(String value) {

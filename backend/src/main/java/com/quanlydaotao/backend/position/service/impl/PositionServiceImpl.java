@@ -5,6 +5,7 @@ import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.division.repository.DivisionRepository;
 import com.quanlydaotao.backend.position.dto.PositionDto;
 import com.quanlydaotao.backend.position.entity.Position;
+import com.quanlydaotao.backend.position.mapper.PositionMapper;
 import com.quanlydaotao.backend.position.repository.PositionRepository;
 import com.quanlydaotao.backend.position.service.PositionService;
 import lombok.RequiredArgsConstructor;
@@ -23,17 +24,18 @@ import java.util.UUID;
 public class PositionServiceImpl implements PositionService {
     private final PositionRepository positionRepository;
     private final DivisionRepository divisionRepository;
+    private final PositionMapper positionMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<PositionDto> searchPositions(String keyword, UUID divisionId, Boolean isActive) {
-        return positionRepository.search(normalizeBlank(keyword), divisionId, isActive).stream().map(this::toDto).toList();
+        return positionMapper.toDtoList(positionRepository.search(normalizeBlank(keyword), divisionId, isActive));
     }
 
     @Override
     @Transactional(readOnly = true)
     public PositionDto getPosition(UUID id) {
-        return toDto(findPosition(id));
+        return positionMapper.toDto(findPosition(id));
     }
 
     @Override
@@ -45,12 +47,11 @@ public class PositionServiceImpl implements PositionService {
         positionRepository.findByCode(code).ifPresent(existing -> {
             throw new BusinessException("Mã chức vụ đã tồn tại");
         });
-        Position position = new Position();
+        Position position = positionMapper.toEntity(request);
         position.setCode(code);
         position.setName(request.getName().trim());
-        apply(position, request);
         position.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return toDto(positionRepository.save(position));
+        return positionMapper.toDto(positionRepository.save(position));
     }
 
     @Override
@@ -67,9 +68,10 @@ public class PositionServiceImpl implements PositionService {
                     });
             position.setCode(code);
         }
+        positionMapper.updateEntityFromDto(request, position);
+        if (StringUtils.hasText(request.getCode())) position.setCode(normalizeCode(request.getCode()));
         if (StringUtils.hasText(request.getName())) position.setName(request.getName().trim());
-        apply(position, request);
-        return toDto(positionRepository.save(position));
+        return positionMapper.toDto(positionRepository.save(position));
     }
 
     @Override
@@ -99,27 +101,6 @@ public class PositionServiceImpl implements PositionService {
         if (request.getAllowance() != null && request.getAllowance().compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException("Phụ cấp chức vụ không được âm");
         }
-    }
-
-    private void apply(Position position, PositionDto request) {
-        if (request.getAllowance() != null) position.setAllowance(request.getAllowance());
-        if (request.getDescription() != null) position.setDescription(request.getDescription());
-        if (request.getLevel() != null) position.setLevel(request.getLevel());
-        if (request.getDivisionId() != null) position.setDivisionId(request.getDivisionId());
-        if (request.getIsActive() != null) position.setIsActive(request.getIsActive());
-    }
-
-    private PositionDto toDto(Position position) {
-        return PositionDto.builder()
-                .positionId(position.getPositionId())
-                .code(position.getCode())
-                .name(position.getName())
-                .allowance(position.getAllowance())
-                .description(position.getDescription())
-                .level(position.getLevel())
-                .divisionId(position.getDivisionId())
-                .isActive(position.getIsActive())
-                .build();
     }
 
     private String normalizeCode(String code) {

@@ -4,6 +4,7 @@ import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.division.dto.DivisionDto;
 import com.quanlydaotao.backend.division.entity.Division;
+import com.quanlydaotao.backend.division.mapper.DivisionMapper;
 import com.quanlydaotao.backend.division.repository.DivisionRepository;
 import com.quanlydaotao.backend.division.service.DivisionService;
 import lombok.RequiredArgsConstructor;
@@ -20,17 +21,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DivisionServiceImpl implements DivisionService {
     private final DivisionRepository divisionRepository;
+    private final DivisionMapper divisionMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<DivisionDto> searchDivisions(String keyword, Boolean isActive) {
-        return divisionRepository.search(normalizeBlank(keyword), isActive).stream().map(this::toDto).toList();
+        return divisionMapper.toDtoList(divisionRepository.search(normalizeBlank(keyword), isActive));
     }
 
     @Override
     @Transactional(readOnly = true)
     public DivisionDto getDivision(UUID id) {
-        return toDto(findDivision(id));
+        return divisionMapper.toDto(findDivision(id));
     }
 
     @Override
@@ -41,12 +43,11 @@ public class DivisionServiceImpl implements DivisionService {
         divisionRepository.findByCode(code).ifPresent(existing -> {
             throw new BusinessException("Mã phòng ban đã tồn tại");
         });
-        Division division = new Division();
+        Division division = divisionMapper.toEntity(request);
         division.setCode(code);
         division.setName(request.getName().trim());
-        apply(division, request);
         division.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return toDto(divisionRepository.save(division));
+        return divisionMapper.toDto(divisionRepository.save(division));
     }
 
     @Override
@@ -62,9 +63,10 @@ public class DivisionServiceImpl implements DivisionService {
                     });
             division.setCode(code);
         }
+        divisionMapper.updateEntityFromDto(request, division);
+        if (StringUtils.hasText(request.getCode())) division.setCode(normalizeCode(request.getCode()));
         if (StringUtils.hasText(request.getName())) division.setName(request.getName().trim());
-        apply(division, request);
-        return toDto(divisionRepository.save(division));
+        return divisionMapper.toDto(divisionRepository.save(division));
     }
 
     @Override
@@ -85,21 +87,6 @@ public class DivisionServiceImpl implements DivisionService {
         if (!StringUtils.hasText(request.getCode()) || !StringUtils.hasText(request.getName())) {
             throw new BusinessException("Mã và tên phòng ban không được để trống");
         }
-    }
-
-    private void apply(Division division, DivisionDto request) {
-        if (request.getDescription() != null) division.setDescription(request.getDescription());
-        if (request.getIsActive() != null) division.setIsActive(request.getIsActive());
-    }
-
-    private DivisionDto toDto(Division division) {
-        return DivisionDto.builder()
-                .divisionId(division.getDivisionId())
-                .code(division.getCode())
-                .name(division.getName())
-                .description(division.getDescription())
-                .isActive(division.getIsActive())
-                .build();
     }
 
     private String normalizeCode(String code) {

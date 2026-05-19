@@ -4,6 +4,7 @@ import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.department.dto.DepartmentDto;
 import com.quanlydaotao.backend.department.entity.Department;
+import com.quanlydaotao.backend.department.mapper.DepartmentMapper;
 import com.quanlydaotao.backend.department.repository.DepartmentRepository;
 import com.quanlydaotao.backend.department.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
@@ -20,19 +21,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DepartmentServiceImpl implements DepartmentService {
     private final DepartmentRepository departmentRepository;
+    private final DepartmentMapper departmentMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<DepartmentDto> searchDepartments(String keyword, Boolean isActive) {
-        return departmentRepository.search(normalizeBlank(keyword), isActive).stream()
-                .map(this::toDto)
-                .toList();
+        return departmentMapper.toDtoList(departmentRepository.search(normalizeBlank(keyword), isActive));
     }
 
     @Override
     @Transactional(readOnly = true)
     public DepartmentDto getDepartment(UUID id) {
-        return toDto(findDepartment(id));
+        return departmentMapper.toDto(findDepartment(id));
     }
 
     @Override
@@ -43,11 +43,10 @@ public class DepartmentServiceImpl implements DepartmentService {
         departmentRepository.findByCode(code).ifPresent(existing -> {
             throw new BusinessException("Mã khoa đã tồn tại");
         });
-        Department department = new Department();
+        Department department = departmentMapper.toEntity(request);
         department.setCode(code);
-        apply(department, request);
         department.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return toDto(departmentRepository.save(department));
+        return departmentMapper.toDto(departmentRepository.save(department));
     }
 
     @Override
@@ -63,8 +62,9 @@ public class DepartmentServiceImpl implements DepartmentService {
                     });
             department.setCode(code);
         }
-        apply(department, request);
-        return toDto(departmentRepository.save(department));
+        departmentMapper.updateEntityFromDto(request, department);
+        if (StringUtils.hasText(request.getCode())) department.setCode(normalizeCode(request.getCode()));
+        return departmentMapper.toDto(departmentRepository.save(department));
     }
 
     @Override
@@ -85,22 +85,6 @@ public class DepartmentServiceImpl implements DepartmentService {
         if (!StringUtils.hasText(request.getCode()) || !StringUtils.hasText(request.getName())) {
             throw new BusinessException("Mã khoa và tên khoa không được để trống");
         }
-    }
-
-    private void apply(Department department, DepartmentDto request) {
-        if (request.getName() != null) department.setName(request.getName());
-        if (request.getDescription() != null) department.setDescription(request.getDescription());
-        if (request.getIsActive() != null) department.setIsActive(request.getIsActive());
-    }
-
-    private DepartmentDto toDto(Department department) {
-        return DepartmentDto.builder()
-                .departmentId(department.getDepartmentId())
-                .code(department.getCode())
-                .name(department.getName())
-                .description(department.getDescription())
-                .isActive(department.getIsActive())
-                .build();
     }
 
     private String normalizeCode(String code) {
