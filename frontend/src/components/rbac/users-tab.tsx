@@ -133,7 +133,7 @@ export function UsersTab() {
                       description={searchDebounced ? `Không có kết quả cho "${searchDebounced}"` : 'Tìm kiếm user để xem và quản lý vai trò của họ'}
                     />
                   </td></tr>
-                )
+                )d
                 : users.map((user, userIndex) => (
                   <tr key={user.id ?? user.email ?? user.username ?? userIndex} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors">
                     <td className="py-3 px-4">
