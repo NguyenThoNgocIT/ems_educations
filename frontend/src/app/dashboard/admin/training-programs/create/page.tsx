@@ -22,17 +22,38 @@ export default function CreateTrainingProgramPage() {
   const [fetchingCohorts, setFetchingCohorts] = useState(true);
 
   const [formData, setFormData] = useState({
+    // Required fields
+    code: '',
+    name: '',
     programCode: '',
     programName: '',
+    academicYear: '',
     majorId: '',
     academicCohortId: '',
-    academicYear: '',
+    departmentId: '',
+    // Optional fields with defaults
+    nameEn: '',
+    degreeLevel: 'Đại học',
+    educationType: 'Chính quy',
     totalCredits: 0,
+    requiredCredits: 0,
+    electiveCredits: 0,
+    internshipCredits: 0,
+    thesisCredits: 0,
+    admissionYear: new Date().getFullYear().toString(),
+    durationYears: 4,
+    maxDurationYears: 6,
+    effectiveDate: new Date().toISOString().split('T')[0],
+    expiryDate: '',
     description: '',
+    objectives: '',
+    learningOutcomes: '',
+    version: '1.0',
+    status: 'ACTIVE',
+    isActive: true,
     note: ''
   });
 
-  // Lấy danh sách ngành học và khóa học từ BE
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -41,15 +62,33 @@ export default function CreateTrainingProgramPage() {
           academicCohortApi.getAll()
         ]);
         
+
         setMajors(majorsRes || []);
         setCohorts(cohortsRes || []);
         
-        if (cohortsRes && cohortsRes.length > 0) {
+        let cohortsData = [];
+        if (cohortsRes?.data?.content) {
+          cohortsData = cohortsRes.data.content;
+        } else if (cohortsRes?.content) {
+          cohortsData = cohortsRes.content;
+        } else if (Array.isArray(cohortsRes?.data)) {
+          cohortsData = cohortsRes.data;
+        } else if (Array.isArray(cohortsRes)) {
+          cohortsData = cohortsRes;
+        }
+        setCohorts(cohortsData);
+        
+        if (cohortsData && cohortsData.length > 0) {
           setFormData(prev => ({ 
             ...prev, 
-            academicCohortId: cohortsRes[0].cohortId,
-            academicYear: `${cohortsRes[0].startYear}-${cohortsRes[0].endYear}`
+            academicCohortId: cohortsData[0].cohortId,
+            academicYear: `${cohortsData[0].startYear}-${cohortsData[0].endYear}`
           }));
+        }
+        
+        // Lấy departmentId từ major đầu tiên nếu có
+        if (majorsData && majorsData.length > 0 && majorsData[0].departmentId) {
+          setFormData(prev => ({ ...prev, departmentId: majorsData[0].departmentId }));
         }
       } catch (error) {
         console.error('Lỗi khi lấy dữ liệu:', error);
@@ -62,42 +101,90 @@ export default function CreateTrainingProgramPage() {
     fetchData();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.programCode.trim()) {
-      toast.error('Vui lòng nhập mã chương trình');
-      return;
+  // Cập nhật departmentId khi chọn major
+  useEffect(() => {
+    if (formData.majorId) {
+      const selectedMajor = majors.find(m => m.majorId === formData.majorId);
+      if (selectedMajor?.departmentId) {
+        setFormData(prev => ({ ...prev, departmentId: selectedMajor.departmentId }));
+      }
     }
-    if (!formData.programName.trim()) {
-      toast.error('Vui lòng nhập tên chương trình');
-      return;
-    }
-    if (!formData.majorId) {
-      toast.error('Vui lòng chọn ngành học');
-      return;
-    }
-    if (!formData.academicCohortId) {
-      toast.error('Vui lòng chọn khóa học');
-      return;
-    }
-    if (!formData.academicYear.trim()) {
-      toast.error('Vui lòng nhập khóa học/năm học');
-      return;
-    }
+  }, [formData.majorId, majors]);
 
-    setLoading(true);
-    try {
-      await trainingProgramApi.create(formData);
-      toast.success('Thêm chương trình đào tạo thành công');
-      router.push('/dashboard/admin/students/create'); // Quay lại trang tạo sinh viên để chọn
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.response?.data?.message || 'Thêm chương trình đào tạo thất bại');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!formData.code) {
+    toast.error('Vui lòng nhập mã chương trình');
+    return;
+  }
+  if (!formData.name) {
+    toast.error('Vui lòng nhập tên chương trình');
+    return;
+  }
+  if (!formData.majorId) {
+    toast.error('Vui lòng chọn ngành học');
+    return;
+  }
+  if (!formData.academicCohortId) {
+    toast.error('Vui lòng chọn khóa học');
+    return;
+  }
+  if (!formData.departmentId) {
+    toast.error('Không xác định được khoa');
+    return;
+  }
+
+  setLoading(true);
+  try {
+    // Format admissionYear thành YYYY-MM-DD
+    const admissionYearFormatted = formData.admissionYear 
+      ? `${formData.admissionYear}-01-01` 
+      : null;
+    
+    const submitData = {
+      code: formData.code,
+      name: formData.name,
+      programCode: formData.code,
+      programName: formData.name,
+      nameEn: formData.nameEn || '',
+      majorId: formData.majorId,
+      departmentId: formData.departmentId,
+      academicCohortId: formData.academicCohortId,
+      academicYear: formData.academicYear,
+      degreeLevel: formData.degreeLevel,
+      educationType: formData.educationType,
+      totalCredits: Number(formData.totalCredits),
+      requiredCredits: Number(formData.requiredCredits),
+      electiveCredits: Number(formData.electiveCredits),
+      internshipCredits: Number(formData.internshipCredits),
+      thesisCredits: Number(formData.thesisCredits),
+      admissionYear: admissionYearFormatted,  // ← "2026-01-01"
+      durationYears: Number(formData.durationYears),
+      maxDurationYears: Number(formData.maxDurationYears),
+      effectiveDate: formData.effectiveDate || null,
+      expiryDate: formData.expiryDate || null,
+      description: formData.description || '',
+      objectives: formData.objectives || '',
+      learningOutcomes: formData.learningOutcomes || '',
+      version: formData.version || '1.0',
+      status: formData.status,
+      isActive: true,
+      note: formData.note || ''
+    };
+    
+    console.log('📦 Submit data:', submitData);
+    await trainingProgramApi.create(submitData);
+    toast.success('Thêm chương trình đào tạo thành công');
+    router.push('/dashboard/admin/training-programs');
+  } catch (error: any) {
+    console.error('❌ Error:', error);
+    console.error('❌ Response:', error.response?.data);
+    toast.error(error.response?.data?.message || 'Thêm chương trình đào tạo thất bại');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="p-6 space-y-6">
@@ -115,25 +202,36 @@ export default function CreateTrainingProgramPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Mã chương trình */}
+            {/* Mã chương trình (code) */}
             <div className="space-y-2">
-              <Label htmlFor="programCode" className="font-semibold">Mã chương trình <span className="text-red-500">*</span></Label>
+              <Label htmlFor="code" className="font-semibold">Mã chương trình <span className="text-red-500">*</span></Label>
               <Input
-                id="programCode"
-                value={formData.programCode}
-                onChange={(e) => setFormData({ ...formData, programCode: e.target.value })}
+                id="code"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value, programCode: e.target.value })}
                 placeholder="VD: CTDT_CNTT_2024"
               />
             </div>
 
-            {/* Tên chương trình */}
+            {/* Tên chương trình (name) */}
             <div className="space-y-2">
-              <Label htmlFor="programName" className="font-semibold">Tên chương trình <span className="text-red-500">*</span></Label>
+              <Label htmlFor="name" className="font-semibold">Tên chương trình <span className="text-red-500">*</span></Label>
               <Input
-                id="programName"
-                value={formData.programName}
-                onChange={(e) => setFormData({ ...formData, programName: e.target.value })}
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value, programName: e.target.value })}
                 placeholder="VD: Chương trình đào tạo CNTT Khóa 2024"
+              />
+            </div>
+
+            {/* Tên tiếng Anh */}
+            <div className="space-y-2">
+              <Label htmlFor="nameEn">Tên chương trình (Tiếng Anh)</Label>
+              <Input
+                id="nameEn"
+                value={formData.nameEn}
+                onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
+                placeholder="VD: Information Technology Training Program"
               />
             </div>
 
@@ -202,9 +300,9 @@ export default function CreateTrainingProgramPage() {
               </select>
             </div>
 
-            {/* Khóa học/Năm học */}
+            {/* Năm học */}
             <div className="space-y-2">
-              <Label htmlFor="academicYear" className="font-semibold">Khóa học/Năm học <span className="text-red-500">*</span></Label>
+              <Label htmlFor="academicYear" className="font-semibold">Năm học <span className="text-red-500">*</span></Label>
               <Input
                 id="academicYear"
                 value={formData.academicYear}
@@ -213,20 +311,134 @@ export default function CreateTrainingProgramPage() {
               />
             </div>
 
-            {/* Số tín chỉ */}
+            {/* Năm tuyển sinh */}
             <div className="space-y-2">
-              <Label htmlFor="totalCredits" className="font-semibold">Tổng số tín chỉ <span className="text-red-500">*</span></Label>
+              <Label htmlFor="admissionYear">Năm tuyển sinh</Label>
+              <Input
+                id="admissionYear"
+                type="number"
+                value={formData.admissionYear}
+                onChange={(e) => setFormData({ ...formData, admissionYear: e.target.value })}
+                placeholder="2024"
+              />
+            </div>
+
+            {/* Thời gian đào tạo */}
+            <div className="space-y-2">
+              <Label htmlFor="durationYears">Thời gian đào tạo (năm)</Label>
+              <Input
+                id="durationYears"
+                type="number"
+                value={formData.durationYears}
+                onChange={(e) => setFormData({ ...formData, durationYears: parseInt(e.target.value) || 0 })}
+                placeholder="4"
+              />
+            </div>
+
+            {/* Thời gian đào tạo tối đa */}
+            <div className="space-y-2">
+              <Label htmlFor="maxDurationYears">Thời gian đào tạo tối đa (năm)</Label>
+              <Input
+                id="maxDurationYears"
+                type="number"
+                value={formData.maxDurationYears}
+                onChange={(e) => setFormData({ ...formData, maxDurationYears: parseInt(e.target.value) || 0 })}
+                placeholder="6"
+              />
+            </div>
+
+            {/* Tổng số tín chỉ */}
+            <div className="space-y-2">
+              <Label htmlFor="totalCredits">Tổng số tín chỉ</Label>
               <Input
                 id="totalCredits"
                 type="number"
                 value={formData.totalCredits}
                 onChange={(e) => setFormData({ ...formData, totalCredits: parseInt(e.target.value) || 0 })}
+                placeholder="120"
+              />
+            </div>
+
+            {/* Tín chỉ bắt buộc */}
+            <div className="space-y-2">
+              <Label htmlFor="requiredCredits">Tín chỉ bắt buộc</Label>
+              <Input
+                id="requiredCredits"
+                type="number"
+                value={formData.requiredCredits}
+                onChange={(e) => setFormData({ ...formData, requiredCredits: parseInt(e.target.value) || 0 })}
+                placeholder="90"
+              />
+            </div>
+
+            {/* Tín chỉ tự chọn */}
+            <div className="space-y-2">
+              <Label htmlFor="electiveCredits">Tín chỉ tự chọn</Label>
+              <Input
+                id="electiveCredits"
+                type="number"
+                value={formData.electiveCredits}
+                onChange={(e) => setFormData({ ...formData, electiveCredits: parseInt(e.target.value) || 0 })}
+                placeholder="30"
+              />
+            </div>
+
+            {/* Bậc đào tạo */}
+            <div className="space-y-2">
+              <Label htmlFor="degreeLevel">Bậc đào tạo</Label>
+              <select
+                id="degreeLevel"
+                value={formData.degreeLevel}
+                onChange={(e) => setFormData({ ...formData, degreeLevel: e.target.value })}
+                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="Đại học">Đại học</option>
+                <option value="Cao đẳng">Cao đẳng</option>
+                <option value="Thạc sĩ">Thạc sĩ</option>
+                <option value="Tiến sĩ">Tiến sĩ</option>
+              </select>
+            </div>
+
+            {/* Hình thức đào tạo */}
+            <div className="space-y-2">
+              <Label htmlFor="educationType">Hình thức đào tạo</Label>
+              <select
+                id="educationType"
+                value={formData.educationType}
+                onChange={(e) => setFormData({ ...formData, educationType: e.target.value })}
+                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="Chính quy">Chính quy</option>
+                <option value="Vừa làm vừa học">Vừa làm vừa học</option>
+                <option value="Từ xa">Từ xa</option>
+              </select>
+            </div>
+
+            {/* Ngày hiệu lực */}
+            <div className="space-y-2">
+              <Label htmlFor="effectiveDate">Ngày hiệu lực</Label>
+              <Input
+                id="effectiveDate"
+                type="date"
+                value={formData.effectiveDate}
+                onChange={(e) => setFormData({ ...formData, effectiveDate: e.target.value })}
+              />
+            </div>
+
+            {/* Ngày hết hiệu lực */}
+            <div className="space-y-2">
+              <Label htmlFor="expiryDate">Ngày hết hiệu lực</Label>
+              <Input
+                id="expiryDate"
+                type="date"
+                value={formData.expiryDate}
+                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
               />
             </div>
 
             {/* Mô tả */}
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="description" className="font-semibold">Mô tả</Label>
+              <Label htmlFor="description">Mô tả</Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -236,15 +448,65 @@ export default function CreateTrainingProgramPage() {
               />
             </div>
 
+            {/* Mục tiêu */}
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="objectives">Mục tiêu đào tạo</Label>
+              <Textarea
+                id="objectives"
+                value={formData.objectives}
+                onChange={(e) => setFormData({ ...formData, objectives: e.target.value })}
+                placeholder="Mục tiêu của chương trình đào tạo..."
+                rows={3}
+              />
+            </div>
+
+            {/* Chuẩn đầu ra */}
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="learningOutcomes">Chuẩn đầu ra</Label>
+              <Textarea
+                id="learningOutcomes"
+                value={formData.learningOutcomes}
+                onChange={(e) => setFormData({ ...formData, learningOutcomes: e.target.value })}
+                placeholder="Chuẩn đầu ra của chương trình..."
+                rows={3}
+              />
+            </div>
+
             {/* Ghi chú */}
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="note" className="font-semibold">Ghi chú</Label>
+              <Label htmlFor="note">Ghi chú</Label>
               <Input
                 id="note"
                 value={formData.note}
                 onChange={(e) => setFormData({ ...formData, note: e.target.value })}
                 placeholder="Ghi chú thêm..."
               />
+            </div>
+
+            {/* Phiên bản */}
+            <div className="space-y-2">
+              <Label htmlFor="version">Phiên bản</Label>
+              <Input
+                id="version"
+                value={formData.version}
+                onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                placeholder="1.0"
+              />
+            </div>
+
+            {/* Trạng thái */}
+            <div className="space-y-2">
+              <Label htmlFor="status">Trạng thái</Label>
+              <select
+                id="status"
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="ACTIVE">Đang áp dụng</option>
+                <option value="INACTIVE">Ngừng áp dụng</option>
+                <option value="DRAFT">Nháp</option>
+              </select>
             </div>
 
             <div className="md:col-span-2 pt-4 flex gap-3">

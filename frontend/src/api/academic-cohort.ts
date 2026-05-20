@@ -3,6 +3,7 @@ import { unwrapApiResponse } from '@/api/response';
 import type { AcademicCohort } from '@/types/lookup';
 
 export const academicCohortApi = {
+
   getAll: async (params?: { keyword?: string; isActive?: boolean }): Promise<AcademicCohort[]> => {
     const response = await request.get('/api/v1/academic-cohorts/admin', { params });
     return unwrapApiResponse<AcademicCohort[]>(response);
@@ -27,3 +28,4 @@ export const academicCohortApi = {
     await request.delete(`/api/v1/academic-cohorts/admin/${id}`);
   },
 };
+

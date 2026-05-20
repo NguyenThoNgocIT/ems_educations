@@ -66,6 +66,7 @@ public class SemesterServiceImpl implements SemesterService {
         UUID schoolYearId = request.getSchoolYearId() == null ? semester.getSchoolYearId() : request.getSchoolYearId();
         SchoolYear schoolYear = findSchoolYear(schoolYearId);
         validateSemesterDates(request, schoolYear);
+        
         if (StringUtils.hasText(request.getCode())) {
             String code = normalizeCode(request.getCode());
             semesterRepository.findBySchoolYearIdAndCode(schoolYearId, code)
@@ -75,9 +76,24 @@ public class SemesterServiceImpl implements SemesterService {
                     });
             semester.setCode(code);
         }
-        semesterMapper.updateEntityFromDto(request, semester);
-        if (StringUtils.hasText(request.getCode())) semester.setCode(normalizeCode(request.getCode()));
-        if (StringUtils.hasText(request.getName())) semester.setName(request.getName().trim());
+        
+        // ✅ CẬP NHẬT THỦ CÔNG - THAY THẾ DÒNG semesterMapper.updateEntityFromDto
+        if (StringUtils.hasText(request.getName())) {
+            semester.setName(request.getName().trim());
+        }
+        if (request.getSchoolYearId() != null) {
+            semester.setSchoolYearId(request.getSchoolYearId());
+        }
+        if (request.getStartDate() != null) {
+            semester.setStartDate(request.getStartDate());
+        }
+        if (request.getEndDate() != null) {
+            semester.setEndDate(request.getEndDate());
+        }
+        if (request.getIsActive() != null) {
+            semester.setIsActive(request.getIsActive());
+        }
+        
         return semesterMapper.toDto(semesterRepository.save(semester));
     }
 
