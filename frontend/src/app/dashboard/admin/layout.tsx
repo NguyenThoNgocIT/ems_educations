@@ -21,7 +21,7 @@ export default function DashboardLayout({
       : "lg:ml-[90px]";
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+    <div className="min-h-screen pt-17 bg-gray-50 dark:bg-slate-950">
       {/* Sidebar bên trái */}
       <AppSidebar />
 
