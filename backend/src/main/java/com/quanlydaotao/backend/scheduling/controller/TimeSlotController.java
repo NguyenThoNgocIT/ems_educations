@@ -5,6 +5,7 @@ import com.quanlydaotao.backend.scheduling.dto.TimeSlotDto;
 import com.quanlydaotao.backend.scheduling.service.TimeSlotService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,13 +35,13 @@ public class TimeSlotController {
 
     @PostMapping
     @Operation(summary = "Tạo mới ca học")
-    public ResponseEntity<ApiResponse<TimeSlotDto>> create(@RequestBody TimeSlotDto dto) {
+    public ResponseEntity<ApiResponse<TimeSlotDto>> create(@Valid @RequestBody TimeSlotDto dto) {
         return ResponseEntity.ok(ApiResponse.success("Tạo ca học thành công", timeSlotService.create(dto)));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật thông tin ca học")
-    public ResponseEntity<ApiResponse<TimeSlotDto>> update(@PathVariable UUID id, @RequestBody TimeSlotDto dto) {
+    public ResponseEntity<ApiResponse<TimeSlotDto>> update(@PathVariable UUID id, @Valid @RequestBody TimeSlotDto dto) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật ca học thành công", timeSlotService.update(id, dto)));
     }
 

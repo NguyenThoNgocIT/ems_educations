@@ -48,7 +48,14 @@ public class TimeSlotServiceImpl implements TimeSlotService {
         TimeSlot timeSlot = timeSlotRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ca học với ID: " + id));
         
-        timeSlotMapper.updateEntityFromDto(dto, timeSlot);
+        // Cập nhật thủ công, KHÔNG dùng mapper để tránh lỗi ID
+        timeSlot.setSlotCode(dto.getSlotCode());
+        timeSlot.setStartTime(dto.getStartTime());
+        timeSlot.setEndTime(dto.getEndTime());
+        if (dto.getIsActive() != null) {
+            timeSlot.setIsActive(dto.getIsActive());
+        }
+        
         return timeSlotMapper.toDto(timeSlotRepository.save(timeSlot));
     }
 
