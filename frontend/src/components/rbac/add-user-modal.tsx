@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import type { Role } from '@/types/rbac';
+import { request } from '@/utils/request';
+import { parseUserList } from './shared';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -51,6 +53,86 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [roleSearch, setRoleSearch] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
+
+  // Metadata states
+  const [divisions, setDivisions] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [majors, setMajors] = useState<any[]>([]);
+  const [cohorts, setCohorts] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
+
+  // Selected IDs states
+  const [selectedDivisionId, setSelectedDivisionId] = useState('');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState('');
+  const [selectedMajorId, setSelectedMajorId] = useState('');
+  const [selectedCohortId, setSelectedCohortId] = useState('');
+  const [selectedProgramId, setSelectedProgramId] = useState('');
+
+  // Fetch metadata when modal is open
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const [divsRes, deptsRes, majorsRes, cohortsRes, programsRes] = await Promise.all([
+          request.get('/api/v1/divisions/admin'),
+          request.get('/api/v1/departments/admin'),
+          request.get('/api/v1/majors/admin'),
+          request.get('/api/v1/academic-cohorts/admin'),
+          request.get('/api/v1/training-programs/admin')
+        ]);
+        setDivisions(parseUserList(divsRes));
+        setDepartments(parseUserList(deptsRes));
+        setMajors(parseUserList(majorsRes));
+        setCohorts(parseUserList(cohortsRes));
+        setPrograms(parseUserList(programsRes));
+      } catch (err) {
+        console.error('Lỗi khi tải metadata để tạo user:', err);
+      }
+    };
+    if (isOpen) {
+      fetchMetadata();
+    }
+  }, [isOpen]);
+
+  // Set default selections
+  useEffect(() => {
+    if (divisions.length > 0 && !selectedDivisionId) setSelectedDivisionId(divisions[0].divisionId || divisions[0].id);
+  }, [divisions, selectedDivisionId]);
+
+  useEffect(() => {
+    if (departments.length > 0 && !selectedDepartmentId) setSelectedDepartmentId(departments[0].departmentId || departments[0].id);
+  }, [departments, selectedDepartmentId]);
+
+  useEffect(() => {
+    if (majors.length > 0 && !selectedMajorId) setSelectedMajorId(majors[0].majorId || majors[0].id);
+  }, [majors, selectedMajorId]);
+
+  useEffect(() => {
+    if (cohorts.length > 0 && !selectedCohortId) setSelectedCohortId(cohorts[0].academicCohortId || cohorts[0].id);
+  }, [cohorts, selectedCohortId]);
+
+  useEffect(() => {
+    if (programs.length > 0 && !selectedProgramId) setSelectedProgramId(programs[0].trainingProgramId || programs[0].id);
+  }, [programs, selectedProgramId]);
+
+  // Derive user type based on selected roles
+  const rolesInfo = Array.from(selectedRoles).map(roleId => allRoles.find(r => (r.id || r.roleId) === roleId));
+  const isStudent = rolesInfo.some(r => r?.code === 'STUDENT');
+  const isLecturer = rolesInfo.some(r => r?.code === 'LECTURER');
+  const isStaff = rolesInfo.some(r => r && r.code !== 'STUDENT' && r.code !== 'LECTURER') || selectedRoles.size === 0;
+
+  const isFormValid = (() => {
+    if (!fullName || !dob) return false;
+    if (isStudent) {
+      return !!selectedMajorId && !!selectedCohortId && !!selectedProgramId;
+    }
+    if (isLecturer) {
+      return !!selectedDepartmentId;
+    }
+    if (isStaff) {
+      return !!selectedDivisionId;
+    }
+    return true;
+  })();
 
   // Auto-generate Email from Full Name
   useEffect(() => {
@@ -92,13 +174,26 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
       email,
       password,
       roles: Array.from(selectedRoles),
-      avatar
+      avatar,
+      isStudent,
+      isLecturer,
+      isStaff,
+      divisionId: selectedDivisionId || null,
+      departmentId: selectedDepartmentId || null,
+      majorId: selectedMajorId || null,
+      academicCohortId: selectedCohortId || null,
+      trainingProgramId: selectedProgramId || null,
     });
     // Reset form
     setFullName('');
     setDob('');
     setSelectedRoles(new Set());
     setAvatar(null);
+    setSelectedDivisionId('');
+    setSelectedDepartmentId('');
+    setSelectedMajorId('');
+    setSelectedCohortId('');
+    setSelectedProgramId('');
   };
 
   return (
@@ -162,6 +257,97 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                     className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm" 
                   />
                 </div>
+
+                {/* Dynamically show additional fields based on selected roles */}
+                {isStudent && (
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Ngành học <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedMajorId}
+                        onChange={e => setSelectedMajorId(e.target.value)}
+                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
+                      >
+                        <option value="">-- Chọn ngành học --</option>
+                        {majors.map(m => (
+                          <option key={m.majorId || m.id} value={m.majorId || m.id}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Niên khóa <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedCohortId}
+                        onChange={e => setSelectedCohortId(e.target.value)}
+                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
+                      >
+                        <option value="">-- Chọn niên khóa --</option>
+                        {cohorts.map(c => (
+                          <option key={c.academicCohortId || c.id} value={c.academicCohortId || c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Chương trình đào tạo <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedProgramId}
+                        onChange={e => setSelectedProgramId(e.target.value)}
+                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
+                      >
+                        <option value="">-- Chọn chương trình đào tạo --</option>
+                        {programs.map(p => (
+                          <option key={p.trainingProgramId || p.id} value={p.trainingProgramId || p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {isLecturer && !isStudent && (
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Khoa/Bộ môn <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedDepartmentId}
+                        onChange={e => setSelectedDepartmentId(e.target.value)}
+                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
+                      >
+                        <option value="">-- Chọn khoa/bộ môn --</option>
+                        {departments.map(d => (
+                          <option key={d.departmentId || d.id} value={d.departmentId || d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {isStaff && !isStudent && !isLecturer && (
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Phòng ban <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedDivisionId}
+                        onChange={e => setSelectedDivisionId(e.target.value)}
+                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
+                      >
+                        <option value="">-- Chọn phòng ban --</option>
+                        {divisions.map(d => (
+                          <option key={d.divisionId || d.id} value={d.divisionId || d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
 
                 <div className="pt-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Avatar Preview</label>
@@ -328,9 +514,9 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
             <button 
               type="button"
               onClick={handleSave}
-              disabled={!fullName || !dob}
+              disabled={!isFormValid}
               className={`flex items-center gap-2 px-6 py-2 text-sm font-bold text-white rounded-xl shadow-lg transition-all ${
-                fullName && dob
+                isFormValid
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 hover:-translate-y-0.5' 
                   : 'bg-gray-300 cursor-not-allowed shadow-none'
               }`}

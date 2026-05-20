@@ -19,6 +19,7 @@ import { Modal } from '@/components/ui/modal';
 import { AddUserModal } from './add-user-modal';
 import { useAuth } from '@/context/AuthContext';
 import { roleApi, userRoleApi } from '@/api/rbac';
+import { request } from '@/utils/request';
 import type { Role, UserWithRoles, Permission } from '@/types/rbac';
 import { EmptyState, ActionMenu, ActionMenuItem, parseUserList, useDebounce, UserTableSkeleton, MethodBadge } from './shared';
 
@@ -114,30 +115,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         size: 50,
       });
       const serverUsers = parseUserList(res);
-
-      // Load mock users from localStorage
-      let localMockUsers: any[] = [];
-      try {
-        const stored = localStorage.getItem('mock_users');
-        if (stored) {
-          localMockUsers = JSON.parse(stored);
-        }
-      } catch (err) {
-        console.error('Lỗi khi đọc mock_users từ localStorage:', err);
-      }
-
-      // Filter mock users by keyword if search is active
-      const filteredMock = localMockUsers.filter((u: any) => {
-        if (!keyword) return true;
-        const kw = keyword.toLowerCase();
-        return (
-          u.fullName?.toLowerCase().includes(kw) ||
-          u.email?.toLowerCase().includes(kw) ||
-          u.username?.toLowerCase().includes(kw)
-        );
-      });
-
-      setRawUsers([...filteredMock, ...serverUsers]);
+      setRawUsers(serverUsers);
     } catch {
       toast.error('Không thể tải danh sách người dùng');
     } finally {
@@ -307,37 +285,57 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   const handleSaveUsers = async (userData: any) => {
     try {
       setLoading(true);
-      // Giả lập gọi API tạo user do backend chưa hỗ trợ
-      console.log('Tạo user mới:', userData);
-      
-      const newUser = {
-        id: `mock-${Date.now()}`,
-        userId: `mock-${Date.now()}`,
-        fullName: userData.fullName,
-        email: userData.email,
-        username: userData.email.split('@')[0],
-        roles: userData.roles.map((roleId: string) => {
-          const match = allRoles.find(r => (r.id || r.roleId) === roleId);
-          return match || { roleId };
-        }),
-        isActive: true,
-      };
-      
-      // Save to localStorage
-      try {
-        const stored = localStorage.getItem('mock_users');
-        const mockUsers = stored ? JSON.parse(stored) : [];
-        mockUsers.unshift(newUser);
-        localStorage.setItem('mock_users', JSON.stringify(mockUsers));
-      } catch (err) {
-        console.error('Lỗi khi lưu mock_users vào localStorage:', err);
+      let userId: string | null = null;
+      const fullName = userData.fullName;
+
+      if (userData.isStudent) {
+        const response: any = await request.post('/api/v1/students/admin', {
+          fullName: userData.fullName,
+          dateOfBirth: userData.dob,
+          majorId: userData.majorId,
+          trainingProgramId: userData.trainingProgramId,
+          academicCohortId: userData.academicCohortId,
+        });
+        const responseData = response?.data || response;
+        userId = responseData.userId || responseData.data?.userId;
+      } else if (userData.isLecturer) {
+        const response: any = await request.post('/api/v1/instructors/admin', {
+          fullName: userData.fullName,
+          dateOfBirth: userData.dob,
+          departmentId: userData.departmentId,
+        });
+        const responseData = response?.data || response;
+        userId = responseData.userId || responseData.data?.userId;
+      } else {
+        const response: any = await request.post('/api/v1/staffs/admin', {
+          fullName: userData.fullName,
+          dateOfBirth: userData.dob,
+          divisionId: userData.divisionId,
+        });
+        const responseData = response?.data || response;
+        userId = responseData.userId || responseData.data?.userId;
       }
 
-      toast.success(`Đã tạo người dùng ${userData.fullName} thành công!`);
+      if (!userId) {
+        throw new Error('Không nhận được User ID từ máy chủ.');
+      }
+
+      if (userData.roles && userData.roles.length > 0) {
+        const roleIdsArray = userData.roles.map((sel: string) => {
+          const match = allRoles.find(r => r.id === sel || r.roleId === sel || r.code === sel || r.name === sel);
+          return match?.id || match?.roleId || sel;
+        }).filter(Boolean);
+
+        await userRoleApi.updateUserRoles(userId, roleIdsArray);
+      }
+
+      toast.success(`Đã tạo người dùng ${fullName} thành công!`);
       setIsAddUserModalOpen(false);
       fetchUsers();
-    } catch {
-      toast.error('Không thể tạo người dùng mới');
+    } catch (err: any) {
+      console.error('Lỗi khi tạo user:', err);
+      const errorMsg = err?.response?.data?.message || err?.message || 'Không thể tạo người dùng mới';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
