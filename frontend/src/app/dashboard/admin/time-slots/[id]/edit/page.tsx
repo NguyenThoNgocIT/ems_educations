@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { timeSlotApi } from '@/api/timeSlot';
 
 interface TimeSlotFormData {
   slotCode: string;
@@ -15,13 +16,6 @@ interface TimeSlotFormData {
   endTime: string;
   isActive: boolean;
 }
-
-// Mock data - sẽ thay bằng API call sau
-const mockTimeSlotData: Record<string, TimeSlotFormData> = {
-  '1': { slotCode: 'T1', startTime: '07:30', endTime: '09:00', isActive: true },
-  '2': { slotCode: 'T2', startTime: '09:15', endTime: '10:45', isActive: true },
-  '3': { slotCode: 'T3', startTime: '11:00', endTime: '12:30', isActive: true },
-};
 
 export default function EditTimeSlotPage() {
   const router = useRouter();
@@ -38,35 +32,74 @@ export default function EditTimeSlotPage() {
   });
 
   useEffect(() => {
-    if (id) {
-      // TODO: Gọi API lấy chi tiết ca học
-      setTimeout(() => {
-        const data = mockTimeSlotData[id] || {
-          slotCode: '',
-          startTime: '',
-          endTime: '',
-          isActive: true
-        };
-        setFormData(data);
+    async function fetchTimeSlot() {
+      if (!id) return;
+      
+      try {
+        setPageLoading(true);
+        const response: any = await timeSlotApi.getById(id);
+        const data = response?.data || response;
+        
+        // Xử lý cả 2 trường hợp: string hoặc object
+        let startTimeStr = '';
+        let endTimeStr = '';
+        
+        if (typeof data.startTime === 'string') {
+          startTimeStr = data.startTime.substring(0, 5);
+          endTimeStr = data.endTime.substring(0, 5);
+        } else if (data.startTime?.hour !== undefined) {
+          startTimeStr = `${String(data.startTime.hour).padStart(2, '0')}:${String(data.startTime.minute).padStart(2, '0')}`;
+          endTimeStr = `${String(data.endTime.hour).padStart(2, '0')}:${String(data.endTime.minute).padStart(2, '0')}`;
+        }
+        
+        setFormData({
+          slotCode: data.slotCode || '',
+          startTime: startTimeStr,
+          endTime: endTimeStr,
+          isActive: data.isActive ?? true
+        });
+      } catch (error) {
+        console.error(error);
+        toast.error('Không thể lấy thông tin ca học');
+        router.push('/dashboard/admin/time-slots');
+      } finally {
         setPageLoading(false);
-      }, 500);
+      }
     }
-  }, [id]);
+    
+    fetchTimeSlot();
+  }, [id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!formData.slotCode || !formData.startTime || !formData.endTime) {
       toast.error('Vui lòng điền đầy đủ thông tin');
       return;
     }
 
     setLoading(true);
-    // TODO: Gọi API cập nhật ca học
-    setTimeout(() => {
-      setLoading(false);
+    
+    try {
+      // GỬI DƯỚI DẠNG STRING (Backend hiện tại chỉ nhận format này)
+      const submitData = {
+        slotCode: formData.slotCode,
+        startTime: `${formData.startTime}:00`,  // "14:45" → "14:45:00"
+        endTime: `${formData.endTime}:00`,      // "16:15" → "16:15:00"
+        isActive: formData.isActive
+      };
+      
+      console.log('Submitting data (string format):', submitData);
+      await timeSlotApi.update(id, submitData);
       toast.success('Cập nhật ca học thành công');
       router.push('/dashboard/admin/time-slots');
-    }, 1000);
+    } catch (error: any) {
+      console.error('Update error:', error);
+      const errorMsg = error?.response?.data?.message || 'Lỗi khi cập nhật ca học';
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (pageLoading) {

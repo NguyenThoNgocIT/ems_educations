@@ -1,4 +1,3 @@
-// TODO: Chuy?n d?i t? code AI Hosting
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -20,14 +19,20 @@ import { Plus, Edit, Trash2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { timeSlotApi } from '@/api/timeSlot';
 
-// Định nghĩa type cho TimeSlot
+// Định nghĩa type cho TimeSlot - ĐÚNG VỚI BACKEND
 interface TimeSlot {
-  id: string;
+  timeSlotId: string;  // ← Quan trọng: timeSlotId, không phải id
   slotCode: string;
   startTime: string;
   endTime: string;
   isActive: boolean;
 }
+
+// Hàm format time từ "14:45:00" thành "14:45"
+const formatTime = (timeString: string) => {
+  if (!timeString) return '';
+  return timeString.substring(0, 5);
+};
 
 export default function TimeSlotPage() {
   const router = useRouter();
@@ -39,7 +44,7 @@ export default function TimeSlotPage() {
     async function fetchTimeSlots() {
       try {
         const response: any = await timeSlotApi.getAll();
-        const listData = Array.isArray(response) ? response : (response?.data || []);
+        const listData = response?.data || response || [];
         setTimeSlots(listData);
       } catch (error) {
         console.error(error);
@@ -57,8 +62,8 @@ export default function TimeSlotPage() {
   const confirmDelete = async () => {
     if (slotToDelete) {
       try {
-        await timeSlotApi.delete(slotToDelete.id);
-        setTimeSlots(timeSlots.filter(s => s.id !== slotToDelete.id));
+        await timeSlotApi.delete(slotToDelete.timeSlotId);
+        setTimeSlots(timeSlots.filter(s => s.timeSlotId !== slotToDelete.timeSlotId));
         toast.success(`Đã xóa ca học ${slotToDelete.slotCode}`);
       } catch (error) {
         console.error(error);
@@ -110,10 +115,10 @@ export default function TimeSlotPage() {
               </thead>
               <tbody>
                 {timeSlots.map((slot) => (
-                  <tr key={slot.id} className="border-b hover:bg-muted/30 transition-colors">
+                  <tr key={slot.timeSlotId} className="border-b hover:bg-muted/30 transition-colors">
                     <td className="py-4 px-6 text-sm font-medium">{slot.slotCode}</td>
-                    <td className="py-4 px-6 text-sm">{slot.startTime}</td>
-                    <td className="py-4 px-6 text-sm">{slot.endTime}</td>
+                    <td className="py-4 px-6 text-sm">{formatTime(slot.startTime)}</td>
+                    <td className="py-4 px-6 text-sm">{formatTime(slot.endTime)}</td>
                     <td className="py-4 px-6 text-sm">
                       <Badge variant={slot.isActive ? 'default' : 'secondary'}>
                         {slot.isActive ? 'Hoạt động' : 'Ngừng'}
@@ -121,7 +126,11 @@ export default function TimeSlotPage() {
                     </td>
                     <td className="py-4 px-6 text-sm">
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(slot.id)}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleEdit(slot.timeSlotId)}  // ← Dùng timeSlotId
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button 
