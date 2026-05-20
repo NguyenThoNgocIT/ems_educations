@@ -36,5 +36,9 @@ public class StudentAdminCreateRequest {
     @NotNull(message = "Khóa học không được để trống")
     private UUID academicCohortId;
     private UUID classId;
+    private UUID semesterId;
     private LocalDate admissionDate;
+    private UUID studentStatusId;
+    private LocalDate studentStatusStartDate;
+    private String studentStatusReason;
 }

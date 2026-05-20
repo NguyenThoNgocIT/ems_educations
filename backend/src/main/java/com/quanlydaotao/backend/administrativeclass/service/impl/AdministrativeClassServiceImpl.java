@@ -52,7 +52,7 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         administrativeClassRepository.findByClassCode(classCode).ifPresent(existing -> {
             throw new BusinessException("Mã lớp hành chính đã tồn tại");
         });
-        validateReferences(request);
+        validateReferences(request, null);
 
         AdministrativeClass administrativeClass = administrativeClassMapper.toEntity(request);
         administrativeClass.setClassCode(classCode);
@@ -65,7 +65,7 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
     @Transactional
     public AdministrativeClassResponse updateClass(UUID id, AdministrativeClassRequest request) {
         AdministrativeClass administrativeClass = findClass(id);
-        validateReferences(request);
+        validateReferences(request, id);
         if (StringUtils.hasText(request.getClassCode())) {
             String classCode = normalizeCode(request.getClassCode());
             administrativeClassRepository.findByClassCode(classCode)
@@ -102,7 +102,7 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         }
     }
 
-    private void validateReferences(AdministrativeClassRequest request) {
+    private void validateReferences(AdministrativeClassRequest request, UUID currentClassId) {
         if (request.getDepartmentId() != null && !departmentRepository.existsById(request.getDepartmentId())) {
             throw new ResourceNotFoundException("Không tìm thấy khoa của lớp hành chính");
         }
@@ -111,6 +111,13 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         }
         if (request.getAdvisorId() != null && !instructorProfileRepository.existsById(request.getAdvisorId())) {
             throw new ResourceNotFoundException("Không tìm thấy cố vấn học tập");
+        }
+        if (request.getAdvisorId() != null) {
+            administrativeClassRepository.findByAdvisorIdAndIsActiveTrue(request.getAdvisorId())
+                    .filter(existing -> currentClassId == null || !existing.getClassId().equals(currentClassId))
+                    .ifPresent(existing -> {
+                        throw new BusinessException("Giáo viên cố vấn đã được gán cho lớp hành chính khác");
+                    });
         }
         if (request.getMaxSize() != null && request.getMaxSize() <= 0) {
             throw new BusinessException("Sĩ số tối đa của lớp hành chính phải lớn hơn 0");

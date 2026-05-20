@@ -25,6 +25,10 @@ import com.quanlydaotao.backend.staff.repository.StaffRepository;
 import com.quanlydaotao.backend.student.entity.Student;
 import com.quanlydaotao.backend.student.dto.StudentAdminCreateRequest;
 import com.quanlydaotao.backend.student.repository.StudentRepository;
+import com.quanlydaotao.backend.studentclass.dto.StudentClassResponse;
+import com.quanlydaotao.backend.studentclass.service.StudentClassService;
+import com.quanlydaotao.backend.studentstatus.dto.StudentStatusHistoryResponse;
+import com.quanlydaotao.backend.studentstatus.service.StudentStatusHistoryService;
 import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.user.entity.UserRole;
 import com.quanlydaotao.backend.user.entity.UserRoleId;
@@ -69,6 +73,8 @@ public class AccountServiceImpl {
     private final AcademicCohortRepository academicCohortRepository;
     private final DepartmentRepository departmentRepository;
     private final DegreeRepository degreeRepository;
+    private final StudentClassService studentClassService;
+    private final StudentStatusHistoryService studentStatusHistoryService;
     private final ObjectProvider<EmailNotificationService> emailNotificationServiceProvider;
 
     @Value("${app.auth.password-change-url:http://localhost:3000/change-password}")
@@ -84,10 +90,16 @@ public class AccountServiceImpl {
         String roleCode;
         UUID studentId = null;
         UUID employeeId = null;
+        UUID studentClassId = null;
+        UUID studentStatusHistoryId = null;
 
         if (TYPE_STUDENT.equals(type)) {
             Student student = createStudentProfile(request, person);
             studentId = student.getStudentId();
+            StudentClassResponse studentClass = createStudentClassIfRequested(request, student);
+            studentClassId = studentClass != null ? studentClass.getStudentClassId() : null;
+            StudentStatusHistoryResponse statusHistory = createStudentStatusIfRequested(request, student);
+            studentStatusHistoryId = statusHistory != null ? statusHistory.getStudentStatusHistoryId() : null;
             generatedCode = student.getStudentCode();
             username = generatedCode;
             roleCode = "STUDENT";
@@ -138,6 +150,10 @@ public class AccountServiceImpl {
                 .trainingProgramId(request.getTrainingProgramId())
                 .academicCohortId(request.getAcademicCohortId())
                 .classId(request.getClassId())
+                .semesterId(request.getSemesterId())
+                .studentClassId(studentClassId)
+                .studentStatusId(request.getStudentStatusId())
+                .studentStatusHistoryId(studentStatusHistoryId)
                 .departmentId(request.getDepartmentId())
                 .degreeId(request.getDegreeId())
                 .divisionId(request.getDivisionId())
@@ -159,7 +175,11 @@ public class AccountServiceImpl {
         accountRequest.setTrainingProgramId(request.getTrainingProgramId());
         accountRequest.setAcademicCohortId(request.getAcademicCohortId());
         accountRequest.setClassId(request.getClassId());
+        accountRequest.setSemesterId(request.getSemesterId());
         accountRequest.setAdmissionDate(request.getAdmissionDate());
+        accountRequest.setStudentStatusId(request.getStudentStatusId());
+        accountRequest.setStudentStatusStartDate(request.getStudentStatusStartDate());
+        accountRequest.setStudentStatusReason(request.getStudentStatusReason());
         return createAccount(accountRequest);
     }
 
@@ -254,8 +274,14 @@ public class AccountServiceImpl {
                 && !request.getAcademicCohortId().equals(trainingProgram.getAcademicCohortId())) {
             throw new BusinessException("Khóa học không khớp với chương trình đào tạo");
         }
+        if (request.getClassId() != null && request.getSemesterId() == null) {
+            throw new BusinessException("Học kỳ không được để trống khi chọn lớp hành chính cho sinh viên");
+        }
         if (request.getClassId() != null && !existsActiveReference("Classes", "ClassId", request.getClassId())) {
             throw new BusinessException("Lớp không tồn tại");
+        }
+        if (request.getSemesterId() != null && !existsActiveReference("Semesters", "SemesterId", request.getSemesterId())) {
+            throw new BusinessException("Học kỳ không tồn tại");
         }
         if (request.getClassId() != null && request.getAcademicCohortId() != null
                 && !classMatchesCohort(request.getClassId(), request.getAcademicCohortId())) {
@@ -277,6 +303,22 @@ public class AccountServiceImpl {
         student.setAdmissionDate(request.getAdmissionDate());
         student.setNote(request.getNote());
         return studentRepository.save(student);
+    }
+
+    private StudentClassResponse createStudentClassIfRequested(AccountCreationRequest request, Student student) {
+        if (request.getClassId() == null) {
+            return null;
+        }
+        return studentClassService.assignStudentToClass(student.getStudentId(), request.getClassId(), request.getSemesterId(),
+                null, "ACTIVE", request.getNote());
+    }
+
+    private StudentStatusHistoryResponse createStudentStatusIfRequested(AccountCreationRequest request, Student student) {
+        if (request.getStudentStatusId() == null) {
+            return null;
+        }
+        return studentStatusHistoryService.setCurrentStatus(student.getStudentId(), request.getStudentStatusId(),
+                request.getStudentStatusStartDate(), request.getStudentStatusReason());
     }
 
     private Employee createEmployee(AccountCreationRequest request, Person person, String type) {

@@ -112,27 +112,29 @@ Phân quyền theo chuẩn RBAC:
   - Họ tên,FullNameNoAccent, Ngày sinh, Giới tính, CCCD, Địa chỉ, SĐT, Email cá nhân, Avatar…
     • Section 2: Thông tin sinh viên (Students)
   - Mã sinh viên (StudentCode) ← auto-gen unique theo quy tắc (ví dụ: 101292)
-  - Major (Ngành) ← lấy tên từ danh sách đã có từ bảng major dạng dropdown có search, Chọn trước (để filter TrainingProgram)
-  - TrainingProgram (Ngành/Chuyên ngành) lấy tên từ danh sách đã có từ bảng TrainingPrograms dạng dropdown có search
+  - Department (Khoa/Bộ môn) lấy tên từ danh sách đã có từ bảng Departments dạng dropdown có search 
+  - Major (Ngành) ← lấy tên từ danh sách đã có từ bảng major dạng dropdown có search,Filter theo Khoa đã chọn 
+  - TrainingProgram (Ngành/Chuyên ngành) lấy tên từ danh sách đã có từ bảng TrainingPrograms dạng dropdown có search Filter theo Ngành + Khóa
   - AcademicCohort (Khóa học) lấy tên từ danh sách đã có từ bảng AcademicCohorts dạng dropdown có search
-  - Class (Lớp) lấy tên từ danh sách đã có từ bảng Classes dạng dropdown có search
+  - Class (Lớp) lấy tên từ danh sách đã có từ bảng Classes dạng dropdown có search. Filter theo Khoa + AcademicCohort + chưa đầy chỗ (CurrentStudent < MaxSize)
   - Ghi chú
     │
     ▼
     Backend xử lý **1 API atomic** (trong @Transactional):
     1. INSERT Persons → personId
     2. INSERT Students → studentId, StudentCode,MajorId TrainingProgramId, PersonId
-    3. Tự động generate (theo quy tắc bạn đưa):
+    3. INSERT StudentClasses (gán lớp hành chính)
+    4. Tự động generate (theo quy tắc bạn đưa):
        • Username = StudentCode lấy từ bảng Students (ví dụ: 101292)
        • Password = ddMMyyyy (ngày sinh, ví dụ: 15032005)
        • Email Edu = ngoc101292@donga.edu.vn (tên không dấu lấy từ FullNameNoAccent ở bảng person + mã SV)
        • RequirePasswordChange = true
-    4. INSERT Users
-    5. INSERT UserRoles (gán role SINHVIEN tự động theo loại đã chọn)
+    5. INSERT Users
+    6. INSERT UserRoles (gán role SINHVIEN tự động theo loại đã chọn)
        │
        ▼
        Trả về thông báo thành công + nút “Gửi lại email”
-
+    7. INSERT StudentStatusHistories (trạng thái DANG_HOC, IsCurrent = true)
 * Gửi email tài khoản cho sinh viên là email edu chứ k phải email cá nhân
 * Nếu có lỗi ở bất kỳ bước nào, rollback toàn bộ transaction và trả về lỗi chi tiết để FE hiển thị.
 
@@ -232,3 +234,5 @@ Phân quyền theo chuẩn RBAC:
 - Lớp hành chính phải có khoa + niên khóa, cố vấn nếu có phải là instructor.
 - Chức vụ kiểm tra phòng ban.
 - Hợp đồng kiểm tra employee, ngày hiệu lực, lương/phụ cấp/ngày phép.
+
+class lớp hành chính sẽ được admin tạo trước đúng . nghiệp vụ kèm theo khi thêm 1 class là sẽ chọn department, AdvisorId gíao viên cố vấn xử lí là 1 giáo viên cố vấn chỉ được gán cho 1 lớp hành chính, AcademicCohortId... sau đó khi thêm student chọn class cho student trong bước thêm sinh viên record được lưu trong bảng studentclass, StudentStatusCatalog Danh mục — định nghĩa các loại trạng thái gán cho sinh viên đó, Admin quản lý qua UI. StudentStatusHistories Lịch sử — ghi lại từng lần thay đổi trạng thái của từng sinh viên.

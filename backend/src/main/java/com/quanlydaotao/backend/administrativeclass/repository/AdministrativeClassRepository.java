@@ -13,6 +13,8 @@ import java.util.UUID;
 public interface AdministrativeClassRepository extends JpaRepository<AdministrativeClass, UUID> {
     Optional<AdministrativeClass> findByClassCode(String classCode);
 
+    Optional<AdministrativeClass> findByAdvisorIdAndIsActiveTrue(UUID advisorId);
+
     @Query("""
             SELECT c
             FROM AdministrativeClass c

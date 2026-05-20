@@ -19,6 +19,8 @@ import com.quanlydaotao.backend.student.entity.Student;
 import com.quanlydaotao.backend.student.mapper.StudentMapper;
 import com.quanlydaotao.backend.student.repository.StudentRepository;
 import com.quanlydaotao.backend.student.service.StudentService;
+import com.quanlydaotao.backend.studentclass.service.StudentClassService;
+import com.quanlydaotao.backend.studentstatus.service.StudentStatusHistoryService;
 import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import com.quanlydaotao.backend.utils.StringUtil;
@@ -43,6 +45,8 @@ public class StudentServiceImpl implements StudentService {
     private final MajorRepository majorRepository;
     private final AcademicCohortRepository academicCohortRepository;
     private final StudentMapper studentMapper;
+    private final StudentClassService studentClassService;
+    private final StudentStatusHistoryService studentStatusHistoryService;
 
     @Override
     @Transactional
@@ -92,7 +96,16 @@ public class StudentServiceImpl implements StudentService {
             student.setAcademicCohortId(request.getAcademicCohortId());
         }
         if (request.getClassId() != null) {
+            if (request.getSemesterId() == null) {
+                throw new BusinessException("Học kỳ không được để trống khi cập nhật lớp hành chính cho sinh viên");
+            }
+            studentClassService.assignStudentToClass(student.getStudentId(), request.getClassId(), request.getSemesterId(),
+                    null, "ACTIVE", request.getNote());
             student.setClassId(request.getClassId());
+        }
+        if (request.getStudentStatusId() != null) {
+            studentStatusHistoryService.setCurrentStatus(student.getStudentId(), request.getStudentStatusId(),
+                    request.getStudentStatusStartDate(), request.getStudentStatusReason());
         }
         if (request.getAdmissionDate() != null) {
             student.setAdmissionDate(request.getAdmissionDate());

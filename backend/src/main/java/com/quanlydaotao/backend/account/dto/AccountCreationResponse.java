@@ -30,6 +30,10 @@ public class AccountCreationResponse {
     private UUID trainingProgramId;
     private UUID academicCohortId;
     private UUID classId;
+    private UUID semesterId;
+    private UUID studentClassId;
+    private UUID studentStatusId;
+    private UUID studentStatusHistoryId;
     private UUID departmentId;
     private UUID degreeId;
     private UUID divisionId;

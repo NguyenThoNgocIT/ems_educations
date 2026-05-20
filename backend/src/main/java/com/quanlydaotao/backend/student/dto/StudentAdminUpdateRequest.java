@@ -12,7 +12,11 @@ public class StudentAdminUpdateRequest {
     private UUID trainingProgramId;
     private UUID academicCohortId;
     private UUID classId;
+    private UUID semesterId;
     private LocalDate admissionDate;
+    private UUID studentStatusId;
+    private LocalDate studentStatusStartDate;
+    private String studentStatusReason;
     private String note;
     private Boolean isActive;
 
