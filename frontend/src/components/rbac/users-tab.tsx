@@ -264,11 +264,26 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   const handleSaveUsers = async (userData: any) => {
     try {
       setLoading(true);
-      // Giả lập gọi API tạo user
+      // Giả lập gọi API tạo user do backend chưa hỗ trợ
       console.log('Tạo user mới:', userData);
+      
+      // Cập nhật state local để hiển thị trên UI
+      const newUser = {
+        id: `mock-${Date.now()}`,
+        userId: `mock-${Date.now()}`,
+        fullName: userData.fullName,
+        email: userData.email,
+        username: userData.email.split('@')[0],
+        roles: userData.roles.map((roleId: string) => {
+          const match = allRoles.find(r => (r.id || r.roleId) === roleId);
+          return match || { roleId };
+        }),
+        isActive: true,
+      };
+      
+      setRawUsers(prev => [newUser, ...prev]);
       toast.success(`Đã tạo người dùng ${userData.fullName} thành công!`);
       setIsAddUserModalOpen(false);
-      fetchUsers();
     } catch {
       toast.error('Không thể tạo người dùng mới');
     } finally {
