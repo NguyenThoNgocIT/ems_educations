@@ -41,7 +41,7 @@ export default function CreateTrainingProgramPage() {
           academicCohortApi.getAll()
         ]);
         
-        setMajors(majorsRes.content || []);
+        setMajors(majorsRes || []);
         setCohorts(cohortsRes || []);
         
         if (cohortsRes && cohortsRes.length > 0) {
@@ -160,7 +160,7 @@ export default function CreateTrainingProgramPage() {
                 <option value="">{fetchingMajors ? 'Đang tải ngành học...' : '-- Chọn ngành học --'}</option>
                 {majors.map((major) => (
                   <option key={major.majorId} value={major.majorId}>
-                    {major.majorCode} - {major.majorName}
+                    {major.code} - {major.name}
                   </option>
                 ))}
               </select>

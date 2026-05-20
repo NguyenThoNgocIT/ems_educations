@@ -1,320 +1,480 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, UserPlus, Plus } from 'lucide-react';
+import { ArrowLeft, BookOpenCheck, GraduationCap, Plus, Save, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+
+import { academicCohortApi } from '@/api/academic-cohort';
+import { administrativeClassApi } from '@/api/administrative-class';
+import { majorApi } from '@/api/major';
 import { studentApi } from '@/api/student';
 import { trainingProgramApi } from '@/api/training-program';
-import Select from 'react-select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import type { AcademicCohort, AdministrativeClass, Major, TrainingProgram } from '@/types/lookup';
+import type { StudentAdminFormData } from '@/types/student';
 
-interface TrainingProgram {
-  programId: string;      // Đồng bộ theo cấu trúc API trả về từ main
-  programCode: string;    // Đồng bộ theo cấu trúc API trả về từ main
-  programName: string;    // Đồng bộ theo cấu trúc API trả về từ main
-}
+type FormErrors = Partial<Record<keyof StudentAdminFormData, string>>;
 
-interface SelectOption {
-  value: string;
-  label: string;
-}
+const isPresent = <T,>(value: T | null | undefined): value is T => value != null;
+const getProgramId = (program: TrainingProgram) => program.trainingProgramId || program.programId || program.id || '';
+const getProgramCode = (program: TrainingProgram) => program.code || program.programCode || 'CTDT';
+const getProgramName = (program: TrainingProgram) => program.name || program.programName || 'Chương trình đào tạo';
+const getMajorId = (major: Major) => major.majorId || major.id || '';
+const getCohortId = (cohort: AcademicCohort) => cohort.academicCohortId || cohort.cohortId || cohort.id || '';
+const getClassId = (classItem: AdministrativeClass) => classItem.classId || classItem.id || '';
 
 export default function CreateStudentPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
+  const [majors, setMajors] = useState<Major[]>([]);
+  const [cohorts, setCohorts] = useState<AcademicCohort[]>([]);
+  const [classes, setClasses] = useState<AdministrativeClass[]>([]);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
-  const [formData, setFormData] = useState({
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [formData, setFormData] = useState<StudentAdminFormData>({
     fullName: '',
     studentCode: '',
-    trainingProgramId: '',
-    note: '',
     dateOfBirth: '',
     gender: 'Nam',
     phoneNumber: '',
-    contactEmail: ''
+    contactEmail: '',
+    permanentAddress: '',
+    trainingProgramId: '',
+    majorId: '',
+    academicCohortId: '',
+    classId: '',
+    admissionDate: '',
+    note: '',
   });
 
-  // Lấy danh sách chương trình đào tạo từ API tập trung
   useEffect(() => {
-    const fetchPrograms = async () => {
-      try {
-        const response: any = await trainingProgramApi.getAll({ size: 100 });
-        // Kết quả từ Spring Data Page thường nằm trong trường .content
-        setPrograms(response.content || response || []);
-      } catch (error) {
-        console.error('Không thể lấy danh sách chương trình:', error);
-        toast.error('Không thể tải danh sách chương trình đào tạo');
-      } finally {
-        setLoadingPrograms(false);
+    const fetchLookups = async () => {
+      const [programResult, majorResult, cohortResult, classResult] = await Promise.allSettled([
+        trainingProgramApi.getAll({ size: 100 }),
+        majorApi.getAll({ isActive: true }),
+        academicCohortApi.getAll({ isActive: true }),
+        administrativeClassApi.getAll({ isActive: true }),
+      ]);
+
+      if (programResult.status === 'fulfilled' && isPresent(programResult.value)) {
+        setPrograms(programResult.value);
       }
+      if (majorResult.status === 'fulfilled' && isPresent(majorResult.value)) {
+        setMajors(majorResult.value);
+      }
+      if (cohortResult.status === 'fulfilled' && isPresent(cohortResult.value)) {
+        setCohorts(cohortResult.value);
+      }
+      if (classResult.status === 'fulfilled' && isPresent(classResult.value)) {
+        setClasses(classResult.value);
+      }
+
+      const requiredLookupFailed =
+        programResult.status === 'rejected' ||
+        majorResult.status === 'rejected' ||
+        cohortResult.status === 'rejected';
+
+      if (requiredLookupFailed) {
+        console.error('Không thể tải đủ danh mục bắt buộc:', {
+          programResult,
+          majorResult,
+          cohortResult,
+        });
+        toast.error('Không thể tải đủ chương trình, ngành hoặc khóa tuyển sinh');
+      }
+
+      if (classResult.status === 'rejected') {
+        console.warn('Không thể tải lớp quản lý, vẫn có thể tạo sinh viên không chọn lớp:', classResult.reason);
+        toast.warning('Chưa tải được danh sách lớp quản lý. Có thể bỏ trống trường lớp.');
+      }
+
+      setLoadingPrograms(false);
     };
-    fetchPrograms();
+
+    fetchLookups();
   }, []);
 
-  // Chuyển đổi sang định dạng của react-select để hiển thị kiếm tìm xịn sò
-  const programOptions: SelectOption[] = programs.map(program => ({
-    value: program.programId,
-    label: `${program.programCode} - ${program.programName}`
-  }));
+  const selectedProgram = useMemo(
+    () => programs.find((program) => getProgramId(program) === formData.trainingProgramId),
+    [formData.trainingProgramId, programs],
+  );
 
-  const handleProgramChange = (option: SelectOption | null) => {
-    setFormData({ ...formData, trainingProgramId: option?.value || '' });
+  const setField = (field: keyof StudentAdminFormData, value: string) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
   const generateEmail = (fullName: string) => {
     if (!fullName.trim()) return '';
-    const nameParts = fullName.trim().toLowerCase().split(' ');
+
+    const nameParts = fullName.trim().toLowerCase().split(/\s+/);
     const lastName = nameParts[nameParts.length - 1];
     const firstName = nameParts[0];
     return `${lastName}.${firstName}@donga.edu.vn`;
   };
 
   const handleFullNameChange = (name: string) => {
-    setFormData({ 
-      ...formData, 
+    setFormData((current) => ({
+      ...current,
       fullName: name,
-      contactEmail: generateEmail(name)
-    });
+      contactEmail: current.contactEmail || generateEmail(name),
+    }));
+    setErrors((current) => ({ ...current, fullName: undefined }));
+  };
+
+  const handleProgramChange = (programId: string | null) => {
+    if (!programId) {
+      setField('trainingProgramId', '');
+      return;
+    }
+
+    const program = programs.find((item) => getProgramId(item) === programId);
+    setFormData((current) => ({
+      ...current,
+      trainingProgramId: programId,
+      majorId: program?.majorId || current.majorId,
+      academicCohortId: program?.academicCohortId || current.academicCohortId,
+    }));
+    setErrors((current) => ({ ...current, trainingProgramId: undefined }));
+  };
+
+  const validate = () => {
+    const nextErrors: FormErrors = {};
+
+    if (!formData.fullName.trim()) nextErrors.fullName = 'Vui lòng nhập họ và tên';
+    if (!formData.dateOfBirth) nextErrors.dateOfBirth = 'Vui lòng chọn ngày sinh';
+    if (!formData.trainingProgramId) nextErrors.trainingProgramId = 'Vui lòng chọn chương trình đào tạo';
+    if (!formData.majorId) nextErrors.majorId = 'Vui lòng chọn ngành';
+    if (!formData.academicCohortId) nextErrors.academicCohortId = 'Vui lòng chọn khóa tuyển sinh';
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.fullName.trim()) {
-      toast.error('Vui lòng nhập họ và tên');
-      return;
-    }
-    if (!formData.studentCode.trim()) {
-      toast.error('Vui lòng nhập mã sinh viên');
-      return;
-    }
-    if (!formData.trainingProgramId) {
-      toast.error('Vui lòng chọn chương trình đào tạo');
-      return;
-    }
-    if (!formData.dateOfBirth) {
-      toast.error('Vui lòng chọn ngày sinh');
-      return;
-    }
+    if (!validate()) return;
 
     setLoading(true);
     try {
       const enrollData = {
         fullName: formData.fullName,
-        studentCode: formData.studentCode,
-        trainingProgramId: formData.trainingProgramId,
+        studentCode: formData.studentCode || undefined,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
         phoneNumber: formData.phoneNumber,
         contactEmail: formData.contactEmail || generateEmail(formData.fullName),
-        note: formData.note
+        permanentAddress: formData.permanentAddress,
+        trainingProgramId: formData.trainingProgramId,
+        majorId: formData.majorId,
+        academicCohortId: formData.academicCohortId,
+        classId: formData.classId || undefined,
+        admissionDate: formData.admissionDate || undefined,
+        note: formData.note,
       };
-      
-      await studentApi.enroll(enrollData);
+
+      await studentApi.createAdmin(enrollData);
       toast.success('Thêm sinh viên thành công');
       router.push('/dashboard/admin/students');
     } catch (error: any) {
-      console.error('❌ Lỗi:', error);
-      toast.error(error.response?.data?.message || 'Thêm sinh viên thất bại');
+      console.error('Lỗi thêm sinh viên:', error);
+      toast.error(error.response?.data?.message || 'Thêm sinh viên thất bại. API sẽ được khớp ở bước sau.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loadingPrograms) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // Tùy chỉnh phong cách giao diện của react-select phù hợp với Tailwind CSS hệ thống
-  const customStyles = {
-    control: (base: any) => ({
-      ...base,
-      borderRadius: '0.5rem',
-      borderColor: '#e5e7eb',
-      backgroundColor: 'white',
-      padding: '2px 0',
-      boxShadow: 'none',
-      '&:hover': { borderColor: '#e5e7eb' },
-      '&:focus-within': { borderColor: '#006633', boxShadow: '0 0 0 2px rgba(0,102,51,0.2)' }
-    }),
-    menu: (base: any) => ({
-      ...base,
-      borderRadius: '0.5rem',
-      overflow: 'hidden',
-      zIndex: 9999
-    }),
-    menuList: (base: any) => ({
-      ...base,
-      maxHeight: '200px',
-      overflowY: 'auto'
-    }),
-    option: (base: any, state: any) => ({
-      ...base,
-      backgroundColor: state.isFocused ? '#f3f4f6' : 'white',
-      color: '#1f2937',
-      cursor: 'pointer',
-      '&:active': { backgroundColor: '#e5e7eb' }
-    })
-  };
-
   return (
     <div className="space-y-6">
-      <Button variant="ghost" onClick={() => router.back()} className="mb-2">
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Quay lại
-      </Button>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-3">
+          <Button variant="ghost" onClick={() => router.back()} className="w-fit px-2 text-muted-foreground">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Quay lại
+          </Button>
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                Quản trị đào tạo
+              </Badge>
+              <Badge variant="outline">Sinh viên</Badge>
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Thêm sinh viên mới</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Biểu mẫu đã gom đủ các nhóm dữ liệu cần cho hồ sơ người học, chương trình đào tạo và lớp quản lý.
+            </p>
+          </div>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">
-            <UserPlus className="inline mr-2 h-6 w-6" />
-            Thêm sinh viên mới
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Họ và tên */}
-            <div>
-              <Label className="font-semibold">
-                Họ và tên <span className="text-red-500">*</span>
-              </Label>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Card className="border-primary/10 shadow-sm">
+          <CardHeader className="border-b border-border/70">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle>Thông tin cá nhân</CardTitle>
+                <CardDescription>Dữ liệu dùng để tạo hồ sơ người dùng và tài khoản sinh viên.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-5 pt-5 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <Label htmlFor="fullName">Họ và tên *</Label>
               <Input
+                id="fullName"
                 value={formData.fullName}
                 onChange={(e) => handleFullNameChange(e.target.value)}
-                className="mt-1.5"
+                className="mt-1.5 h-10"
                 placeholder="VD: Nguyễn Văn A"
               />
-              <p className="text-xs text-gray-400 mt-1">
-                Email: {formData.contactEmail || 'tên@donga.edu.vn'}
+              {errors.fullName && <p className="mt-1 text-sm text-destructive">{errors.fullName}</p>}
+              <p className="mt-1 text-xs text-muted-foreground">
+                Email gợi ý: {formData.contactEmail || 'ten.ho@donga.edu.vn'}
               </p>
             </div>
 
-            {/* Mã sinh viên */}
             <div>
-              <Label className="font-semibold">
-                Mã sinh viên <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="studentCode">Mã sinh viên</Label>
               <Input
+                id="studentCode"
                 value={formData.studentCode}
-                onChange={(e) => setFormData({ ...formData, studentCode: e.target.value })}
-                className="mt-1.5"
-                placeholder="VD: SV20240001"
+                onChange={(e) => setField('studentCode', e.target.value)}
+                className="mt-1.5 h-10"
+                placeholder="Tự sinh nếu để trống"
               />
             </div>
 
-            {/* Ngày sinh */}
             <div>
-              <Label className="font-semibold">
-                Ngày sinh <span className="text-red-500">*</span>
-              </Label>
+              <Label htmlFor="dateOfBirth">Ngày sinh *</Label>
               <Input
+                id="dateOfBirth"
                 type="date"
                 value={formData.dateOfBirth}
-                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                className="mt-1.5"
+                onChange={(e) => setField('dateOfBirth', e.target.value)}
+                className="mt-1.5 h-10"
               />
+              {errors.dateOfBirth && <p className="mt-1 text-sm text-destructive">{errors.dateOfBirth}</p>}
             </div>
 
-            {/* Giới tính */}
             <div>
-              <Label className="font-semibold">Giới tính</Label>
-              <select
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-              >
-                <option value="Nam">Nam</option>
-                <option value="Nữ">Nữ</option>
-                <option value="Khác">Khác</option>
-              </select>
+              <Label>Giới tính</Label>
+              <Select value={formData.gender} onValueChange={(value) => setField('gender', value || '')}>
+                <SelectTrigger className="mt-1.5 h-10 w-full">
+                  <SelectValue placeholder="Chọn giới tính" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Nam">Nam</SelectItem>
+                  <SelectItem value="Nữ">Nữ</SelectItem>
+                  <SelectItem value="Khác">Khác</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Chương trình đào tạo */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <Label className="font-semibold">
-                  Chương trình đào tạo <span className="text-red-500">*</span>
-                </Label>
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  className="p-0 h-auto text-xs text-green-600 hover:text-green-700"
-                  onClick={() => router.push('/dashboard/admin/training-programs/create')}
-                >
-                  <Plus className="h-3 w-3 mr-1" /> Thêm mới chương trình
-                </Button>
-              </div>
-              <Select
-                options={programOptions}
-                onChange={handleProgramChange}
-                placeholder="-- Chọn chương trình --"
-                isClearable
-                styles={customStyles}
-                menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
-                maxMenuHeight={200}
-              />
-              {programs.length === 0 && (
-                <p className="text-xs text-yellow-500 mt-1">
-                  Không có chương trình đào tạo nào. Vui lòng thêm chương trình trước.
-                </p>
-              )}
-            </div>
-
-            {/* Số điện thoại */}
-            <div>
-              <Label>Số điện thoại</Label>
+              <Label htmlFor="phoneNumber">Số điện thoại</Label>
               <Input
+                id="phoneNumber"
                 value={formData.phoneNumber}
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                className="mt-1.5"
+                onChange={(e) => setField('phoneNumber', e.target.value)}
+                className="mt-1.5 h-10"
                 placeholder="VD: 0987654321"
               />
             </div>
 
-            {/* Email liên hệ */}
             <div>
-              <Label>Email</Label>
+              <Label htmlFor="contactEmail">Email liên hệ</Label>
               <Input
+                id="contactEmail"
+                type="email"
                 value={formData.contactEmail}
-                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                className="mt-1.5"
-                placeholder="Để trống sẽ tự động tạo"
+                onChange={(e) => setField('contactEmail', e.target.value)}
+                className="mt-1.5 h-10"
+                placeholder="Để trống sẽ tự động gợi ý"
               />
             </div>
 
-            {/* Ghi chú */}
-            <div>
-              <Label>Ghi chú</Label>
+            <div className="md:col-span-2">
+              <Label htmlFor="permanentAddress">Địa chỉ thường trú</Label>
               <Textarea
-                value={formData.note}
-                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                className="mt-1.5"
-                placeholder="Nhập ghi chú (nếu có)"
-                rows={3}
+                id="permanentAddress"
+                value={formData.permanentAddress}
+                onChange={(e) => setField('permanentAddress', e.target.value)}
+                className="mt-1.5 min-h-24"
+                placeholder="Nhập địa chỉ thường trú"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/10 shadow-sm">
+          <CardHeader className="border-b border-border/70">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle>Chương trình học</CardTitle>
+                <CardDescription>Các trường bắt buộc để API tạo hồ sơ sinh viên hợp lệ.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-5 pt-5 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <Label>Chương trình đào tạo *</Label>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="h-auto p-0 text-xs text-primary"
+                  onClick={() => router.push('/dashboard/admin/training-programs/create')}
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Thêm chương trình
+                </Button>
+              </div>
+              <Select value={formData.trainingProgramId} onValueChange={handleProgramChange}>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue placeholder={loadingPrograms ? 'Đang tải chương trình...' : 'Chọn chương trình đào tạo'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {programs.map((program) => (
+                    <SelectItem key={getProgramId(program)} value={getProgramId(program)}>
+                      {getProgramCode(program)} - {getProgramName(program)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.trainingProgramId && <p className="mt-1 text-sm text-destructive">{errors.trainingProgramId}</p>}
+              {!loadingPrograms && programs.length === 0 && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Chưa có dữ liệu chương trình đào tạo từ API. Có thể nhập các trường còn lại và khớp API ở bước sau.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label>Ngành *</Label>
+              <Select value={formData.majorId} onValueChange={(value) => setField('majorId', value || '')}>
+                <SelectTrigger className="mt-1.5 h-10 w-full">
+                  <SelectValue placeholder="Chọn ngành" />
+                </SelectTrigger>
+                <SelectContent>
+                  {majors.map((major) => (
+                    <SelectItem key={getMajorId(major)} value={getMajorId(major)}>
+                      {major.code ? `${major.code} - ${major.name}` : major.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.majorId && <p className="mt-1 text-sm text-destructive">{errors.majorId}</p>}
+            </div>
+
+            <div>
+              <Label>Khóa tuyển sinh *</Label>
+              <Select value={formData.academicCohortId} onValueChange={(value) => setField('academicCohortId', value || '')}>
+                <SelectTrigger className="mt-1.5 h-10 w-full">
+                  <SelectValue placeholder="Chọn khóa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cohorts.map((cohort) => (
+                    <SelectItem key={getCohortId(cohort)} value={getCohortId(cohort)}>
+                      {cohort.code ? `${cohort.code} - ${cohort.name}` : cohort.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.academicCohortId && <p className="mt-1 text-sm text-destructive">{errors.academicCohortId}</p>}
+            </div>
+
+            <div>
+              <Label>Lớp quản lý</Label>
+              <Select value={formData.classId} onValueChange={(value) => setField('classId', value || '')}>
+                <SelectTrigger className="mt-1.5 h-10 w-full">
+                  <SelectValue placeholder="Chọn lớp nếu có" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((classItem) => (
+                    <SelectItem key={getClassId(classItem)} value={getClassId(classItem)}>
+                      {classItem.classCode ? `${classItem.classCode} - ${classItem.className}` : classItem.className}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="admissionDate">Ngày nhập học</Label>
+              <Input
+                id="admissionDate"
+                type="date"
+                value={formData.admissionDate}
+                onChange={(e) => setField('admissionDate', e.target.value)}
+                className="mt-1.5 h-10"
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={loading}>
-                {loading ? "Đang xử lý..." : "💾 LƯU & THÊM MỚI"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => router.push('/dashboard/admin/students')}>
-                Hủy bỏ
-              </Button>
+            {selectedProgram && (
+              <div className="md:col-span-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
+                Đã chọn: {getProgramCode(selectedProgram)} - {getProgramName(selectedProgram)}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/10 shadow-sm">
+          <CardHeader className="border-b border-border/70">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                <BookOpenCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle>Ghi chú hồ sơ</CardTitle>
+                <CardDescription>Thông tin bổ sung cho phòng đào tạo khi cần rà soát.</CardDescription>
+              </div>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="pt-5">
+            <Label htmlFor="note">Ghi chú</Label>
+            <Textarea
+              id="note"
+              value={formData.note}
+              onChange={(e) => setField('note', e.target.value)}
+              className="mt-1.5 min-h-28"
+              placeholder="Nhập ghi chú nếu có"
+            />
+          </CardContent>
+        </Card>
+
+        <div className="sticky bottom-4 z-10 flex flex-col-reverse gap-3 rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={() => router.push('/dashboard/admin/students')} className="h-10">
+            Hủy bỏ
+          </Button>
+          <Button type="submit" disabled={loading} className="h-10 bg-primary text-primary-foreground hover:bg-primary/90">
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                Đang lưu
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                Lưu sinh viên
+              </span>
+            )}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
