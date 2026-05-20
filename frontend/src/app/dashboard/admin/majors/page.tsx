@@ -73,10 +73,29 @@ export default function MajorsPage() {
     return code;
   };
 
+  // Lấy ID khoa mặc định (Khoa Công nghệ thông tin hoặc khoa đầu tiên)
+  const getDefaultDepartmentId = async () => {
+    try {
+      const response: any = await request.get('/api/v1/departments/admin');
+      let departments = [];
+      if (Array.isArray(response?.data)) {
+        departments = response.data;
+      } else if (Array.isArray(response)) {
+        departments = response;
+      }
+      if (departments.length > 0) {
+        return departments[0].departmentId;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
   const fetchMajors = async () => {
     setLoading(true);
     try {
-      const response: any = await request.get('/api/majors');
+      const response: any = await request.get('/api/v1/majors/admin');
       let data = [];
       if (response?.data?.content) {
         data = response.data.content;
@@ -135,22 +154,30 @@ export default function MajorsPage() {
 
     try {
       if (editingMajor) {
-        // Cập nhật: chỉ cập nhật tên và mô tả, giữ nguyên code
-        await request.put(`/api/majors/${editingMajor.majorId}`, {
+        // Cập nhật
+        await request.put(`/api/v1/majors/admin/${editingMajor.majorId}`, {
           code: editingMajor.code,
           name: formData.name,
           description: formData.description,
-          departmentId: editingMajor.departmentId
+          departmentId: editingMajor.departmentId,
+          isActive: true
         });
         toast.success('Cập nhật ngành học thành công');
       } else {
-        // Thêm mới: tự động sinh mã ngành từ tên
+        // Thêm mới: lấy khoa mặc định
+        const defaultDepartmentId = await getDefaultDepartmentId();
+        if (!defaultDepartmentId) {
+          toast.error('Chưa có khoa nào. Vui lòng tạo khoa trước.');
+          return;
+        }
+        
         const newCode = generateCode(formData.name);
-        await request.post('/api/majors', {
+        await request.post('/api/v1/majors/admin', {
           code: newCode,
           name: formData.name,
           description: formData.description,
-          departmentId: null
+          departmentId: defaultDepartmentId,
+          isActive: true
         });
         toast.success(`Thêm ngành học thành công. Mã ngành: ${newCode}`);
       }
@@ -164,7 +191,7 @@ export default function MajorsPage() {
   const handleDelete = async (id: string, name: string) => {
     if (confirm(`Bạn có chắc muốn xóa ngành ${name}?`)) {
       try {
-        await request.delete(`/api/majors/${id}`);
+        await request.delete(`/api/v1/majors/admin/${id}`);
         toast.success(`Đã xóa ngành ${name}`);
         fetchMajors();
       } catch (error) {
@@ -280,49 +307,56 @@ export default function MajorsPage() {
         </CardContent>
       </Card>
 
-      {/* Modal Thêm/Sửa */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingMajor ? 'Chỉnh sửa ngành học' : 'Thêm ngành học mới'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {editingMajor && (
-              <div>
-                <Label>Mã ngành</Label>
-                <Input value={editingMajor.code} disabled className="bg-gray-100" />
-                <p className="text-xs text-gray-400 mt-1">Mã ngành không thể thay đổi</p>
-              </div>
-            )}
-            <div>
-              <Label htmlFor="name">Tên ngành *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="VD: Công nghệ thông tin"
-              />
-              {!editingMajor && (
-                <p className="text-xs text-gray-400 mt-1">Mã ngành sẽ tự động sinh từ tên ngành</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="description">Mô tả</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Nhập mô tả ngành học..."
-                rows={3}
-              />
-            </div>
+{/* Modal Thêm/Sửa */}
+<Dialog open={modalOpen} onOpenChange={setModalOpen}>
+  <DialogContent className="max-w-md">
+    <DialogHeader>
+      <DialogTitle>{editingMajor ? 'Chỉnh sửa ngành học' : 'Thêm ngành học mới'}</DialogTitle>
+    </DialogHeader>
+    <div className="space-y-4 py-4">
+      {editingMajor && (
+        <>
+          <div>
+            <Label>ID ngành</Label>
+            <Input value={editingMajor.majorId} disabled className="bg-gray-100 font-mono text-sm" />
+            <p className="text-xs text-gray-400 mt-1">ID duy nhất của ngành</p>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Hủy</Button>
-            <Button onClick={handleSave} className="bg-primary">Lưu</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div>
+            <Label>Mã ngành</Label>
+            <Input value={editingMajor.code} disabled className="bg-gray-100" />
+            <p className="text-xs text-gray-400 mt-1">Mã ngành không thể thay đổi</p>
+          </div>
+        </>
+      )}
+      <div>
+        <Label htmlFor="name">Tên ngành *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="VD: Công nghệ thông tin"
+        />
+        {!editingMajor && (
+          <p className="text-xs text-gray-400 mt-1">Mã ngành sẽ tự động sinh từ tên ngành</p>
+        )}
+      </div>
+      <div>
+        <Label htmlFor="description">Mô tả</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder="Nhập mô tả ngành học..."
+          rows={3}
+        />
+      </div>
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setModalOpen(false)}>Hủy</Button>
+      <Button onClick={handleSave} className="bg-primary">Lưu</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
     </div>
   );
 }

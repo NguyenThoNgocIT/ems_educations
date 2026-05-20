@@ -59,6 +59,8 @@ public class MajorServiceImpl implements MajorService {
     @Transactional
     public MajorResponse updateMajor(UUID id, MajorRequest request) {
         Major major = findMajor(id);
+        
+        // Kiểm tra và cập nhật mã ngành
         if (StringUtils.hasText(request.getCode())) {
             String code = normalizeCode(request.getCode());
             majorRepository.findByCode(code)
@@ -68,12 +70,38 @@ public class MajorServiceImpl implements MajorService {
                     });
             major.setCode(code);
         }
+        
+        // Cập nhật tên ngành
+        if (StringUtils.hasText(request.getName())) {
+            major.setName(request.getName().trim());
+        }
+        
+        // Cập nhật mô tả
+        if (request.getDescription() != null) {
+            major.setDescription(request.getDescription());
+        }
+        
+        // Cập nhật khoa
         if (request.getDepartmentId() != null) {
             validateDepartment(request.getDepartmentId());
+            major.setDepartmentId(request.getDepartmentId());
         }
-        majorMapper.updateEntityFromDto(request, major);
-        if (StringUtils.hasText(request.getCode())) major.setCode(normalizeCode(request.getCode()));
-        if (StringUtils.hasText(request.getName())) major.setName(request.getName().trim());
+        
+        // Cập nhật ngày hiệu lực
+        if (request.getEffectiveDate() != null) {
+            major.setEffectiveDate(request.getEffectiveDate());
+        }
+        
+        // Cập nhật ngày hết hạn
+        if (request.getExpiryDate() != null) {
+            major.setExpiryDate(request.getExpiryDate());
+        }
+        
+        // Cập nhật trạng thái
+        if (request.getIsActive() != null) {
+            major.setIsActive(request.getIsActive());
+        }
+        
         return majorMapper.toDto(majorRepository.save(major));
     }
 
