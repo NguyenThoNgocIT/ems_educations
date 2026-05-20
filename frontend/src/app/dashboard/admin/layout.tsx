@@ -21,22 +21,17 @@ export default function DashboardLayout({
       : "lg:ml-[90px]";
 
   return (
-    <div className="min-h-screen pt-17 bg-gray-50 dark:bg-slate-950">
-      {/* Sidebar bên trái */}
+    <div className="min-h-screen bg-muted/30 pt-20 text-foreground">
       <AppSidebar />
 
-      {/* Lớp phủ khi mở Sidebar trên mobile */}
       <Backdrop />
 
-      {/* Vùng nội dung chính */}
       <div
         className={`transition-all duration-300 ease-in-out ${mainContentMargin}`}
       >
-        {/* Header trên cùng */}
         <AppHeader />
 
-        {/* Nội dung trang - Đã chỉnh lại padding top (pt-4) để khoảng cách ngắn lại gọn gàng */}
-        <main className="p-4 md:p-6 pt-4 md:pt-4">
+        <main className="mx-auto w-full max-w-[1600px] p-4 md:p-6">
           {children}
         </main>
       </div>

@@ -15,16 +15,21 @@ export default function SignInForm() {
 
   const [showPassword, setShowPassword] = useState(false);
 
-  const [username, setUsername] = useState(() => localStorage.getItem("remember_username") || "");
-  const [password, setPassword] = useState(() => localStorage.getItem("remember_password") || "");
-  const [isChecked, setIsChecked] = useState(() => {
-    const rememberedUsername = localStorage.getItem("remember_username");
-    const rememberedPassword = localStorage.getItem("remember_password");
-    return Boolean(rememberedUsername && rememberedPassword);
-  });
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isChecked, setIsChecked] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const rememberedUsername = localStorage.getItem("remember_username") || "";
+    const rememberedPassword = localStorage.getItem("remember_password") || "";
+
+    setUsername(rememberedUsername);
+    setPassword(rememberedPassword);
+    setIsChecked(Boolean(rememberedUsername && rememberedPassword));
+  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

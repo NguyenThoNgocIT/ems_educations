@@ -55,13 +55,9 @@ export default function TrainingProgramsPage() {
   const fetchPrograms = async () => {
     setLoading(true);
     try {
-      const response: any = await trainingProgramApi.getAll({ keyword: searchTerm, size: 100 });
-      let programsData = [];
-      if (response?.data?.content) programsData = response.data.content;
-      else if (response?.content) programsData = response.content;
-      else if (Array.isArray(response?.data)) programsData = response.data;
-      else if (Array.isArray(response)) programsData = response;
-      setPrograms(programsData);
+
+      const response = await trainingProgramApi.getAll({ keyword: searchTerm, size: 100 });
+      setPrograms(response);
     } catch (error) {
       console.error(error);
       toast.error('Không thể tải danh sách chương trình đào tạo');
@@ -255,17 +251,18 @@ export default function TrainingProgramsPage() {
                 ) : (
                   programs.map((item) => (
                     <tr key={item.trainingProgramId || item.id} className="border-b hover:bg-muted/50 transition-colors">
-                      <td className="py-3 px-4 text-sm font-medium">{item.programCode || item.code}</td>
-                      <td className="py-3 px-4 text-sm">{item.programName || item.name}</td>
-                      <td className="py-3 px-4 text-sm">{item.majorName || item.major?.name || 'N/A'}</td>
-                      <td className="py-3 px-4 text-sm">{item.academicYear}</td>
+
+                      <td className="py-3 px-4 text-sm font-medium">{item.code || item.programCode}</td>
+                      <td className="py-3 px-4 text-sm">{item.name || item.programName}</td>
+                      <td className="py-3 px-4 text-sm">{item.majorName || item.majorId || 'N/A'}</td>
+                      <td className="py-3 px-4 text-sm">{item.academicYear || item.academicCohortId || 'N/A'}</td>
                       <td className="py-3 px-4 text-sm">{item.totalCredits}</td>
                       <td className="py-3 px-4 text-sm">
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(item)}>
+                          <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/admin/training-programs/${item.trainingProgramId || item.id}/edit`)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(item.trainingProgramId || item.id, item.programName || item.name)}>
+                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(item.trainingProgramId || item.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
