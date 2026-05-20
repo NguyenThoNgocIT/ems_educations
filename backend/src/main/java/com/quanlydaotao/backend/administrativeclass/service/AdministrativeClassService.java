@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AdministrativeClassService {
-    List<AdministrativeClassResponse> searchClasses(String keyword, UUID departmentId, UUID academicCohortId, Boolean isActive);
+    List<AdministrativeClassResponse> searchClasses(String keyword, UUID departmentId, UUID majorId, UUID specializationId,
+                                                    UUID academicCohortId, String classPhase, Boolean isActive);
 
     AdministrativeClassResponse getClass(UUID id);
 

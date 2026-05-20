@@ -21,9 +21,13 @@ public interface AdministrativeClassRepository extends JpaRepository<Administrat
             WHERE (:keyword IS NULL OR LOWER(c.classCode) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(c.className) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:departmentId IS NULL OR c.departmentId = :departmentId)
+              AND (:majorId IS NULL OR c.majorId = :majorId)
+              AND (:specializationId IS NULL OR c.specializationId = :specializationId)
               AND (:academicCohortId IS NULL OR c.academicCohortId = :academicCohortId)
+              AND (:classPhase IS NULL OR c.classPhase = :classPhase)
               AND (:isActive IS NULL OR c.isActive = :isActive)
             ORDER BY c.classCode ASC
             """)
-    List<AdministrativeClass> search(String keyword, UUID departmentId, UUID academicCohortId, Boolean isActive);
+    List<AdministrativeClass> search(String keyword, UUID departmentId, UUID majorId, UUID specializationId,
+                                     UUID academicCohortId, String classPhase, Boolean isActive);
 }

@@ -11,6 +11,10 @@ import com.quanlydaotao.backend.administrativeclass.repository.AdministrativeCla
 import com.quanlydaotao.backend.administrativeclass.service.AdministrativeClassService;
 import com.quanlydaotao.backend.department.repository.DepartmentRepository;
 import com.quanlydaotao.backend.instructor.repository.InstructorProfileRepository;
+import com.quanlydaotao.backend.major.entity.Major;
+import com.quanlydaotao.backend.major.repository.MajorRepository;
+import com.quanlydaotao.backend.specialization.entity.Specialization;
+import com.quanlydaotao.backend.specialization.repository.SpecializationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,12 +32,16 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
     private final DepartmentRepository departmentRepository;
     private final AcademicCohortRepository academicCohortRepository;
     private final InstructorProfileRepository instructorProfileRepository;
+    private final MajorRepository majorRepository;
+    private final SpecializationRepository specializationRepository;
     private final AdministrativeClassMapper administrativeClassMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public List<AdministrativeClassResponse> searchClasses(String keyword, UUID departmentId, UUID academicCohortId, Boolean isActive) {
-        return administrativeClassRepository.search(normalizeBlank(keyword), departmentId, academicCohortId, isActive).stream()
+    public List<AdministrativeClassResponse> searchClasses(String keyword, UUID departmentId, UUID majorId, UUID specializationId,
+                                                           UUID academicCohortId, String classPhase, Boolean isActive) {
+        return administrativeClassRepository.search(normalizeBlank(keyword), departmentId, majorId, specializationId,
+                        academicCohortId, normalizePhase(classPhase), isActive).stream()
                 .map(administrativeClassMapper::toDto)
                 .toList();
     }
@@ -57,6 +65,7 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         AdministrativeClass administrativeClass = administrativeClassMapper.toEntity(request);
         administrativeClass.setClassCode(classCode);
         administrativeClass.setClassName(request.getClassName().trim());
+        administrativeClass.setClassPhase(resolveClassPhase(request.getClassPhase()));
         administrativeClass.setIsActive(request.getIsActive() == null || request.getIsActive());
         return administrativeClassMapper.toDto(administrativeClassRepository.save(administrativeClass));
     }
@@ -78,6 +87,7 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         administrativeClassMapper.updateEntityFromDto(request, administrativeClass);
         if (StringUtils.hasText(request.getClassCode())) administrativeClass.setClassCode(normalizeCode(request.getClassCode()));
         if (StringUtils.hasText(request.getClassName())) administrativeClass.setClassName(request.getClassName().trim());
+        if (StringUtils.hasText(request.getClassPhase())) administrativeClass.setClassPhase(resolveClassPhase(request.getClassPhase()));
         return administrativeClassMapper.toDto(administrativeClassRepository.save(administrativeClass));
     }
 
@@ -112,6 +122,7 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         if (request.getAdvisorId() != null && !instructorProfileRepository.existsById(request.getAdvisorId())) {
             throw new ResourceNotFoundException("Không tìm thấy cố vấn học tập");
         }
+        validateMajorAndSpecialization(request.getDepartmentId(), request.getMajorId(), request.getSpecializationId(), resolveClassPhase(request.getClassPhase()));
         if (request.getAdvisorId() != null) {
             administrativeClassRepository.findByAdvisorIdAndIsActiveTrue(request.getAdvisorId())
                     .filter(existing -> currentClassId == null || !existing.getClassId().equals(currentClassId))
@@ -130,5 +141,38 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
 
     private String normalizeBlank(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private void validateMajorAndSpecialization(UUID departmentId, UUID majorId, UUID specializationId, String classPhase) {
+        if (majorId != null) {
+            Major major = majorRepository.findById(majorId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ngành của lớp hành chính"));
+            if (departmentId != null && major.getDepartmentId() != null && !departmentId.equals(major.getDepartmentId())) {
+                throw new BusinessException("Ngành không thuộc khoa của lớp hành chính");
+            }
+        }
+        if (specializationId != null) {
+            if (majorId == null) {
+                throw new BusinessException("Lớp chuyên ngành phải chọn ngành");
+            }
+            Specialization specialization = specializationRepository.findById(specializationId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên ngành của lớp hành chính"));
+            if ((departmentId != null && !departmentId.equals(specialization.getDepartmentId()))
+                    || !majorId.equals(specialization.getMajorId())) {
+                throw new BusinessException("Chuyên ngành không thuộc khoa/ngành của lớp hành chính");
+            }
+        }
+        if ("SPECIALIZATION".equals(classPhase) && specializationId == null) {
+            throw new BusinessException("Lớp giai đoạn chuyên ngành phải chọn chuyên ngành");
+        }
+    }
+
+    private String resolveClassPhase(String value) {
+        String phase = normalizePhase(value);
+        return phase == null ? "FOUNDATION" : phase;
+    }
+
+    private String normalizePhase(String value) {
+        return StringUtils.hasText(value) ? value.trim().toUpperCase(Locale.ROOT) : null;
     }
 }

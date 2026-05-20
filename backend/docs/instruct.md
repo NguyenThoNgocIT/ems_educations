@@ -116,7 +116,8 @@ Phân quyền theo chuẩn RBAC:
   - Major (Ngành) ← lấy tên từ danh sách đã có từ bảng major dạng dropdown có search,Filter theo Khoa đã chọn 
   - TrainingProgram (Ngành/Chuyên ngành) lấy tên từ danh sách đã có từ bảng TrainingPrograms dạng dropdown có search Filter theo Ngành + Khóa
   - AcademicCohort (Khóa học) lấy tên từ danh sách đã có từ bảng AcademicCohorts dạng dropdown có search
-  - Class (Lớp) lấy tên từ danh sách đã có từ bảng Classes dạng dropdown có search. Filter theo Khoa + AcademicCohort + chưa đầy chỗ (CurrentStudent < MaxSize)
+  - **Semester (Học kỳ)** ← Dropdown search, mặc định là kỳ hiện tại (IsActive = true)
+  - Class (Lớp) lấy tên từ danh sách đã có từ bảng Classes dạng dropdown có search. Filter theo Khoa + AcademicCohort + Semester (kỳ đã chọn) + chưa đầy chỗ (CurrentStudent < MaxSize)
   - Ghi chú
     │
     ▼

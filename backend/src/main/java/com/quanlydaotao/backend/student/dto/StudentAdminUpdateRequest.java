@@ -8,7 +8,9 @@ import java.util.UUID;
 @Data
 public class StudentAdminUpdateRequest {
     private String studentCode;
+    private UUID departmentId;
     private UUID majorId;
+    private UUID specializationId;
     private UUID trainingProgramId;
     private UUID academicCohortId;
     private UUID classId;

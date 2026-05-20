@@ -12,8 +12,11 @@ public class AdministrativeClassResponse {
     private String classCode;
     private String className;
     private UUID departmentId;
+    private UUID majorId;
+    private UUID specializationId;
     private UUID advisorId;
     private UUID academicCohortId;
+    private String classPhase;
     private Integer maxSize;
     private Integer status;
     private String note;

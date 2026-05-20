@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface TrainingProgramService {
-    List<TrainingProgramResponse> getAllPrograms(String keyword, UUID majorId, UUID departmentId, UUID academicCohortId, Boolean isActive);
+    List<TrainingProgramResponse> getAllPrograms(String keyword, UUID majorId, UUID specializationId, UUID departmentId,
+                                                 UUID academicCohortId, String programPhase, Boolean isActive);
 
     TrainingProgramResponse getProgramById(UUID id);
 

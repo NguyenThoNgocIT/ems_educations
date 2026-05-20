@@ -27,4 +27,14 @@ public interface StudentClassRepository extends JpaRepository<StudentClass, UUID
             ORDER BY sc.createdAt DESC
             """)
     List<StudentClass> search(UUID studentId, UUID classId, UUID semesterId, Boolean isActive);
+
+    @Query("""
+            SELECT COUNT(sc)
+            FROM StudentClass sc
+            WHERE sc.classId = :classId
+              AND sc.semesterId = :semesterId
+              AND sc.isActive = true
+              AND (:ignoredStudentClassId IS NULL OR sc.studentClassId <> :ignoredStudentClassId)
+            """)
+    long countActiveStudentsInClass(UUID classId, UUID semesterId, UUID ignoredStudentClassId);
 }

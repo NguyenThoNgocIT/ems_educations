@@ -19,10 +19,13 @@ public interface TrainingProgramRepository extends JpaRepository<TrainingProgram
             WHERE (:keyword IS NULL OR LOWER(p.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:majorId IS NULL OR p.majorId = :majorId)
+              AND (:specializationId IS NULL OR p.specializationId = :specializationId)
               AND (:departmentId IS NULL OR p.departmentId = :departmentId)
               AND (:academicCohortId IS NULL OR p.academicCohortId = :academicCohortId)
+              AND (:programPhase IS NULL OR p.programPhase = :programPhase)
               AND (:isActive IS NULL OR p.isActive = :isActive)
             ORDER BY p.code ASC
             """)
-    List<TrainingProgram> search(String keyword, UUID majorId, UUID departmentId, UUID academicCohortId, Boolean isActive);
+    List<TrainingProgram> search(String keyword, UUID majorId, UUID specializationId, UUID departmentId,
+                                 UUID academicCohortId, String programPhase, Boolean isActive);
 }

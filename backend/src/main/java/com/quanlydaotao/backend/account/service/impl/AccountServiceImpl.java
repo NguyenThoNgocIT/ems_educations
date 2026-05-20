@@ -4,6 +4,7 @@ import com.quanlydaotao.backend.account.dto.AccountCreationRequest;
 import com.quanlydaotao.backend.account.dto.AccountCreationResponse;
 import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.trainingprogram.entity.TrainingProgram;
+import com.quanlydaotao.backend.major.entity.Major;
 import com.quanlydaotao.backend.academiccohort.repository.AcademicCohortRepository;
 import com.quanlydaotao.backend.major.repository.MajorRepository;
 import com.quanlydaotao.backend.trainingprogram.repository.TrainingProgramRepository;
@@ -22,6 +23,8 @@ import com.quanlydaotao.backend.role.repository.RoleRepository;
 import com.quanlydaotao.backend.staff.entity.Staff;
 import com.quanlydaotao.backend.staff.dto.StaffAdminCreateRequest;
 import com.quanlydaotao.backend.staff.repository.StaffRepository;
+import com.quanlydaotao.backend.specialization.entity.Specialization;
+import com.quanlydaotao.backend.specialization.repository.SpecializationRepository;
 import com.quanlydaotao.backend.student.entity.Student;
 import com.quanlydaotao.backend.student.dto.StudentAdminCreateRequest;
 import com.quanlydaotao.backend.student.repository.StudentRepository;
@@ -73,6 +76,7 @@ public class AccountServiceImpl {
     private final AcademicCohortRepository academicCohortRepository;
     private final DepartmentRepository departmentRepository;
     private final DegreeRepository degreeRepository;
+    private final SpecializationRepository specializationRepository;
     private final StudentClassService studentClassService;
     private final StudentStatusHistoryService studentStatusHistoryService;
     private final ObjectProvider<EmailNotificationService> emailNotificationServiceProvider;
@@ -154,6 +158,7 @@ public class AccountServiceImpl {
                 .studentClassId(studentClassId)
                 .studentStatusId(request.getStudentStatusId())
                 .studentStatusHistoryId(studentStatusHistoryId)
+                .specializationId(request.getSpecializationId())
                 .departmentId(request.getDepartmentId())
                 .degreeId(request.getDegreeId())
                 .divisionId(request.getDivisionId())
@@ -171,7 +176,9 @@ public class AccountServiceImpl {
                 request.getNote());
         accountRequest.setType(TYPE_STUDENT);
         accountRequest.setStudentCode(request.getStudentCode());
+        accountRequest.setDepartmentId(request.getDepartmentId());
         accountRequest.setMajorId(request.getMajorId());
+        accountRequest.setSpecializationId(request.getSpecializationId());
         accountRequest.setTrainingProgramId(request.getTrainingProgramId());
         accountRequest.setAcademicCohortId(request.getAcademicCohortId());
         accountRequest.setClassId(request.getClassId());
@@ -256,24 +263,8 @@ public class AccountServiceImpl {
     }
 
     private Student createStudentProfile(AccountCreationRequest request, Person person) {
-        if (request.getTrainingProgramId() == null) {
-            throw new BusinessException("Chương trình đào tạo không được để trống");
-        }
-        TrainingProgram trainingProgram = trainingProgramRepository.findById(request.getTrainingProgramId())
-                .orElseThrow(() -> new BusinessException("Chương trình đào tạo không tồn tại"));
-        if (request.getMajorId() != null && !majorRepository.existsById(request.getMajorId())) {
-            throw new BusinessException("Ngành không tồn tại");
-        }
-        if (request.getAcademicCohortId() != null && !academicCohortRepository.existsById(request.getAcademicCohortId())) {
-            throw new BusinessException("Khóa học không tồn tại");
-        }
-        if (request.getMajorId() != null && trainingProgram.getMajorId() != null && !request.getMajorId().equals(trainingProgram.getMajorId())) {
-            throw new BusinessException("Ngành không khớp với chương trình đào tạo");
-        }
-        if (request.getAcademicCohortId() != null && trainingProgram.getAcademicCohortId() != null
-                && !request.getAcademicCohortId().equals(trainingProgram.getAcademicCohortId())) {
-            throw new BusinessException("Khóa học không khớp với chương trình đào tạo");
-        }
+        validateStudentAcademicSelection(request.getDepartmentId(), request.getMajorId(), request.getSpecializationId(),
+                request.getTrainingProgramId(), request.getAcademicCohortId());
         if (request.getClassId() != null && request.getSemesterId() == null) {
             throw new BusinessException("Học kỳ không được để trống khi chọn lớp hành chính cho sinh viên");
         }
@@ -296,7 +287,9 @@ public class AccountServiceImpl {
         Student student = new Student();
         student.setPerson(person);
         student.setStudentCode(studentCode);
+        student.setDepartmentId(request.getDepartmentId());
         student.setMajorId(request.getMajorId());
+        student.setSpecializationId(request.getSpecializationId());
         student.setTrainingProgramId(request.getTrainingProgramId());
         student.setAcademicCohortId(request.getAcademicCohortId());
         student.setClassId(request.getClassId());
@@ -319,6 +312,54 @@ public class AccountServiceImpl {
         }
         return studentStatusHistoryService.setCurrentStatus(student.getStudentId(), request.getStudentStatusId(),
                 request.getStudentStatusStartDate(), request.getStudentStatusReason());
+    }
+
+    private void validateStudentAcademicSelection(UUID departmentId, UUID majorId, UUID specializationId, UUID trainingProgramId, UUID academicCohortId) {
+        if (departmentId == null) {
+            throw new BusinessException("Khoa không được để trống");
+        }
+        if (academicCohortId == null) {
+            throw new BusinessException("Khóa học không được để trống");
+        }
+        if (!departmentRepository.existsById(departmentId)) {
+            throw new BusinessException("Khoa không tồn tại");
+        }
+        if (majorId != null) {
+            Major major = majorRepository.findById(majorId)
+                    .orElseThrow(() -> new BusinessException("Ngành không tồn tại"));
+            if (!departmentId.equals(major.getDepartmentId())) {
+                throw new BusinessException("Ngành không thuộc khoa đã chọn");
+            }
+        }
+        if (!academicCohortRepository.existsById(academicCohortId)) {
+            throw new BusinessException("Khóa học không tồn tại");
+        }
+        if (specializationId != null) {
+            if (majorId == null) {
+                throw new BusinessException("Chuyên ngành phải thuộc một ngành cụ thể");
+            }
+            Specialization specialization = specializationRepository.findById(specializationId)
+                    .orElseThrow(() -> new BusinessException("Chuyên ngành không tồn tại"));
+            if (!departmentId.equals(specialization.getDepartmentId()) || !majorId.equals(specialization.getMajorId())) {
+                throw new BusinessException("Chuyên ngành không thuộc khoa/ngành đã chọn");
+            }
+        }
+        if (trainingProgramId != null) {
+            TrainingProgram trainingProgram = trainingProgramRepository.findById(trainingProgramId)
+                    .orElseThrow(() -> new BusinessException("Chương trình đào tạo không tồn tại"));
+            if (!departmentId.equals(trainingProgram.getDepartmentId())) {
+                throw new BusinessException("Chương trình đào tạo không thuộc khoa đã chọn");
+            }
+            if (majorId != null && trainingProgram.getMajorId() != null && !majorId.equals(trainingProgram.getMajorId())) {
+                throw new BusinessException("Chương trình đào tạo không thuộc ngành đã chọn");
+            }
+            if (specializationId != null && !specializationId.equals(trainingProgram.getSpecializationId())) {
+                throw new BusinessException("Chương trình đào tạo không thuộc chuyên ngành đã chọn");
+            }
+            if (!academicCohortId.equals(trainingProgram.getAcademicCohortId())) {
+                throw new BusinessException("Chương trình đào tạo không thuộc khóa học đã chọn");
+            }
+        }
     }
 
     private Employee createEmployee(AccountCreationRequest request, Person person, String type) {

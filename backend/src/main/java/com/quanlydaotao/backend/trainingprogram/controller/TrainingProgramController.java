@@ -27,11 +27,13 @@ public class TrainingProgramController {
     public ResponseEntity<ApiResponse<List<TrainingProgramResponse>>> getAllPrograms(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) UUID majorId,
+            @RequestParam(required = false) UUID specializationId,
             @RequestParam(required = false) UUID departmentId,
             @RequestParam(required = false) UUID academicCohortId,
+            @RequestParam(required = false) String programPhase,
             @RequestParam(required = false) Boolean isActive) {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách chương trình đào tạo thành công",
-                trainingProgramService.getAllPrograms(keyword, majorId, departmentId, academicCohortId, isActive)));
+                trainingProgramService.getAllPrograms(keyword, majorId, specializationId, departmentId, academicCohortId, programPhase, isActive)));
     }
 
     @GetMapping("/admin/{id}")

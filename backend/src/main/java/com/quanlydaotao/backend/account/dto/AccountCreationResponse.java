@@ -31,6 +31,7 @@ public class AccountCreationResponse {
     private UUID academicCohortId;
     private UUID classId;
     private UUID semesterId;
+    private UUID specializationId;
     private UUID studentClassId;
     private UUID studentStatusId;
     private UUID studentStatusHistoryId;

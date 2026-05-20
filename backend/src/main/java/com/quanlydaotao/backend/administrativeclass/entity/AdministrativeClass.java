@@ -35,6 +35,12 @@ public class AdministrativeClass extends SoftDeleteEntity {
     @Column(name = "DepartmentId", columnDefinition = "uniqueidentifier")
     private UUID departmentId;
 
+    @Column(name = "MajorId", columnDefinition = "uniqueidentifier")
+    private UUID majorId;
+
+    @Column(name = "SpecializationId", columnDefinition = "uniqueidentifier")
+    private UUID specializationId;
+
     @Column(name = "AdvisorId", columnDefinition = "uniqueidentifier")
     private UUID advisorId;
 
@@ -46,6 +52,9 @@ public class AdministrativeClass extends SoftDeleteEntity {
 
     @Column(name = "Status")
     private Integer status;
+
+    @Column(name = "ClassPhase", length = 30)
+    private String classPhase;
 
     @Column(name = "Note", length = 255)
     private String note;

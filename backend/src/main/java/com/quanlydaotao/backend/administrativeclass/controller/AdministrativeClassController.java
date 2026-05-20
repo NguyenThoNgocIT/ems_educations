@@ -27,10 +27,13 @@ public class AdministrativeClassController {
     public ResponseEntity<ApiResponse<List<AdministrativeClassResponse>>> searchClasses(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) UUID departmentId,
+            @RequestParam(required = false) UUID majorId,
+            @RequestParam(required = false) UUID specializationId,
             @RequestParam(required = false) UUID academicCohortId,
+            @RequestParam(required = false) String classPhase,
             @RequestParam(required = false) Boolean isActive) {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp hành chính thành công",
-                administrativeClassService.searchClasses(keyword, departmentId, academicCohortId, isActive)));
+                administrativeClassService.searchClasses(keyword, departmentId, majorId, specializationId, academicCohortId, classPhase, isActive)));
     }
 
     @GetMapping("/admin/{id}")

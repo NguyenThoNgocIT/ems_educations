@@ -4,6 +4,8 @@ import com.quanlydaotao.backend.account.dto.AccountCreationResponse;
 import com.quanlydaotao.backend.account.service.impl.AccountServiceImpl;
 import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
+import com.quanlydaotao.backend.department.repository.DepartmentRepository;
+import com.quanlydaotao.backend.major.entity.Major;
 import com.quanlydaotao.backend.trainingprogram.entity.TrainingProgram;
 import com.quanlydaotao.backend.academiccohort.repository.AcademicCohortRepository;
 import com.quanlydaotao.backend.major.repository.MajorRepository;
@@ -21,6 +23,8 @@ import com.quanlydaotao.backend.student.repository.StudentRepository;
 import com.quanlydaotao.backend.student.service.StudentService;
 import com.quanlydaotao.backend.studentclass.service.StudentClassService;
 import com.quanlydaotao.backend.studentstatus.service.StudentStatusHistoryService;
+import com.quanlydaotao.backend.specialization.entity.Specialization;
+import com.quanlydaotao.backend.specialization.repository.SpecializationRepository;
 import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import com.quanlydaotao.backend.utils.StringUtil;
@@ -42,8 +46,10 @@ public class StudentServiceImpl implements StudentService {
     private final UserRepository userRepository;
     private final TrainingProgramRepository trainingProgramRepository;
     private final AccountServiceImpl accountService;
+    private final DepartmentRepository departmentRepository;
     private final MajorRepository majorRepository;
     private final AcademicCohortRepository academicCohortRepository;
+    private final SpecializationRepository specializationRepository;
     private final StudentMapper studentMapper;
     private final StudentClassService studentClassService;
     private final StudentStatusHistoryService studentStatusHistoryService;
@@ -57,13 +63,15 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(readOnly = true)
     public List<StudentAdminResponse> getAllStudentsForAdmin() {
-        return studentMapper.toDtoList(studentRepository.findAll());
+        return studentRepository.findAll().stream()
+                .map(this::toAdminResponse)
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public StudentAdminResponse getStudentForAdmin(UUID id) {
-        return studentMapper.toDto(findStudent(id));
+        return toAdminResponse(findStudent(id));
     }
 
     @Override
@@ -79,21 +87,18 @@ public class StudentServiceImpl implements StudentService {
             }
             student.setStudentCode(studentCode);
         }
-        if (request.getTrainingProgramId() != null) {
-            validateStudentProgramSelection(request.getMajorId(), request.getTrainingProgramId(), request.getAcademicCohortId());
-            student.setTrainingProgramId(request.getTrainingProgramId());
-        }
-        if (request.getMajorId() != null) {
-            if (!majorRepository.existsById(request.getMajorId())) {
-                throw new BusinessException("Ngành không tồn tại");
-            }
-            student.setMajorId(request.getMajorId());
-        }
-        if (request.getAcademicCohortId() != null) {
-            if (!academicCohortRepository.existsById(request.getAcademicCohortId())) {
-                throw new BusinessException("Khóa học không tồn tại");
-            }
-            student.setAcademicCohortId(request.getAcademicCohortId());
+        if (academicSelectionChanged(request)) {
+            UUID departmentId = request.getDepartmentId() != null ? request.getDepartmentId() : resolveDepartmentId(student);
+            UUID majorId = request.getMajorId() != null ? request.getMajorId() : student.getMajorId();
+            UUID specializationId = request.getSpecializationId() != null ? request.getSpecializationId() : student.getSpecializationId();
+            UUID trainingProgramId = request.getTrainingProgramId() != null ? request.getTrainingProgramId() : student.getTrainingProgramId();
+            UUID academicCohortId = request.getAcademicCohortId() != null ? request.getAcademicCohortId() : student.getAcademicCohortId();
+            validateStudentProgramSelection(departmentId, majorId, specializationId, trainingProgramId, academicCohortId);
+            student.setDepartmentId(departmentId);
+            student.setMajorId(majorId);
+            student.setSpecializationId(specializationId);
+            student.setTrainingProgramId(trainingProgramId);
+            student.setAcademicCohortId(academicCohortId);
         }
         if (request.getClassId() != null) {
             if (request.getSemesterId() == null) {
@@ -119,7 +124,7 @@ public class StudentServiceImpl implements StudentService {
 
         updatePersonForAdmin(person, request);
         personRepository.save(person);
-        return studentMapper.toDto(studentRepository.save(student));
+        return toAdminResponse(studentRepository.save(student));
     }
 
     @Override
@@ -207,14 +212,85 @@ public class StudentServiceImpl implements StudentService {
         if (request.getAvatarUrl() != null) person.setAvatarUrl(request.getAvatarUrl());
     }
 
-    private void validateStudentProgramSelection(UUID majorId, UUID trainingProgramId, UUID academicCohortId) {
-        TrainingProgram trainingProgram = trainingProgramRepository.findById(trainingProgramId)
-                .orElseThrow(() -> new BusinessException("Chương trình đào tạo không tồn tại"));
-        if (majorId != null && trainingProgram.getMajorId() != null && !majorId.equals(trainingProgram.getMajorId())) {
-            throw new BusinessException("Ngành không khớp với chương trình đào tạo");
+    private StudentAdminResponse toAdminResponse(Student student) {
+        StudentAdminResponse response = studentMapper.toDto(student);
+        response.setDepartmentId(resolveDepartmentId(student));
+        return response;
+    }
+
+    private boolean academicSelectionChanged(StudentAdminUpdateRequest request) {
+        return request.getDepartmentId() != null
+                || request.getMajorId() != null
+                || request.getSpecializationId() != null
+                || request.getTrainingProgramId() != null
+                || request.getAcademicCohortId() != null;
+    }
+
+    private UUID resolveDepartmentId(Student student) {
+        if (student.getDepartmentId() != null) {
+            return student.getDepartmentId();
         }
-        if (academicCohortId != null && trainingProgram.getAcademicCohortId() != null && !academicCohortId.equals(trainingProgram.getAcademicCohortId())) {
-            throw new BusinessException("Khóa học không khớp với chương trình đào tạo");
+        if (student.getTrainingProgramId() != null) {
+            UUID departmentId = trainingProgramRepository.findById(student.getTrainingProgramId())
+                    .map(TrainingProgram::getDepartmentId)
+                    .orElse(null);
+            if (departmentId != null) {
+                return departmentId;
+            }
+        }
+        if (student.getMajorId() != null) {
+            return majorRepository.findById(student.getMajorId())
+                    .map(Major::getDepartmentId)
+                    .orElse(null);
+        }
+        return null;
+    }
+
+    private void validateStudentProgramSelection(UUID departmentId, UUID majorId, UUID specializationId, UUID trainingProgramId, UUID academicCohortId) {
+        if (departmentId == null) {
+            throw new BusinessException("Khoa không được để trống");
+        }
+        if (academicCohortId == null) {
+            throw new BusinessException("Khóa học không được để trống");
+        }
+        if (!departmentRepository.existsById(departmentId)) {
+            throw new BusinessException("Khoa không tồn tại");
+        }
+        if (majorId != null) {
+            Major major = majorRepository.findById(majorId)
+                    .orElseThrow(() -> new BusinessException("Ngành không tồn tại"));
+            if (!departmentId.equals(major.getDepartmentId())) {
+                throw new BusinessException("Ngành không thuộc khoa đã chọn");
+            }
+        }
+        if (specializationId != null) {
+            if (majorId == null) {
+                throw new BusinessException("Chuyên ngành phải thuộc một ngành cụ thể");
+            }
+            Specialization specialization = specializationRepository.findById(specializationId)
+                    .orElseThrow(() -> new BusinessException("Chuyên ngành không tồn tại"));
+            if (!departmentId.equals(specialization.getDepartmentId()) || !majorId.equals(specialization.getMajorId())) {
+                throw new BusinessException("Chuyên ngành không thuộc khoa/ngành đã chọn");
+            }
+        }
+        if (!academicCohortRepository.existsById(academicCohortId)) {
+            throw new BusinessException("Khóa học không tồn tại");
+        }
+        if (trainingProgramId != null) {
+            TrainingProgram trainingProgram = trainingProgramRepository.findById(trainingProgramId)
+                    .orElseThrow(() -> new BusinessException("Chương trình đào tạo không tồn tại"));
+            if (!departmentId.equals(trainingProgram.getDepartmentId())) {
+                throw new BusinessException("Chương trình đào tạo không thuộc khoa đã chọn");
+            }
+            if (majorId != null && trainingProgram.getMajorId() != null && !majorId.equals(trainingProgram.getMajorId())) {
+                throw new BusinessException("Chương trình đào tạo không thuộc ngành đã chọn");
+            }
+            if (specializationId != null && !specializationId.equals(trainingProgram.getSpecializationId())) {
+                throw new BusinessException("Chương trình đào tạo không thuộc chuyên ngành đã chọn");
+            }
+            if (!academicCohortId.equals(trainingProgram.getAcademicCohortId())) {
+                throw new BusinessException("Chương trình đào tạo không thuộc khóa học đã chọn");
+            }
         }
     }
 }

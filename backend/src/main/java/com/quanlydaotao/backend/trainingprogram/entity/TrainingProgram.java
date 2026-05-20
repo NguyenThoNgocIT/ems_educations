@@ -37,6 +37,9 @@ public class TrainingProgram extends SoftDeleteEntity {
     @Column(name = "MajorId")
     private UUID majorId;
 
+    @Column(name = "SpecializationId")
+    private UUID specializationId;
+
     @Column(name = "DepartmentId")
     private UUID departmentId;
 
@@ -95,4 +98,7 @@ public class TrainingProgram extends SoftDeleteEntity {
 
     @Column(name = "Status", length = 50)
     private String status;
+
+    @Column(name = "ProgramPhase", length = 30)
+    private String programPhase;
 }

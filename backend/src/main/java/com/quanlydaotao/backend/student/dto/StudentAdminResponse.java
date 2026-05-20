@@ -11,7 +11,9 @@ public class StudentAdminResponse {
     private UUID studentId;
     private UUID personId;
     private String studentCode;
+    private UUID departmentId;
     private UUID majorId;
+    private UUID specializationId;
     private UUID trainingProgramId;
     private UUID academicCohortId;
     private UUID classId;

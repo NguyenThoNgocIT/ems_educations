@@ -13,6 +13,8 @@ import com.quanlydaotao.backend.studentclass.entity.StudentClass;
 import com.quanlydaotao.backend.studentclass.mapper.StudentClassMapper;
 import com.quanlydaotao.backend.studentclass.repository.StudentClassRepository;
 import com.quanlydaotao.backend.studentclass.service.StudentClassService;
+import com.quanlydaotao.backend.trainingprogram.entity.TrainingProgram;
+import com.quanlydaotao.backend.trainingprogram.repository.TrainingProgramRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,7 @@ public class StudentClassServiceImpl implements StudentClassService {
     private final StudentRepository studentRepository;
     private final AdministrativeClassRepository administrativeClassRepository;
     private final SemesterRepository semesterRepository;
+    private final TrainingProgramRepository trainingProgramRepository;
     private final StudentClassMapper studentClassMapper;
 
     @Override
@@ -59,6 +62,9 @@ public class StudentClassServiceImpl implements StudentClassService {
         UUID semesterId = request.getSemesterId() != null ? request.getSemesterId() : studentClass.getSemesterId();
         validateReferences(studentId, classId, semesterId);
         validateOneActiveClassPerSemester(studentId, classId, semesterId, id);
+        if (!Boolean.FALSE.equals(request.getIsActive())) {
+            validateClassCapacity(classId, semesterId, id);
+        }
 
         studentClassMapper.updateEntityFromDto(request, studentClass);
         if (request.getIsActive() == null) {
@@ -84,6 +90,7 @@ public class StudentClassServiceImpl implements StudentClassService {
 
         StudentClass studentClass = studentClassRepository.findByStudentIdAndClassIdAndSemesterId(studentId, classId, semesterId)
                 .orElseGet(StudentClass::new);
+        validateClassCapacity(classId, semesterId, studentClass.getStudentClassId());
         studentClass.setStudentId(studentId);
         studentClass.setClassId(classId);
         studentClass.setSemesterId(semesterId);
@@ -117,6 +124,18 @@ public class StudentClassServiceImpl implements StudentClassService {
                 && !student.getAcademicCohortId().equals(administrativeClass.getAcademicCohortId())) {
             throw new BusinessException("Lớp hành chính không thuộc niên khóa của sinh viên");
         }
+        UUID studentDepartmentId = resolveStudentDepartmentId(student);
+        if (studentDepartmentId != null && administrativeClass.getDepartmentId() != null
+                && !studentDepartmentId.equals(administrativeClass.getDepartmentId())) {
+            throw new BusinessException("Lớp hành chính không thuộc khoa của sinh viên");
+        }
+        if (administrativeClass.getMajorId() != null && !administrativeClass.getMajorId().equals(student.getMajorId())) {
+            throw new BusinessException("Lớp hành chính không thuộc ngành của sinh viên");
+        }
+        if (administrativeClass.getSpecializationId() != null
+                && !administrativeClass.getSpecializationId().equals(student.getSpecializationId())) {
+            throw new BusinessException("Lớp hành chính không thuộc chuyên ngành của sinh viên");
+        }
     }
 
     private void validateOneActiveClassPerSemester(UUID studentId, UUID classId, UUID semesterId, UUID currentStudentClassId) {
@@ -126,5 +145,30 @@ public class StudentClassServiceImpl implements StudentClassService {
                 .ifPresent(existing -> {
                     throw new BusinessException("Sinh viên đã được gán lớp hành chính trong học kỳ này");
                 });
+    }
+
+    private void validateClassCapacity(UUID classId, UUID semesterId, UUID ignoredStudentClassId) {
+        AdministrativeClass administrativeClass = administrativeClassRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp hành chính"));
+        Integer maxSize = administrativeClass.getMaxSize();
+        if (maxSize == null) {
+            return;
+        }
+        long currentStudent = studentClassRepository.countActiveStudentsInClass(classId, semesterId, ignoredStudentClassId);
+        if (currentStudent >= maxSize) {
+            throw new BusinessException("Lớp hành chính đã đủ sĩ số tối đa");
+        }
+    }
+
+    private UUID resolveStudentDepartmentId(Student student) {
+        if (student.getDepartmentId() != null) {
+            return student.getDepartmentId();
+        }
+        if (student.getTrainingProgramId() == null) {
+            return null;
+        }
+        return trainingProgramRepository.findById(student.getTrainingProgramId())
+                .map(TrainingProgram::getDepartmentId)
+                .orElse(null);
     }
 }

@@ -29,9 +29,10 @@ public class StudentAdminCreateRequest {
     private String note;
 
     private String studentCode;
-    @NotNull(message = "Ngành không được để trống")
+    @NotNull(message = "Khoa không được để trống")
+    private UUID departmentId;
     private UUID majorId;
-    @NotNull(message = "Chương trình đào tạo không được để trống")
+    private UUID specializationId;
     private UUID trainingProgramId;
     @NotNull(message = "Khóa học không được để trống")
     private UUID academicCohortId;

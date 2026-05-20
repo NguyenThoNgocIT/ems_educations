@@ -12,8 +12,10 @@ public class TrainingProgramRequest {
     private String name;
     private String nameEn;
     private UUID majorId;
+    private UUID specializationId;
     private UUID departmentId;
     private UUID academicCohortId;
+    private String programPhase;
     private String degreeLevel;
     private String educationType;
     private Integer totalCredits;

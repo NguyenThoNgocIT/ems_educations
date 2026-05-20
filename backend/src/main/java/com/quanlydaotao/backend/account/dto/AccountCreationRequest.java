@@ -37,6 +37,7 @@ public class AccountCreationRequest {
     private UUID academicCohortId;
     private UUID classId;
     private UUID semesterId;
+    private UUID specializationId;
     private LocalDate admissionDate;
     private UUID studentStatusId;
     private LocalDate studentStatusStartDate;
