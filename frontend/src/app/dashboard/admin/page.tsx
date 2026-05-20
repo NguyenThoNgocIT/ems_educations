@@ -24,8 +24,7 @@ export default function AdminDashboard() {
     'Tài khoản Admin';
 
   return (
-    <div className="p-4 md:p-8 pt-[104px] md:pt-[104px] space-y-6 bg-[#f8fafc] min-h-screen w-full max-w-full overflow-x-hidden font-sans">
-      {/* Welcome Header */}
+<div className="p-4 md:p-8 pt-[20px] md:pt-[40px] space-y-6 bg-[#f8fafc] min-h-screen w-full max-w-full overflow-x-hidden font-sans">      {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:items-center">
         <div>
           <h1 className="text-[22px] font-bold text-gray-900 flex items-center gap-2">
