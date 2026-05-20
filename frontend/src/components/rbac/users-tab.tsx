@@ -12,9 +12,11 @@ import {
   ShieldCheck,
   X,
   Layers,
+  UserPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
+import { AddUserModal } from './add-user-modal';
 import { useAuth } from '@/context/AuthContext';
 import { roleApi, userRoleApi } from '@/api/rbac';
 import type { Role, UserWithRoles, Permission } from '@/types/rbac';
@@ -58,6 +60,9 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   const [saving, setSaving] = useState(false);
   const [roleSearch, setRoleSearch] = useState('');
   const [permMethodFilter, setPermMethodFilter] = useState<string>('ALL');
+  
+  // Add User Modal States
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
 
   const { user: authUser } = useAuth();
   const currentUserEmail = authUser?.email || authUser?.username || '';
@@ -256,6 +261,21 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
     r.code.toLowerCase().includes(roleSearch.toLowerCase())
   );
 
+  const handleSaveUsers = async (userData: any) => {
+    try {
+      setLoading(true);
+      // Giả lập gọi API tạo user
+      console.log('Tạo user mới:', userData);
+      toast.success(`Đã tạo người dùng ${userData.fullName} thành công!`);
+      setIsAddUserModalOpen(false);
+      fetchUsers();
+    } catch {
+      toast.error('Không thể tạo người dùng mới');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header Actions */}
@@ -270,16 +290,19 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
           />
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAddUserModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition shadow-sm"
+          >
+            <UserPlus size={15} />
+            <span className="hidden sm:inline">Thêm người dùng</span>
+          </button>
           <button 
             onClick={() => fetchUsers()} 
             className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition shadow-sm"
           >
             <RefreshCw size={15} className={loading ? 'animate-spin text-emerald-600' : ''} />
             <span className="hidden sm:inline">Làm mới</span>
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition shadow-sm">
-            <Download size={15} />
-            <span className="hidden sm:inline">Export CSV</span>
           </button>
         </div>
       </div>
@@ -322,13 +345,14 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                 )
                 : users.map(user => {
                   const roleCount = user.roles?.length ?? 0;
-                  // Calculate total perms from roles if available, else '-'
-                  let permCount: number | string = '—';
-                  if (user.roles && user.roles.some(r => r.permissions !== undefined)) {
-                    const perms = new Set();
-                    user.roles.forEach(r => r.permissions?.forEach(p => perms.add(p.id || p.permissionId)));
-                    permCount = perms.size;
-                  }
+                  
+                  // Shared logic to calculate permission count
+                  const permSet = new Set<string>();
+                  user.roles.forEach(role => {
+                    const fullRole = allRoles.find(r => (r.id || r.roleId) === (role.id || role.roleId) || r.code === role.code);
+                    fullRole?.permissions?.forEach(p => permSet.add(p.id || p.permissionId || ''));
+                  });
+                  const permCount = permSet.size;
 
                   return (
                     <tr 
@@ -367,13 +391,12 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-500">
-                        {permCount !== '—' ? (
-                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                            {permCount} perms
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 cursor-help" title="Dữ liệu chi tiết được load trong modal">—</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (permCount/25)*100)}%` }}></div>
+                          </div>
+                          <span className="text-xs font-mono font-bold text-gray-600 dark:text-gray-400">{permCount}</span>
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${
@@ -409,6 +432,14 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
           </div>
         )}
       </div>
+
+      {/* Add User Modal */}
+      <AddUserModal 
+        isOpen={isAddUserModalOpen} 
+        onClose={() => setIsAddUserModalOpen(false)} 
+        allRoles={allRoles}
+        onSave={handleSaveUsers}
+      />
 
       {/* Modal User Detail (XL) */}
       <Modal isOpen={!!modalUser} onClose={closeModal} className="max-w-7xl w-full mx-4 h-[90vh] flex flex-col">

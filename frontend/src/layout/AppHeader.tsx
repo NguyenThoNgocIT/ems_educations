@@ -29,7 +29,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ role = "admin" }) => {
 
   return (
     <header 
-      className={`fixed top-0 left-0 right-0 z-40 flex h-[80px] border-b border-gray-100 bg-white/80 backdrop-blur-md transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-900/80
+      className={`fixed top-1 left-0 right-0 z-40 flex h-[80px] border-b border-gray-100 bg-white/80 backdrop-blur-md transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-900/80
         ${isSidebarOpen ? "pl-[290px]" : "pl-[78px]"}
       `}
     >
