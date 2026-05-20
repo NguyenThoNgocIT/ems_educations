@@ -107,7 +107,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
   }, [majors, selectedMajorId]);
 
   useEffect(() => {
-    if (cohorts.length > 0 && !selectedCohortId) setSelectedCohortId(cohorts[0].academicCohortId || cohorts[0].id);
+    if (cohorts.length > 0 && !selectedCohortId) setSelectedCohortId(cohorts[0].cohortId || cohorts[0].id);
   }, [cohorts, selectedCohortId]);
 
   useEffect(() => {
@@ -287,7 +287,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                       >
                         <option value="">-- Chọn niên khóa --</option>
                         {cohorts.map(c => (
-                          <option key={c.academicCohortId || c.id} value={c.academicCohortId || c.id}>{c.name}</option>
+                          <option key={c.cohortId || c.id} value={c.cohortId || c.id}>{c.name}</option>
                         ))}
                       </select>
                     </div>
