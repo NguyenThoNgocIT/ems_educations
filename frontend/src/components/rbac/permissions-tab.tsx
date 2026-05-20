@@ -55,10 +55,18 @@ export function PermissionsTab() {
     setModal({ mode: 'edit', perm });
   };
 
-  const openApis = (perm: Permission) => {
-    setApis(perm.apis || []);
+  const openApis = async (perm: Permission) => {
+    const pId = perm.id || perm.permissionId;
+    setApis([]);
     setApiForm({ method: 'GET', path: '' });
     setModal({ mode: 'apis', perm });
+    if (!pId) return;
+    try {
+      const apiList: any = await permissionApi.getApis(pId);
+      setApis(Array.isArray(apiList) ? apiList : []);
+    } catch {
+      toast.error('Không thể tải API endpoint của quyền');
+    }
   };
 
   const openDelete = (perm: Permission) => setModal({ mode: 'delete', perm });
@@ -142,7 +150,7 @@ export function PermissionsTab() {
     const pId = modal.perm.id || modal.perm.permissionId;
     if (!pId) return;
     try {
-      await permissionApi.removeApi(pId, api.id);
+      await permissionApi.removeApi(pId, api.path, api.method);
       setApis(prev => prev.filter(a => a.id !== api.id));
       toast.success('Đã xóa API endpoint');
     } catch {

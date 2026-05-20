@@ -1,18 +1,29 @@
 import React from "react";
 import { 
+  LayoutDashboard,
   Calendar,       // Thay cho CalendarDays để khớp icon chuẩn
   Users,          // Thay cho FolderKanban để hiển thị "Lớp của tôi" chuẩn bài
   FileText,       // Thay cho Award để hiển thị "Nhập điểm"
   CheckSquare,    // Giữ nguyên cho "Điểm danh"
   DoorOpen,       // Thêm icon mới cho "Thông tin phòng"
   Bell,
+  HeadphonesIcon,
   UserCircle,
-  HeadphonesIcon
 } from "lucide-react"; 
 
 export const LecturerNavGroups = [
   {
-    groupName: "Chức năng giảng dạy",
+    groupName: "Tổng quan",
+    items: [
+      {
+        name: "Bảng điều khiển",
+        path: "/dashboard/lecturer",
+        icon: <LayoutDashboard className="w-[18px] h-[18px]" />,
+      },
+    ],
+  },
+  {
+    groupName: "Giảng dạy",
     items: [
       {
         name: "Lịch giảng dạy",
@@ -42,22 +53,24 @@ export const LecturerNavGroups = [
     ],
   },
   {
-    groupName: "Cá nhân & Hỗ trợ",
+    groupName: "Cá nhân",
     items: [
       {
         name: "Thông báo",
         path: "/dashboard/lecturer/notifications",
         icon: <Bell className="w-[18px] h-[18px]" />,
+        badge: "Sắp có",
       },
       {
         name: "Thông tin cá nhân",
-        path: "/dashboard/lecturer/profile",
+        path: "/profile",
         icon: <UserCircle className="w-[18px] h-[18px]" />,
       },
       {
         name: "Hỗ trợ giảng dạy",
         path: "/dashboard/lecturer/support",
         icon: <HeadphonesIcon className="w-[18px] h-[18px]" />,
+        badge: "Sắp có",
       },
     ],
   },

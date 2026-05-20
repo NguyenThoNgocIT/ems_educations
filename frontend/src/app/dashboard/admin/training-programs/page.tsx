@@ -262,7 +262,12 @@ export default function TrainingProgramsPage() {
                           <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/admin/training-programs/${item.trainingProgramId || item.id}/edit`)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(item.trainingProgramId || item.id)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleDelete(item.trainingProgramId || item.id, item.name || item.programName || item.code || 'này')}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>

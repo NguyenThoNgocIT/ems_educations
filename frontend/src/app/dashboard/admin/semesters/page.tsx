@@ -1,21 +1,22 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import React, { useEffect, useMemo, useState } from "react";
+import { Edit, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
+import { schoolYearApi } from "@/api/school-year";
+import { semesterApi } from "@/api/semester";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Search, Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
-import { semesterApi } from '@/api/semester';
-import { schoolYearApi } from '@/api/school-year';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Semester {
   semesterId: string;
@@ -37,50 +38,72 @@ interface SchoolYear {
   endDate: string;
 }
 
+type SemesterForm = {
+  code: string;
+  name: string;
+  schoolYearId: string;
+  startDate: string;
+  endDate: string;
+  status: boolean;
+  description: string;
+  isActive: boolean;
+};
+
+const emptyForm: SemesterForm = {
+  code: "",
+  name: "",
+  schoolYearId: "",
+  startDate: "",
+  endDate: "",
+  status: true,
+  description: "",
+  isActive: true,
+};
+
+const normalizeRows = <T,>(response: any): T[] => {
+  if (Array.isArray(response?.data?.content)) return response.data.content;
+  if (Array.isArray(response?.content)) return response.content;
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response)) return response;
+  return [];
+};
+
+const toDateInputValue = (value?: string) => {
+  if (!value) return "";
+  return value.includes("T") ? value.split("T")[0] : value;
+};
+
+const formatDateDisplay = (value?: string) => {
+  const date = toDateInputValue(value);
+  if (!date) return "";
+  const [year, month, day] = date.split("-");
+  if (!year || !month || !day) return value ?? "";
+  return `${day}/${month}/${year}`;
+};
+
 export default function SemestersPage() {
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [schoolYears, setSchoolYears] = useState<SchoolYear[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSemester, setEditingSemester] = useState<Semester | null>(null);
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    schoolYearId: '',
-    startDate: '',
-    endDate: '',
-    status: true,
-    description: '',
-    isActive: true
-  });
+  const [formData, setFormData] = useState<SemesterForm>(emptyForm);
 
-  // Chuyển đổi YYYY-MM-DD -> DD/MM/YYYY để hiển thị
-  const formatDateDisplay = (date: string | undefined) => {
-    if (!date) return '';
-    const cleanDate = date.includes('T') ? date.split('T')[0] : date;
-    const [year, month, day] = cleanDate.split('-');
-    return `${day}/${month}/${year}`;
-  };
-
-  // Lấy YYYY-MM-DD từ string (giữ nguyên cho input date)
-  const formatDateForInput = (date: string | undefined) => {
-    if (!date) return '';
-    return date.includes('T') ? date.split('T')[0] : date;
-  };
+  const selectedSchoolYear = useMemo(
+    () => schoolYears.find((schoolYear) => schoolYear.schoolYearId === formData.schoolYearId),
+    [formData.schoolYearId, schoolYears],
+  );
 
   const fetchSemesters = async () => {
     setLoading(true);
     try {
-      const response: any = await semesterApi.getAll({ keyword: searchTerm });
-      let data = [];
-      if (response?.data?.content) data = response.data.content;
-      else if (response?.content) data = response.content;
-      else if (Array.isArray(response?.data)) data = response.data;
-      else if (Array.isArray(response)) data = response;
-      setSemesters(data);
-    } catch (error) {
-      toast.error('Không thể tải danh sách học kỳ');
+      const response = await semesterApi.getAll({
+        keyword: searchTerm.trim() || undefined,
+      });
+      setSemesters(normalizeRows<Semester>(response));
+    } catch {
+      toast.error("Không thể tải danh sách học kỳ");
     } finally {
       setLoading(false);
     }
@@ -88,119 +111,131 @@ export default function SemestersPage() {
 
   const fetchSchoolYears = async () => {
     try {
-      const response: any = await schoolYearApi.getAll();
-      let data = [];
-      if (response?.data?.content) data = response.data.content;
-      else if (response?.content) data = response.content;
-      else if (Array.isArray(response?.data)) data = response.data;
-      else if (Array.isArray(response)) data = response;
-      setSchoolYears(data);
-    } catch (error) {
-      console.error('Không thể tải năm học');
+      const response = await schoolYearApi.getAll();
+      setSchoolYears(normalizeRows<SchoolYear>(response));
+    } catch {
+      toast.error("Không thể tải danh sách năm học");
     }
   };
 
   useEffect(() => {
     fetchSemesters();
-    fetchSchoolYears();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
-  const handleOpenCreate = () => {
+  useEffect(() => {
+    fetchSchoolYears();
+  }, []);
+
+  const openCreateDialog = () => {
     setEditingSemester(null);
     setFormData({
-      code: '',
-      name: '',
-      schoolYearId: schoolYears[0]?.schoolYearId || '',
-      startDate: '',
-      endDate: '',
-      status: true,
-      description: '',
-      isActive: true
+      ...emptyForm,
+      schoolYearId: schoolYears[0]?.schoolYearId ?? "",
     });
     setDialogOpen(true);
   };
 
-  const handleOpenEdit = (semester: Semester) => {
+  const openEditDialog = (semester: Semester) => {
     setEditingSemester(semester);
     setFormData({
-      code: semester.code,
-      name: semester.name,
-      schoolYearId: semester.schoolYearId,
-      startDate: formatDateForInput(semester.startDate),
-      endDate: formatDateForInput(semester.endDate),
+      code: semester.code ?? "",
+      name: semester.name ?? "",
+      schoolYearId: semester.schoolYearId ?? "",
+      startDate: toDateInputValue(semester.startDate),
+      endDate: toDateInputValue(semester.endDate),
       status: semester.status ?? true,
-      description: semester.description || '',
-      isActive: semester.isActive
+      description: semester.description ?? "",
+      isActive: semester.isActive ?? true,
     });
     setDialogOpen(true);
+  };
+
+  const getSchoolYearName = (id: string) => {
+    const schoolYear = schoolYears.find((item) => item.schoolYearId === id);
+    return schoolYear?.name ?? id?.slice(0, 8) ?? "";
+  };
+
+  const validateForm = () => {
+    if (!formData.code || !formData.name || !formData.schoolYearId || !formData.startDate || !formData.endDate) {
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
+      return false;
+    }
+
+    if (formData.startDate >= formData.endDate) {
+      toast.error("Ngày bắt đầu học kỳ phải nhỏ hơn ngày kết thúc");
+      return false;
+    }
+
+    if (selectedSchoolYear) {
+      const yearStartDate = toDateInputValue(selectedSchoolYear.startDate);
+      const yearEndDate = toDateInputValue(selectedSchoolYear.endDate);
+
+      if (formData.startDate < yearStartDate || formData.endDate > yearEndDate) {
+        toast.error("Thời gian học kỳ phải nằm trong khoảng năm học đã chọn");
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const handleSave = async () => {
-    if (!formData.code || !formData.name || !formData.schoolYearId || !formData.startDate || !formData.endDate) {
-      toast.error('Vui lòng điền đầy đủ thông tin');
-      return;
-    }
+    if (!validateForm()) return;
+
+    const payload = {
+      code: formData.code.trim().toUpperCase(),
+      name: formData.name.trim(),
+      schoolYearId: formData.schoolYearId,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      status: formData.status,
+      description: formData.description.trim(),
+      isActive: formData.isActive,
+    };
 
     try {
-      const submitData = {
-        code: formData.code,
-        name: formData.name,
-        schoolYearId: formData.schoolYearId,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        status: formData.status,
-        description: formData.description || '',
-        isActive: formData.isActive
-      };
-
       if (editingSemester) {
-        await semesterApi.update(editingSemester.semesterId, submitData);
-        toast.success('Cập nhật học kỳ thành công');
+        await semesterApi.update(editingSemester.semesterId, payload);
+        toast.success("Cập nhật học kỳ thành công");
       } else {
-        await semesterApi.create(submitData);
-        toast.success('Thêm học kỳ thành công');
+        await semesterApi.create(payload);
+        toast.success("Thêm học kỳ thành công");
       }
+
       setDialogOpen(false);
       await fetchSemesters();
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || 'Thao tác thất bại';
-      toast.error(errorMsg);
+      toast.error(error.response?.data?.message || error.message || "Thao tác thất bại");
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Bạn có chắc muốn xóa học kỳ "${name}"?`)) {
-      try {
-        await semesterApi.delete(id);
-        toast.success('Xóa học kỳ thành công');
-        await fetchSemesters();
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Xóa thất bại');
-      }
+    if (!confirm(`Bạn có chắc muốn xóa học kỳ "${name}"?`)) return;
+
+    try {
+      await semesterApi.delete(id);
+      toast.success("Xóa học kỳ thành công");
+      await fetchSemesters();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Xóa thất bại");
     }
   };
 
-  const getSchoolYearName = (id: string) => {
-    const schoolYear = schoolYears.find(sy => sy.schoolYearId === id);
-    return schoolYear ? schoolYear.name : id.substring(0, 8);
-  };
-
-  const selectedSchoolYear = schoolYears.find(sy => sy.schoolYearId === formData.schoolYearId);
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Quản lý học kỳ</h1>
-          <p className="text-muted-foreground">Danh sách các học kỳ trong năm học</p>
+          <h1 className="mb-2 text-3xl font-bold">Quản lý học kỳ</h1>
+          <p className="text-muted-foreground">Quản lý học kỳ theo từng năm học và khoảng thời gian đào tạo.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={fetchSemesters} className="gap-2">
             <RefreshCw className="h-4 w-4" />
             Làm mới
           </Button>
-          <Button onClick={handleOpenCreate} className="bg-primary">
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={openCreateDialog}>
+            <Plus className="mr-2 h-4 w-4" />
             Thêm học kỳ
           </Button>
         </div>
@@ -209,12 +244,12 @@ export default function SemestersPage() {
       <Card>
         <CardHeader>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Tìm kiếm học kỳ..."
+              placeholder="Tìm kiếm theo mã hoặc tên học kỳ"
               className="pl-10"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
         </CardHeader>
@@ -223,39 +258,56 @@ export default function SemestersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Mã học kỳ</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Tên học kỳ</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Năm học</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Ngày bắt đầu</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Ngày kết thúc</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Trạng thái</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Thao tác</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Mã học kỳ</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Tên học kỳ</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Năm học</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Ngày bắt đầu</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Ngày kết thúc</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Trạng thái</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="text-center py-8">Đang tải...</td></tr>
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center">
+                      Đang tải...
+                    </td>
+                  </tr>
                 ) : semesters.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-8">Chưa có học kỳ nào</td></tr>
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center">
+                      Chưa có học kỳ nào
+                    </td>
+                  </tr>
                 ) : (
                   semesters.map((item) => (
                     <tr key={item.semesterId} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-4 text-sm font-medium">{item.code}</td>
-                      <td className="py-3 px-4 text-sm">{item.name}</td>
-                      <td className="py-3 px-4 text-sm">{getSchoolYearName(item.schoolYearId)}</td>
-                      <td className="py-3 px-4 text-sm">{formatDateDisplay(item.startDate)}</td>
-                      <td className="py-3 px-4 text-sm">{formatDateDisplay(item.endDate)}</td>
-                      <td className="py-3 px-4 text-sm">
-                        <span className={`px-2 py-1 rounded-full text-xs ${item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {item.isActive ? 'Hoạt động' : 'Không hoạt động'}
+                      <td className="px-4 py-3 text-sm font-medium">{item.code}</td>
+                      <td className="px-4 py-3 text-sm">{item.name}</td>
+                      <td className="px-4 py-3 text-sm">{getSchoolYearName(item.schoolYearId)}</td>
+                      <td className="px-4 py-3 text-sm">{formatDateDisplay(item.startDate)}</td>
+                      <td className="px-4 py-3 text-sm">{formatDateDisplay(item.endDate)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs ${
+                            item.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {item.isActive ? "Hoạt động" : "Không hoạt động"}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-sm">
+                      <td className="px-4 py-3 text-sm">
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(item)}>
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(item)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(item.semesterId, item.name)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleDelete(item.semesterId, item.name)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -269,113 +321,91 @@ export default function SemestersPage() {
         </CardContent>
       </Card>
 
-      {/* Dialog Thêm/Sửa Học Kỳ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingSemester ? '✏️ Chỉnh sửa học kỳ' : '📚 Thêm học kỳ mới'}</DialogTitle>
+            <DialogTitle>{editingSemester ? "Chỉnh sửa học kỳ" : "Thêm học kỳ mới"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {/* Mã học kỳ */}
             <div>
               <Label className="text-sm font-semibold">Mã học kỳ *</Label>
-              <Input 
-                value={formData.code} 
-                onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})} 
-                placeholder="HK1, HK2, HK3, HE"
+              <Input
+                value={formData.code}
+                onChange={(event) => setFormData({ ...formData, code: event.target.value.toUpperCase() })}
+                placeholder="HK1, HK2, HK3"
                 className="mt-1"
               />
             </div>
-
-            {/* Tên học kỳ */}
             <div>
               <Label className="text-sm font-semibold">Tên học kỳ *</Label>
-              <Input 
-                value={formData.name} 
-                onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                placeholder="Học kỳ 1, Học kỳ 2, Học kỳ hè"
+              <Input
+                value={formData.name}
+                onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                placeholder="Học kỳ 1, Học kỳ 2"
                 className="mt-1"
               />
             </div>
-
-            {/* Năm học */}
             <div>
               <Label className="text-sm font-semibold">Năm học *</Label>
               <select
                 value={formData.schoolYearId}
-                onChange={(e) => setFormData({...formData, schoolYearId: e.target.value, startDate: '', endDate: ''})}
-                className="w-full rounded-md border px-3 py-2 mt-1 bg-white"
+                onChange={(event) =>
+                  setFormData({ ...formData, schoolYearId: event.target.value, startDate: "", endDate: "" })
+                }
+                className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               >
-                <option value="">-- Chọn năm học --</option>
-                {schoolYears.map((sy) => (
-                  <option key={sy.schoolYearId} value={sy.schoolYearId}>
-                    {sy.name}
+                <option value="">Chọn năm học</option>
+                {schoolYears.map((schoolYear) => (
+                  <option key={schoolYear.schoolYearId} value={schoolYear.schoolYearId}>
+                    {schoolYear.name}
                   </option>
                 ))}
               </select>
-              
-              {/* Gợi ý khoảng thời gian của năm học */}
-              {selectedSchoolYear && (
-                <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded-md border">
-                  📅 <span className="font-medium">Năm học:</span> {formatDateDisplay(selectedSchoolYear.startDate)} → {formatDateDisplay(selectedSchoolYear.endDate)}
-                  <br />
-                  ⚠️ Ngày bắt đầu và kết thúc học kỳ phải nằm trong khoảng này.
-                </div>
-              )}
-              
-              {schoolYears.length === 0 && (
-                <p className="text-xs text-red-500 mt-1">⚠️ Chưa có năm học. Vào "Quản lý năm học" để thêm.</p>
+              {selectedSchoolYear ? (
+                <p className="mt-2 rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">
+                  Khoảng năm học: {formatDateDisplay(selectedSchoolYear.startDate)} -{" "}
+                  {formatDateDisplay(selectedSchoolYear.endDate)}
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">Cần có năm học trước khi thêm học kỳ.</p>
               )}
             </div>
-
-            {/* Ngày tháng */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label className="text-sm font-semibold">Ngày bắt đầu *</Label>
-                <Input 
-                  type="date" 
-                  value={formData.startDate} 
-                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                <Input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(event) => setFormData({ ...formData, startDate: event.target.value })}
                   className="mt-1"
                 />
-                {selectedSchoolYear && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    Phải từ {formatDateDisplay(selectedSchoolYear.startDate)} trở đi
-                  </p>
-                )}
               </div>
               <div>
                 <Label className="text-sm font-semibold">Ngày kết thúc *</Label>
-                <Input 
-                  type="date" 
-                  value={formData.endDate} 
-                  onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                <Input
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(event) => setFormData({ ...formData, endDate: event.target.value })}
                   className="mt-1"
                 />
-                {selectedSchoolYear && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    Phải đến {formatDateDisplay(selectedSchoolYear.endDate)} trở xuống
-                  </p>
-                )}
               </div>
             </div>
-
-            {/* Mô tả */}
             <div>
               <Label className="text-sm font-semibold">Mô tả</Label>
-              <Input 
-                value={formData.description} 
-                onChange={(e) => setFormData({...formData, description: e.target.value})} 
-                placeholder="Mô tả thêm..."
+              <Input
+                value={formData.description}
+                onChange={(event) => setFormData({ ...formData, description: event.target.value })}
+                placeholder="Mô tả thêm"
                 className="mt-1"
               />
             </div>
           </div>
-
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Hủy</Button>
-            <Button onClick={handleSave} className="bg-primary" disabled={!selectedSchoolYear}>
-              Lưu
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleSave} disabled={!selectedSchoolYear}>
+              Lưu lại
             </Button>
           </DialogFooter>
         </DialogContent>

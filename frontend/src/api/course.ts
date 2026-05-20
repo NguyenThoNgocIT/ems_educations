@@ -9,8 +9,7 @@ export const courseApi = {
   update: (id: string, data: any) => request.put(`/api/v1/courses/${id}`, data),
   delete: (id: string) => request.delete(`/api/v1/courses/${id}`),
   
-  // ✅ Lấy danh sách chương trình đào tạo (chỉ 1 method)
-  getTrainingPrograms: () => request.get('/api/training-programs/all'),
+  getTrainingPrograms: () => request.get('/api/v1/training-programs/admin'),
 };
 
 export const courseClassApi = {

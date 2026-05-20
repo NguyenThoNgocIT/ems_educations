@@ -37,8 +37,23 @@ export const roleApi = {
   updatePermissions: (id: string, permissionIds: string[]): Promise<Role> =>
     request.put(`/api/v1/roles/admin/${id}/permissions`, { permissionIds }),
 
-  getAllWithPermissions: (): Promise<Role[]> =>
-    request.get('/api/v1/roles/admin/with-permissions'),
+  getAllWithPermissions: async (): Promise<Role[]> => {
+    const rolesRes: any = await request.get('/api/v1/roles/admin');
+    const roles: any[] = Array.isArray(rolesRes?.data) ? rolesRes.data : Array.isArray(rolesRes) ? rolesRes : [];
+    return Promise.all(
+      roles.map(async (role) => {
+        const roleId = role.id || role.roleId;
+        if (!roleId) return role;
+        const permissionsRes: any = await request.get(`/api/v1/roles/admin/${roleId}/permissions`);
+        const permissions = Array.isArray(permissionsRes?.data)
+          ? permissionsRes.data
+          : Array.isArray(permissionsRes)
+            ? permissionsRes
+            : [];
+        return { ...role, permissions };
+      }),
+    );
+  },
 };
 
 // ─── Permissions ──────────────────────────────────────────────────────────────
@@ -58,12 +73,28 @@ export const permissionApi = {
   delete: (id: string): Promise<void> =>
     request.delete(`/api/v1/permissions/admin/${id}`),
 
-  // API endpoint management for a permission
-  addApi: (permissionId: string, data: CreateRbacApiDto): Promise<void> =>
-    request.post(`/api/v1/permissions/admin/${permissionId}/apis`, data),
+  getApis: async (permissionId: string): Promise<any[]> => {
+    const res: any = await request.get(`/api/v1/permissions/admin/${permissionId}/apis`);
+    const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+    return list.map((api: any) => ({
+      id: `${api.httpMethod || api.method}:${api.apiPath || api.path}`,
+      method: api.httpMethod || api.method,
+      path: api.apiPath || api.path,
+      permissionId: api.permissionId || permissionId,
+    }));
+  },
 
-  removeApi: (permissionId: string, apiId: string): Promise<void> =>
-    request.delete(`/api/v1/permissions/admin/${permissionId}/apis/${apiId}`),
+  addApi: (permissionId: string, data: CreateRbacApiDto): Promise<void> =>
+    request.post('/api/v1/permissions/admin/apis', {
+      permissionId,
+      apiPath: data.path,
+      httpMethod: data.method,
+    }),
+
+  removeApi: (permissionId: string, apiPath: string, httpMethod: string): Promise<void> =>
+    request.delete(`/api/v1/permissions/admin/${permissionId}/apis`, {
+      params: { apiPath, httpMethod },
+    }),
 };
 
 // ─── Menus ────────────────────────────────────────────────────────────────────

@@ -24,12 +24,12 @@ const nextConfig: NextConfig = {
     // Để trống hoặc thêm các tính năng experimental khác nếu cần
   },
 
-  /* 4. REWRITES (Để kết nối API localhost:7001 cho mona_web) */
+  /* 4. REWRITES (Kết nối API tới backend dev ở localhost:8081) */
   async rewrites() {
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:7001/api/:path*",
+        destination: "http://localhost:8081/api/:path*",
       },
     ];
   },

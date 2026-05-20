@@ -1,20 +1,31 @@
 import React from "react";
 import { 
+  LayoutDashboard,
   Calendar,      // Lịch học
   GraduationCap, // Kết quả học tập
   BookOpen,      // Đăng ký học phần
-  CreditCard,    // Học phí
-  Bell,          // Thông báo
-  FileText,      // Tài liệu học tập
-  UserCircle     // Thông tin cá nhân
+  Bell,
+  CreditCard,
+  FileText,
+  UserCircle,
 } from "lucide-react"; 
 
 export const StudentNavGroups = [
   {
-    groupName: "Chức năng học tập",
+    groupName: "Tổng quan",
     items: [
       {
-        name: "Lịch học",
+        name: "Bảng điều khiển",
+        path: "/dashboard/student",
+        icon: <LayoutDashboard className="w-[18px] h-[18px]" />,
+      },
+    ],
+  },
+  {
+    groupName: "Học tập",
+    items: [
+      {
+        name: "Thời khóa biểu",
         path: "/dashboard/student/my-schedule",
         icon: <Calendar className="w-[18px] h-[18px]" />,
       },
@@ -30,37 +41,30 @@ export const StudentNavGroups = [
       },
       {
         name: "Học phí",
-        path: "/dashboard/student/tuition", // Có thể cập nhật lại path khi bạn tạo thêm folder tương ứng
+        path: "/dashboard/student/tuition",
         icon: <CreditCard className="w-[18px] h-[18px]" />,
-      },
-      {
-        name: "Thời khóa biểu",
-        path: "/dashboard/student/my-schedule", // Có thể cập nhật lại path khi bạn tạo thêm folder tương ứng
-        icon: <Calendar className="w-[18px] h-[18px]" />,
-      },
-      {
-        name: "Kết quả học tập",
-        path: "/dashboard/student/academic-results", // Có thể cập nhật lại path khi bạn tạo thêm folder tương ứng
-        icon: <GraduationCap className="w-[18px] h-[18px]" />,
+        badge: "Sắp có",
       },
     ],
   },
   {
-    groupName: "Cá nhân & Hỗ trợ",
+    groupName: "Cá nhân",
     items: [
       {
         name: "Thông báo",
         path: "/dashboard/student/notifications",
         icon: <Bell className="w-[18px] h-[18px]" />,
+        badge: "Sắp có",
       },
       {
         name: "Tài liệu học tập",
         path: "/dashboard/student/documents",
         icon: <FileText className="w-[18px] h-[18px]" />,
+        badge: "Sắp có",
       },
       {
         name: "Thông tin cá nhân",
-        path: "/profile", // Khớp với folder src/app/profile chung của hệ thống
+        path: "/profile",
         icon: <UserCircle className="w-[18px] h-[18px]" />,
       },
     ],

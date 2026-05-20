@@ -3,17 +3,49 @@
 import { adminNavGroups } from "@/constants/navigation";
 import { useSidebar } from "@/context/SidebarContext";
 import { cn } from "@/lib/utils";
-import { ChevronRight, GraduationCap } from "lucide-react";
+import { ChevronDown, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const SIDEBAR_OPEN_WIDTH = "w-[290px]";
 const SIDEBAR_CLOSED_WIDTH = "w-[90px]";
+
+function isActivePath(pathname: string, path: string) {
+  return pathname === path || (path !== "/dashboard/admin" && pathname.startsWith(`${path}/`));
+}
 
 export default function AppSidebar() {
   const pathname = usePathname();
   const { isExpanded, isHovered, isMobileOpen, setIsHovered } = useSidebar();
   const isOpen = isExpanded || isHovered || isMobileOpen;
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(["Hồ sơ nhân sự", "Giảng dạy"]));
+
+  useEffect(() => {
+    const activeGroup = adminNavGroups.find((group) =>
+      group.items.some((item) => isActivePath(pathname, item.path)),
+    );
+
+    if (activeGroup && activeGroup.items.length > 1) {
+      setOpenGroups((current) => {
+        const next = new Set(current);
+        next.add(activeGroup.groupName);
+        return next;
+      });
+    }
+  }, [pathname]);
+
+  const toggleGroup = (groupName: string) => {
+    setOpenGroups((current) => {
+      const next = new Set(current);
+      if (next.has(groupName)) {
+        next.delete(groupName);
+      } else {
+        next.add(groupName);
+      }
+      return next;
+    });
+  };
 
   return (
     <aside
@@ -54,73 +86,139 @@ export default function AppSidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
-        <div className="space-y-5">
-          {adminNavGroups.map((group, groupIndex) => (
-            <section key={group.groupName || groupIndex} className="space-y-1">
-              {isOpen ? (
-                <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {group.groupName}
-                </div>
-              ) : (
-                groupIndex > 0 && <div className="mx-auto my-3 h-px w-8 bg-border" />
-              )}
+        <div className="space-y-1.5">
+          {adminNavGroups.map((group, groupIndex) => {
+            const groupActive = group.items.some((item) => isActivePath(pathname, item.path));
+            const canCollapse = group.items.length > 1;
+            const dashboardItem = !canCollapse ? group.items[0] : null;
+            const groupOpen = canCollapse && isOpen && openGroups.has(group.groupName);
 
-              {group.items.map((item) => {
-                const active = pathname === item.path || pathname.startsWith(`${item.path}/`);
+            if (dashboardItem) {
+              const active = isActivePath(pathname, dashboardItem.path);
 
-                return (
-                  <Link
-                    key={item.path}
-                    href={item.path}
-                    title={!isOpen ? item.name : undefined}
+              return (
+                <Link
+                  key={group.groupName || groupIndex}
+                  href={dashboardItem.path}
+                  title={!isOpen ? dashboardItem.name : undefined}
+                  className={cn(
+                    "group relative flex h-11 items-center rounded-xl text-sm font-semibold transition-all duration-200",
+                    isOpen ? "justify-start gap-3 px-3" : "justify-center px-0",
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg">
+                    {group.icon}
+                  </span>
+                  <span
                     className={cn(
-                      "group relative flex h-11 items-center rounded-xl text-sm transition-all duration-200",
-                      isOpen ? "justify-between px-3" : "justify-center px-0",
-                      active
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      "min-w-0 truncate transition-all duration-200",
+                      isOpen ? "opacity-100" : "pointer-events-none w-0 overflow-hidden opacity-0",
                     )}
                   >
+                    {dashboardItem.name}
+                  </span>
+                </Link>
+              );
+            }
+
+            return (
+              <section key={group.groupName || groupIndex} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.groupName)}
+                  aria-expanded={groupOpen}
+                  title={!isOpen ? group.groupName : undefined}
+                  className={cn(
+                    "group relative flex h-11 w-full items-center rounded-xl text-sm font-semibold transition-all duration-200",
+                    isOpen ? "justify-between px-3" : "justify-center px-0",
+                    groupActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute left-0 h-6 w-1 rounded-r-full bg-primary transition-opacity",
+                      groupActive ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  <span className="flex min-w-0 items-center gap-3">
                     <span
                       className={cn(
-                        "absolute left-0 h-6 w-1 rounded-r-full bg-primary transition-opacity",
-                        active ? "opacity-100" : "opacity-0",
+                        "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                        groupActive
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground group-hover:text-foreground",
+                      )}
+                    >
+                      {group.icon}
+                    </span>
+                    <span
+                      className={cn(
+                        "truncate transition-all duration-200",
+                        isOpen ? "opacity-100" : "pointer-events-none w-0 overflow-hidden opacity-0",
+                      )}
+                    >
+                      {group.groupName}
+                    </span>
+                  </span>
+                  {isOpen && (
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                        groupOpen ? "rotate-0" : "-rotate-90",
+                        groupActive && "text-primary",
                       )}
                     />
-                    <span className="flex min-w-0 items-center gap-3">
-                      <span
-                        className={cn(
-                          "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-                          active
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-transparent text-muted-foreground group-hover:text-foreground",
-                        )}
-                      >
-                        {item.icon}
-                      </span>
-                      <span
-                        className={cn(
-                          "truncate font-medium transition-all duration-200",
-                          isOpen ? "opacity-100" : "pointer-events-none w-0 overflow-hidden opacity-0",
-                        )}
-                      >
-                        {item.name}
-                      </span>
-                    </span>
+                  )}
+                </button>
 
-                    {isOpen && (
-                      <ChevronRight
-                        className={cn(
-                          "h-4 w-4 shrink-0 transition-all",
-                          active ? "translate-x-0.5 text-primary" : "text-muted-foreground/70",
-                        )}
-                      />
-                    )}
-                  </Link>
-                );
-              })}
-            </section>
-          ))}
+                {groupOpen && (
+                  <div className="ml-4 space-y-0.5 border-l border-border/80 pl-3">
+                    {group.items.map((item) => {
+                      const active = isActivePath(pathname, item.path);
+
+                      return (
+                        <Link
+                          key={item.path}
+                          href={item.path}
+                          className={cn(
+                            "group/item relative flex h-9 items-center justify-between rounded-lg px-2.5 text-[13px] transition-colors",
+                            active
+                              ? "bg-primary/10 font-semibold text-primary"
+                              : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                          )}
+                        >
+                          <span className="flex min-w-0 items-center gap-2.5">
+                            <span
+                              className={cn(
+                                "h-1.5 w-1.5 shrink-0 rounded-full transition-colors",
+                                active ? "bg-primary" : "bg-muted-foreground/35 group-hover/item:bg-foreground/50",
+                              )}
+                            />
+                            <span className="truncate">{item.name}</span>
+                          </span>
+                          {item.badge && (
+                            <span
+                              className={cn(
+                                "ml-2 shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+                                active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                              )}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       </nav>
 
