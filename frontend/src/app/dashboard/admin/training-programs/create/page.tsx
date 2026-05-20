@@ -63,8 +63,17 @@ export default function CreateTrainingProgramPage() {
         ]);
         
 
-        setMajors(majorsRes || []);
-        setCohorts(cohortsRes || []);
+        let majorsData = [];
+        if (majorsRes?.data?.content) {
+          majorsData = majorsRes.data.content;
+        } else if (majorsRes?.content) {
+          majorsData = majorsRes.content;
+        } else if (Array.isArray(majorsRes?.data)) {
+          majorsData = majorsRes.data;
+        } else if (Array.isArray(majorsRes)) {
+          majorsData = majorsRes;
+        }
+        setMajors(majorsData);
         
         let cohortsData = [];
         if (cohortsRes?.data?.content) {
