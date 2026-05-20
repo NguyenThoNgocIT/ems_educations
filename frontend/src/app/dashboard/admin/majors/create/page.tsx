@@ -1,38 +1,50 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Save, GraduationCap, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { majorApi } from '@/api/major';
 import { departmentApi } from '@/api/department';
+import type { Department } from '@/types/lookup';
+
+interface MajorFormData {
+  code: string;
+  name: string;
+  description: string;
+  departmentId: string;
+}
+
+const getDepartmentId = (department: Department) => department.departmentId || department.id || '';
+const getDepartmentLabel = (department: Department) =>
+  department.code ? `${department.code} - ${department.name}` : department.name || 'Khoa';
 
 export default function CreateMajorPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [fetchingDepts, setFetchingDepts] = useState(true);
 
-  const [formData, setFormData] = useState({
-    majorCode: '',
-    majorName: '',
+  const [formData, setFormData] = useState<MajorFormData>({
+    code: '',
+    name: '',
     description: '',
-    departmentId: '' 
+    departmentId: '',
   });
 
-  // Lấy danh sách khoa từ BE
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchDepts = async () => {
       try {
-        const response: any = await departmentApi.getAll();
+        const response = await departmentApi.getAll({ isActive: true });
         setDepartments(response || []);
         if (response && response.length > 0) {
-          setFormData(prev => ({ ...prev, departmentId: response[0].departmentId }));
+          setFormData((prev) => ({ ...prev, departmentId: getDepartmentId(response[0]) }));
         }
       } catch (error) {
         console.error('Lỗi khi lấy danh sách khoa:', error);
@@ -47,18 +59,28 @@ export default function CreateMajorPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.majorCode.trim()) {
+    if (!formData.code.trim()) {
       toast.error('Vui lòng nhập mã ngành');
       return;
     }
-    if (!formData.majorName.trim()) {
+    if (!formData.name.trim()) {
       toast.error('Vui lòng nhập tên ngành');
+      return;
+    }
+    if (!formData.departmentId) {
+      toast.error('Vui lòng chọn khoa');
       return;
     }
 
     setLoading(true);
     try {
-      await (majorApi as any).create(formData);
+      await majorApi.create({
+        code: formData.code,
+        name: formData.name,
+        description: formData.description,
+        departmentId: formData.departmentId,
+        isActive: true,
+      });
       toast.success('Thêm ngành học thành công');
       router.push('/dashboard/admin/training-programs/create'); // Quay lại trang tạo CTĐT
     } catch (error: any) {
@@ -91,8 +113,8 @@ export default function CreateMajorPage() {
                 <Label htmlFor="majorCode">Mã ngành <span className="text-red-500">*</span></Label>
                 <Input
                   id="majorCode"
-                  value={formData.majorCode}
-                  onChange={(e) => setFormData({ ...formData, majorCode: e.target.value })}
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   placeholder="VD: CNTT"
                 />
               </div>
@@ -102,8 +124,8 @@ export default function CreateMajorPage() {
                 <Label htmlFor="majorName">Tên ngành <span className="text-red-500">*</span></Label>
                 <Input
                   id="majorName"
-                  value={formData.majorName}
-                  onChange={(e) => setFormData({ ...formData, majorName: e.target.value })}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="VD: Công nghệ thông tin"
                 />
               </div>
@@ -116,26 +138,31 @@ export default function CreateMajorPage() {
                 <Button 
                   type="button" 
                   variant="link" 
-                  className="p-0 h-auto text-xs text-orange-600 hover:text-orange-700"
+                  className="p-0 h-auto text-xs text-primary"
                   onClick={() => router.push('/dashboard/admin/departments/create')}
                 >
                   <Plus className="h-3 w-3 mr-1" /> Thêm mới khoa
                 </Button>
               </div>
-              <select
-                id="departmentId"
+              <Select
                 value={formData.departmentId}
-                onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                onValueChange={(value) => setFormData({ ...formData, departmentId: value || '' })}
                 disabled={fetchingDepts}
               >
-                <option value="">{fetchingDepts ? 'Đang tải danh sách khoa...' : '-- Chọn Khoa --'}</option>
-                {departments.map((dept) => (
-                  <option key={dept.departmentId} value={dept.departmentId}>
-                    {dept.code} - {dept.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="departmentId" className="h-10 w-full">
+                  <SelectValue placeholder={fetchingDepts ? 'Đang tải danh sách khoa...' : 'Chọn khoa'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => {
+                    const departmentId = getDepartmentId(dept);
+                    return (
+                      <SelectItem key={departmentId} value={departmentId}>
+                        {getDepartmentLabel(dept)}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Mô tả */}
@@ -151,7 +178,7 @@ export default function CreateMajorPage() {
             </div>
 
             <div className="pt-4 flex gap-3">
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-8" disabled={loading}>
+              <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90 px-8" disabled={loading}>
                 <Save className="mr-2 h-4 w-4" />
                 {loading ? "Đang lưu..." : "Lưu ngành học"}
               </Button>

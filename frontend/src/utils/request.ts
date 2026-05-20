@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig, AxiosInstance } from "axios";
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8081";
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const request: AxiosInstance = axios.create({
   baseURL,
@@ -11,7 +11,7 @@ const request: AxiosInstance = axios.create({
 // Interceptor gắn token
 request.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

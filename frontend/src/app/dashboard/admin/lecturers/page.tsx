@@ -3,34 +3,23 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, Plus, Edit, Trash2, FileText, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { lecturerApi } from '@/api/lecturer';
-
-// Định nghĩa type cho Lecturer
-interface Lecturer {
-  id: string;
-  instructorCode: string;
-  fullName: string;
-  employeeCode: string;
-  departmentId: string;
-  degreeId: string;
-  isActive: boolean;
-}
-
-const mockLecturers: Lecturer[] = [];
+import type { LecturerListItem } from '@/types/instructor';
 
 export default function LecturersPage() {
   const router = useRouter();
   const { user } = useAuth();
   const userRole = user?.role || 'admin';
   
-  const [lecturers, setLecturers] = useState<Lecturer[]>([]);
+  const [lecturers, setLecturers] = useState<LecturerListItem[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
@@ -50,9 +39,9 @@ export default function LecturersPage() {
 
   // Filter lecturers
   const filteredLecturers = lecturers.filter(lecturer => {
-    const matchesSearch = lecturer.instructorCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          lecturer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          lecturer.employeeCode.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (lecturer.instructorCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (lecturer.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (lecturer.employeeCode || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || 
                           (filterStatus === 'active' && lecturer.isActive) ||
                           (filterStatus === 'inactive' && !lecturer.isActive);
@@ -72,11 +61,13 @@ export default function LecturersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Quản lý giảng viên</h1>
-          <p className="text-muted-foreground">Danh sách và quản lý thông tin giảng viên</p>
+          <Badge variant="secondary" className="mb-2 bg-primary/10 text-primary">
+            Nhân sự đào tạo
+          </Badge>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Quản lý giảng viên</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Danh sách và quản lý thông tin giảng viên</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {userRole === 'lecturer' && (
@@ -92,7 +83,7 @@ export default function LecturersPage() {
             </>
           )}
           {userRole === 'admin' && (
-            <Button onClick={() => router.push('/dashboard/admin/lecturers/create')} className="bg-primary hover:bg-primary/90">
+            <Button onClick={() => router.push('/dashboard/admin/lecturers/create')} className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />
               Thêm giảng viên
             </Button>
@@ -100,9 +91,10 @@ export default function LecturersPage() {
         </div>
       </div>
 
-      {/* Filter Card */}
-      <Card>
-        <CardHeader>
+      <Card className="border-primary/10 shadow-sm">
+        <CardHeader className="border-b border-border/70">
+          <CardTitle>Bộ lọc dữ liệu</CardTitle>
+          <CardDescription>Tìm nhanh theo mã, họ tên hoặc trạng thái giảng viên.</CardDescription>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -126,58 +118,62 @@ export default function LecturersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Mã GV</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Họ và tên</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Mã NV</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Khoa</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Học vị</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Trạng thái</th>
-                  {userRole === 'admin' && <th className="text-left py-3 px-4 font-semibold text-sm">Thao tác</th>}
-                </tr>
-              </thead>
-              <tbody>
+          {filteredLecturers.length === 0 ? (
+            <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+              Chưa có dữ liệu giảng viên phù hợp.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Mã GV</TableHead>
+                  <TableHead>Họ và tên</TableHead>
+                  <TableHead>Mã NV</TableHead>
+                  <TableHead>Khoa</TableHead>
+                  <TableHead>Học vị</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  {userRole === 'admin' && <TableHead className="text-right">Thao tác</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredLecturers.map((lecturer) => (
-                  <tr key={lecturer.id} className="border-b hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 text-sm font-medium">{lecturer.instructorCode}</td>
-                    <td className="py-3 px-4 text-sm">{lecturer.fullName}</td>
-                    <td className="py-3 px-4 text-sm">{lecturer.employeeCode}</td>
-                    <td className="py-3 px-4 text-sm">{lecturer.departmentId}</td>
-                    <td className="py-3 px-4 text-sm">{lecturer.degreeId}</td>
-                    <td className="py-3 px-4 text-sm">
-                      <Badge variant={lecturer.isActive ? 'default' : 'secondary'}>
+                  <TableRow key={lecturer.id}>
+                    <TableCell className="font-medium">{lecturer.instructorCode}</TableCell>
+                    <TableCell>{lecturer.fullName}</TableCell>
+                    <TableCell>{lecturer.employeeCode}</TableCell>
+                    <TableCell>{lecturer.departmentId}</TableCell>
+                    <TableCell>{lecturer.degreeId}</TableCell>
+                    <TableCell>
+                      <Badge variant={lecturer.isActive ? 'default' : 'secondary'} className={lecturer.isActive ? '' : 'text-muted-foreground'}>
                         {lecturer.isActive ? 'Hoạt động' : 'Ngừng'}
                       </Badge>
-                    </td>
+                    </TableCell>
                     {userRole === 'admin' && (
-                      <td className="py-3 px-4 text-sm">
-                        <div className="flex gap-2">
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
                           <Button 
                             variant="ghost" 
-                            size="sm" 
+                            size="icon-sm"
                             onClick={() => router.push(`/dashboard/admin/lecturers/${lecturer.id}/edit`)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
-                            size="sm" 
+                            size="icon-sm"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(lecturer.id, lecturer.fullName)}
+                            onClick={() => handleDelete(lecturer.id, lecturer.fullName || lecturer.instructorCode || 'giảng viên')}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </td>
+                      </TableCell>
                     )}
-                  </tr>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
