@@ -6,6 +6,7 @@ import com.quanlydaotao.backend.semester.dto.SemesterResponse;
 import com.quanlydaotao.backend.semester.service.SemesterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;  // ← THÊM DÒNG NÀY
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,7 +44,7 @@ public class SemesterController {
     @PostMapping("/admin")
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @Operation(summary = "Admin tạo học kỳ")
-    public ResponseEntity<ApiResponse<SemesterResponse>> createSemester(@RequestBody SemesterRequest request) {
+    public ResponseEntity<ApiResponse<SemesterResponse>> createSemester(@Valid @RequestBody SemesterRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo học kỳ thành công", semesterService.createSemester(request)));
     }
 
@@ -51,7 +52,7 @@ public class SemesterController {
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @Operation(summary = "Admin cập nhật học kỳ")
     public ResponseEntity<ApiResponse<SemesterResponse>> updateSemester(@PathVariable UUID id,
-                                                                        @RequestBody SemesterRequest request) {
+                                                                        @Valid @RequestBody SemesterRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật học kỳ thành công", semesterService.updateSemester(id, request)));
     }
 
