@@ -70,9 +70,28 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   const fetchRoles = useCallback(async () => {
     setRolesLoading(true);
     try {
-      // Use the new endpoint that returns roles with their permissions
-      const res: any = await roleApi.getAllWithPermissions();
-      setAllRoles(parseUserList(res));
+      // Use the standard endpoint to get roles and then query their permissions in parallel
+      const res: any = await roleApi.getAll();
+      const rolesList = parseUserList(res);
+      
+      const rolesWithPerms = await Promise.all(
+        rolesList.map(async (role: any) => {
+          const roleId = role.id || role.roleId;
+          if (!roleId) return role;
+          try {
+            const permsRes = await roleApi.getPermissions(roleId);
+            return {
+              ...role,
+              permissions: parseUserList(permsRes),
+            };
+          } catch (e) {
+            console.error(`Lỗi khi lấy quyền của vai trò ${roleId}:`, e);
+            return { ...role, permissions: [] };
+          }
+        })
+      );
+      
+      setAllRoles(rolesWithPerms);
     } catch (error) {
       console.error('Lỗi khi tải danh sách role:', error);
       toast.error('Không thể tải danh sách vai trò. Vui lòng kiểm tra backend.');
@@ -94,7 +113,31 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         keyword,
         size: 50,
       });
-      setRawUsers(parseUserList(res));
+      const serverUsers = parseUserList(res);
+
+      // Load mock users from localStorage
+      let localMockUsers: any[] = [];
+      try {
+        const stored = localStorage.getItem('mock_users');
+        if (stored) {
+          localMockUsers = JSON.parse(stored);
+        }
+      } catch (err) {
+        console.error('Lỗi khi đọc mock_users từ localStorage:', err);
+      }
+
+      // Filter mock users by keyword if search is active
+      const filteredMock = localMockUsers.filter((u: any) => {
+        if (!keyword) return true;
+        const kw = keyword.toLowerCase();
+        return (
+          u.fullName?.toLowerCase().includes(kw) ||
+          u.email?.toLowerCase().includes(kw) ||
+          u.username?.toLowerCase().includes(kw)
+        );
+      });
+
+      setRawUsers([...filteredMock, ...serverUsers]);
     } catch {
       toast.error('Không thể tải danh sách người dùng');
     } finally {
@@ -267,7 +310,6 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
       // Giả lập gọi API tạo user do backend chưa hỗ trợ
       console.log('Tạo user mới:', userData);
       
-      // Cập nhật state local để hiển thị trên UI
       const newUser = {
         id: `mock-${Date.now()}`,
         userId: `mock-${Date.now()}`,
@@ -281,9 +323,19 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         isActive: true,
       };
       
-      setRawUsers(prev => [newUser, ...prev]);
+      // Save to localStorage
+      try {
+        const stored = localStorage.getItem('mock_users');
+        const mockUsers = stored ? JSON.parse(stored) : [];
+        mockUsers.unshift(newUser);
+        localStorage.setItem('mock_users', JSON.stringify(mockUsers));
+      } catch (err) {
+        console.error('Lỗi khi lưu mock_users vào localStorage:', err);
+      }
+
       toast.success(`Đã tạo người dùng ${userData.fullName} thành công!`);
       setIsAddUserModalOpen(false);
+      fetchUsers();
     } catch {
       toast.error('Không thể tạo người dùng mới');
     } finally {
