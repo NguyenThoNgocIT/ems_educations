@@ -17,4 +17,13 @@ export const departmentApi = {
     const response = await request.post('/api/v1/departments/admin', data);
     return unwrapApiResponse<Department>(response);
   },
+
+  update: async (id: string, data: Department): Promise<Department> => {
+    const response = await request.put(`/api/v1/departments/admin/${id}`, data);
+    return unwrapApiResponse<Department>(response);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await request.delete(`/api/v1/departments/admin/${id}`);
+  },
 };

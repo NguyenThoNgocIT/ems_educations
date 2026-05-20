@@ -9,11 +9,16 @@ import { StudentNavGroups } from "@/constants/student_navigation";
 
 export default function StudentSidebar() {
   const pathname = usePathname();
-  const { isExpanded, isHovered, isMobileOpen } = useSidebar(); 
-  const isOpen = isExpanded || isHovered;
+  const { isExpanded, isHovered, isMobileOpen, setIsHovered } = useSidebar(); 
+  const isOpen = isExpanded || isHovered || isMobileOpen;
+
+  const isActivePath = (path: string) =>
+    pathname === path || (path !== "/dashboard/student" && pathname.startsWith(`${path}/`));
 
   return (
     <aside 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-100 flex flex-col z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out dark:bg-slate-900 dark:border-slate-800 
         ${isOpen ? "w-[290px]" : "w-[78px]"} 
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
@@ -60,8 +65,7 @@ export default function StudentSidebar() {
             )}
 
             {group.items.map((item) => {
-              // Logic check active chuẩn xác cho cả các trang con
-              const active = pathname === item.path || pathname.startsWith(item.path + "/");
+              const active = isActivePath(item.path);
 
               return (
                 <Link
@@ -88,7 +92,18 @@ export default function StudentSidebar() {
                   </div>
                   
                   {isOpen && (
-                    <ChevronRight className={`h-3.5 w-3.5 flex-shrink-0 transition-transform ${active ? "text-emerald-500 translate-x-0.5 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500"}`} />
+                    <span className="ml-2 flex flex-shrink-0 items-center gap-2">
+                      {item.badge && (
+                        <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-none ${
+                          active
+                            ? "bg-emerald-200/70 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200"
+                            : "bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400"
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
+                      <ChevronRight className={`h-3.5 w-3.5 transition-transform ${active ? "text-emerald-500 translate-x-0.5 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500"}`} />
+                    </span>
                   )}
                 </Link>
               );

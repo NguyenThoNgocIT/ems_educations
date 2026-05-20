@@ -17,4 +17,13 @@ export const academicCohortApi = {
     const response = await request.post('/api/v1/academic-cohorts/admin', data);
     return unwrapApiResponse<AcademicCohort>(response);
   },
+
+  update: async (id: string, data: AcademicCohort): Promise<AcademicCohort> => {
+    const response = await request.put(`/api/v1/academic-cohorts/admin/${id}`, data);
+    return unwrapApiResponse<AcademicCohort>(response);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await request.delete(`/api/v1/academic-cohorts/admin/${id}`);
+  },
 };

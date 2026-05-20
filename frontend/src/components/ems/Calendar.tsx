@@ -81,7 +81,7 @@ const Calendar: React.FC = () => {
       setCourseClasses(classesRes.data || []);
       setRooms(roomsRes.data || roomsRes || []);
       setTimeSlots(slotsRes.data || []);
-      setLecturers(lecturersRes.data?.data || lecturersRes.data || []);
+      setLecturers(Array.isArray(lecturersRes) ? lecturersRes : []);
     } catch (error) {
       console.error("Failed to fetch calendar data", error);
       toast.error("Không thể tải dữ liệu thời khóa biểu");

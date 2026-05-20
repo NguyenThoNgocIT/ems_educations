@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { gradeApi } from '@/api/grade';
 
 interface GradeFormData {
   id: string;
@@ -46,16 +45,18 @@ export default function EditGradePage() {
   }, [id]);
 
   const fetchGradeDetail = async () => {
-    try {
-      const response = await gradeApi.getById(id);
-      const data = response?.data || response;
-      setFormData(data);
-    } catch (error) {
-      toast.error('Không thể lấy thông tin điểm');
-      router.push('/dashboard/lecturer/enter-grades');
-    } finally {
-      setPageLoading(false);
-    }
+    setFormData({
+      id,
+      studentName: 'Sinh viên mẫu',
+      studentCode: 'SV-DEMO',
+      courseClassName: 'Lớp học phần mẫu',
+      attendanceScore: 0,
+      midtermScore: 0,
+      finalScore: 0,
+      totalScore: 0,
+    });
+    toast.info('Backend chưa có GradeController. Trang này đang dùng dữ liệu mẫu và chưa lưu điểm thật.');
+    setPageLoading(false);
   };
 
   // Auto calculate total score
@@ -93,13 +94,7 @@ export default function EditGradePage() {
 
     setLoading(true);
     try {
-      await gradeApi.update(id, {
-        attendanceScore: formData.attendanceScore,
-        midtermScore: formData.midtermScore,
-        finalScore: formData.finalScore
-      });
-      toast.success('Cập nhật điểm thành công');
-      router.push('/dashboard/lecturer/enter-grades');
+      toast.error('Chưa thể cập nhật điểm vì backend chưa có GradeController.');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Cập nhật điểm thất bại');
     } finally {

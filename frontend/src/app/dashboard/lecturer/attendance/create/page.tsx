@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { attendanceApi } from '@/api/attendance';
 import { courseClassApi } from '@/api/course';
 
 interface Student {
@@ -63,20 +62,9 @@ export default function CreateAttendancePage() {
   }, [selectedClass]);
 
   const fetchStudentsByClass = async () => {
-    try {
-      const response = await attendanceApi.getStudentsByClass(selectedClass);
-      const data = response?.data || response || [];
-      setStudents(data);
-      
-      // Mặc định tất cả đều có mặt
-      const initialStatus: Record<string, boolean> = {};
-      data.forEach((student: Student) => {
-        initialStatus[student.id] = true;
-      });
-      setAttendanceStatus(initialStatus);
-    } catch (error) {
-      toast.error('Không thể lấy danh sách sinh viên');
-    }
+    setStudents([]);
+    setAttendanceStatus({});
+    toast.info('Backend chưa có API điểm danh/sinh viên theo lớp học phần. Chức năng này đang chờ triển khai BE.');
   };
 
   const handleToggleAll = (checked: boolean) => {
@@ -96,13 +84,7 @@ export default function CreateAttendancePage() {
 
     setLoading(true);
     try {
-      await attendanceApi.save({
-        classId: selectedClass,
-        date: selectedDate,
-        attendance: attendanceStatus
-      });
-      toast.success('Lưu điểm danh thành công');
-      router.push('/dashboard/lecturer/attendance');
+      toast.error('Chưa thể lưu điểm danh vì backend chưa có AttendanceController.');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Lưu điểm danh thất bại');
     } finally {
