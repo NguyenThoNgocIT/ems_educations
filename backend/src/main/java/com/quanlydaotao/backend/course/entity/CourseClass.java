@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -38,6 +39,12 @@ public class CourseClass extends SoftDeleteEntity {
 
     @Column(name = "Status", length = 20)
     private String status;
+
+    @Column(name = "StartDate")
+    private LocalDate startDate;
+
+    @Column(name = "EndDate")
+    private LocalDate endDate;
 
     @Column(name = "SemesterId", nullable = false)
     private UUID semesterId;

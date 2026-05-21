@@ -3,6 +3,7 @@ package com.quanlydaotao.backend.scheduling.service.impl;
 import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.course.repository.CourseClassRepository;
+import com.quanlydaotao.backend.employeeleave.repository.EmployeeLeaveRequestRepository;
 import com.quanlydaotao.backend.facility.repository.RoomRepository;
 import com.quanlydaotao.backend.scheduling.dto.ScheduleDto;
 import com.quanlydaotao.backend.scheduling.entity.Schedule;
@@ -11,6 +12,7 @@ import com.quanlydaotao.backend.scheduling.repository.ScheduleRepository;
 import com.quanlydaotao.backend.scheduling.repository.TimeSlotRepository;
 import com.quanlydaotao.backend.scheduling.service.ScheduleService;
 import com.quanlydaotao.backend.employee.repository.EmployeeRepository;
+import com.quanlydaotao.backend.teachingassignment.repository.TeachingAssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,8 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final EmployeeRepository employeeRepository;
     private final RoomRepository roomRepository;
     private final TimeSlotRepository timeSlotRepository;
+    private final TeachingAssignmentRepository teachingAssignmentRepository;
+    private final EmployeeLeaveRequestRepository employeeLeaveRequestRepository;
     private final ScheduleMapper scheduleMapper;
 
     @Override
@@ -128,6 +132,19 @@ public class ScheduleServiceImpl implements ScheduleService {
         if (dto.getInstructorId() != null && scheduleRepository.existsByInstructorEmployeeIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
                 dto.getInstructorId(), dto.getSemesterId(), dto.getDayOfWeek(), dto.getTimeSlotId(), currentScheduleId)) {
             throw new BusinessException("Giảng viên này đã có lịch dạy vào Thứ " + dto.getDayOfWeek() + " tại ca học này.");
+        }
+        validateInstructorAssignmentAndLeave(dto);
+    }
+
+    private void validateInstructorAssignmentAndLeave(ScheduleDto dto) {
+        if (dto.getInstructorId() != null
+                && !teachingAssignmentRepository.existsByInstructorIdAndCourseClassIdAndSemesterIdAndIsActiveTrue(
+                dto.getInstructorId(), dto.getCourseClassId(), dto.getSemesterId())) {
+            throw new BusinessException("Giảng viên chưa được phân công dạy lớp học phần này");
+        }
+        if (dto.getInstructorId() != null && dto.getDate() != null
+                && employeeLeaveRequestRepository.hasApprovedLeaveOnDate(dto.getInstructorId(), dto.getDate())) {
+            throw new BusinessException("Giảng viên đã có lịch nghỉ được duyệt trong ngày này");
         }
     }
 }

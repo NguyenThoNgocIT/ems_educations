@@ -236,4 +236,73 @@ Phân quyền theo chuẩn RBAC:
 - Chức vụ kiểm tra phòng ban.
 - Hợp đồng kiểm tra employee, ngày hiệu lực, lương/phụ cấp/ngày phép.
 
-class lớp hành chính sẽ được admin tạo trước đúng . nghiệp vụ kèm theo khi thêm 1 class là sẽ chọn department, AdvisorId gíao viên cố vấn xử lí là 1 giáo viên cố vấn chỉ được gán cho 1 lớp hành chính, AcademicCohortId... sau đó khi thêm student chọn class cho student trong bước thêm sinh viên record được lưu trong bảng studentclass, StudentStatusCatalog Danh mục — định nghĩa các loại trạng thái gán cho sinh viên đó, Admin quản lý qua UI. StudentStatusHistories Lịch sử — ghi lại từng lần thay đổi trạng thái của từng sinh viên.
+- class lớp hành chính sẽ được admin tạo trước đúng . nghiệp vụ kèm theo khi thêm 1 class là sẽ chọn department, AdvisorId gíao viên cố vấn xử lí là 1 giáo viên cố vấn chỉ được gán cho 1 lớp hành chính, AcademicCohortId... sau đó khi thêm student chọn class cho student trong bước thêm sinh viên record được lưu trong bảng studentclass, StudentStatusCatalog Danh mục — định nghĩa các loại trạng thái gán cho sinh viên đó, Admin quản lý qua UI. StudentStatusHistories Lịch sử — ghi lại từng lần thay đổi trạng thái của từng sinh viên.
+
+- Major, Specialization, StudentSpecialization là 3 tầng khác nhau trong nghiệp vụ đào tạo.
+
+Major
+Major là ngành đào tạo.
+
+Ví dụ trong Khoa Công nghệ thông tin:
+
+Công nghệ thông tin
+Kỹ thuật phần mềm
+Hệ thống thông tin
+Khoa học dữ liệu
+Vai trò:
+
+Thuộc một Department.
+Dùng để nhóm chương trình đào tạo theo ngành.
+Sau giai đoạn học cơ sở, sinh viên có thể được gán vào một ngành cụ thể.
+Specialization
+Specialization là chuyên ngành/chuyên sâu bên trong một ngành.
+
+Ví dụ ngành Công nghệ thông tin có thể có:
+
+Trí tuệ nhân tạo
+An toàn thông tin
+Mạng máy tính
+Phát triển phần mềm
+Dữ liệu lớn
+Vai trò:
+
+Thuộc một Major.
+Thuộc gián tiếp một Department.
+Dùng để chia lớp chuyên ngành.
+Dùng để lọc chương trình đào tạo và môn học chuyên sâu.
+StudentSpecialization
+StudentSpecialization là lịch sử/ghi nhận việc sinh viên được phân vào ngành/chuyên ngành nào.
+
+Nó không phải danh mục như Major hay Specialization, mà là bảng nghiệp vụ cho từng sinh viên.
+
+Ví dụ:
+Sinh viên A nhập học Khoa CNTT khóa K24, học chung 2 năm đầu. Đến học kỳ 5, admin phân sinh viên A vào:
+
+Major: Công nghệ thông tin
+Specialization: Trí tuệ nhân tạo
+TrainingProgram: Chương trình CNTT AI K24
+EffectiveSemester: Học kỳ 5
+Vai trò:
+
+Ghi lại sinh viên được phân chuyên ngành từ học kỳ nào.
+Lưu lịch sử nếu sau này đổi chuyên ngành.
+Cập nhật Students.majorId, Students.specializationId, Students.trainingProgramId.
+Có thể gán sinh viên sang lớp chuyên ngành mới qua StudentClasses.
+Tóm lại:
+
+Department: Khoa
+Major: Ngành
+Specialization: Chuyên ngành
+StudentSpecialization: Sinh viên này được phân vào ngành/chuyên ngành nào, từ học kỳ nào
+Ví dụ đầy đủ:
+
+Khoa CNTT
+  -> Ngành Công nghệ thông tin
+      -> Chuyên ngành AI
+
+Sinh viên Nguyễn Văn A
+  -> Năm 1-2: chỉ thuộc Khoa CNTT, lớp CNTT_K24A
+  -> Năm 3: được phân vào Ngành CNTT, Chuyên ngành AI
+  -> Chuyển sang lớp CNTT_K24_AI1
+  -> Học chương trình đào tạo AI tương ứng
+

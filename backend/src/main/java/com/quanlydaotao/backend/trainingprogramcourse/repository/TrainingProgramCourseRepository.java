@@ -11,6 +11,8 @@ import java.util.UUID;
 
 @Repository
 public interface TrainingProgramCourseRepository extends JpaRepository<TrainingProgramCourse, TrainingProgramCourseId> {
+    boolean existsByTrainingProgramIdAndCourseIdAndIsActiveTrue(UUID trainingProgramId, UUID courseId);
+
     @Query("""
             SELECT c
             FROM TrainingProgramCourse c
