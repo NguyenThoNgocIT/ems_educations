@@ -11,7 +11,19 @@ import {
   UserCircle,
 } from "lucide-react"; 
 
-export const LecturerNavGroups = [
+export type NavItem = {
+  name: string;
+  path: string;
+  icon: React.ReactNode;
+  badge?: string;
+};
+
+export type NavGroup = {
+  groupName: string;
+  items: NavItem[];
+};
+
+export const LecturerNavGroups: NavGroup[] = [
   {
     groupName: "Tổng quan",
     items: [
@@ -56,21 +68,9 @@ export const LecturerNavGroups = [
     groupName: "Cá nhân",
     items: [
       {
-        name: "Thông báo",
-        path: "/dashboard/lecturer/notifications",
-        icon: <Bell className="w-[18px] h-[18px]" />,
-        badge: "Sắp có",
-      },
-      {
         name: "Thông tin cá nhân",
         path: "/profile",
         icon: <UserCircle className="w-[18px] h-[18px]" />,
-      },
-      {
-        name: "Hỗ trợ giảng dạy",
-        path: "/dashboard/lecturer/support",
-        icon: <HeadphonesIcon className="w-[18px] h-[18px]" />,
-        badge: "Sắp có",
       },
     ],
   },

@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import Calendar from '@/components/ems/Calendar';
-import { Card, CardContent } from '@/components/ui/card';
+import LecturerSchedule from '@/components/ems/lecturer/LecturerSchedule';
 
 export default function LecturerMySchedulePage() {
   return (
@@ -12,11 +11,7 @@ export default function LecturerMySchedulePage() {
         <p className="text-slate-500 dark:text-slate-400 mt-1">Xem và quản lý lịch trình giảng dạy hàng tuần của bạn.</p>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Calendar />
-        </CardContent>
-      </Card>
+      <LecturerSchedule />
     </div>
   );
 }
