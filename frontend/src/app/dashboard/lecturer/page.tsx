@@ -23,29 +23,11 @@ export default function LecturerDashboard() {
       try {
         // Fetch classes
         const classRes = await courseClassApi.getAll();
-        let classes = classRes.data?.data || classRes.data || [];
+        const classes = classRes || [];
         
         // Fetch schedules
         const scheduleRes = await scheduleApi.getAll();
-        let schedules = scheduleRes.data?.data || scheduleRes.data || [];
-
-        // Mock fallback data if DB is empty
-        if (classes.length === 0) {
-          classes = [
-            { id: "class1", classCode: "CNTT101-01", courseName: "Lập trình Web", credits: 3 },
-            { id: "class2", classCode: "CNTT102-01", courseName: "Cơ sở dữ liệu", credits: 3 },
-            { id: "class3", classCode: "CNTT103-01", courseName: "Mạng máy tính", credits: 3 },
-            { id: "class4", classCode: "CNTT104-01", courseName: "Toán rời rạc", credits: 3 }
-          ];
-        }
-
-        if (schedules.length === 0) {
-          schedules = [
-            { id: "sch1", courseName: "Lập trình ứng dụng Web", courseClassCode: "D22CNTT03 - Nhóm 01", roomCode: "Phòng A305", type: "LT", startPeriod: 1, endPeriod: 3 },
-            { id: "sch2", courseName: "Cơ sở dữ liệu nâng cao", courseClassCode: "D22CNTT02 - Nhóm 02", roomCode: "Phòng A204", type: "TH", startPeriod: 4, endPeriod: 6 },
-            { id: "sch3", courseName: "Mạng máy tính", courseClassCode: "D22CNTT01 - Nhóm 01", roomCode: "Phòng B102", type: "LT", startPeriod: 7, endPeriod: 9 }
-          ];
-        }
+        const schedules = scheduleRes.data?.data || scheduleRes.data || [];
 
         // Tính toán thống kê
         setStats({

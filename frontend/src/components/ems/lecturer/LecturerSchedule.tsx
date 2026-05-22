@@ -16,15 +16,7 @@ export default function LecturerSchedule() {
   const fetchInitialData = async () => {
     try {
       const res = await scheduleApi.getAll();
-      let fetchedSchedules = res.data?.data || res.data || [];
-      
-      if (fetchedSchedules.length === 0) {
-        fetchedSchedules = [
-          { id: "1", courseName: "Cơ sở dữ liệu", courseClassName: "D22CNTT01 - Nhóm 1", roomCode: "Phòng A301", dayOfWeek: 2, startPeriod: 1, endPeriod: 3, type: "LT" },
-          { id: "2", courseName: "Mạng máy tính", courseClassName: "D22CNTT01 - Nhóm 2", roomCode: "Phòng B205", dayOfWeek: 3, startPeriod: 4, endPeriod: 6, type: "TH" },
-          { id: "3", courseName: "Lập trình Web", courseClassName: "D22CNTT02 - Nhóm 1", roomCode: "Phòng C102", dayOfWeek: 5, startPeriod: 7, endPeriod: 9, type: "LT" },
-        ];
-      }
+      const fetchedSchedules = res.data?.data || res.data || [];
 
       const scheduleEvents = fetchedSchedules.map((s: any) => {
         const today = new Date();

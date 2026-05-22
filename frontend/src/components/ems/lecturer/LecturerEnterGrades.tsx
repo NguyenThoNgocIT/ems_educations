@@ -18,14 +18,7 @@ export default function LecturerEnterGrades() {
     const fetchClasses = async () => {
       try {
         const res = await courseClassApi.getAll();
-        let fetchedClasses = res.data?.data || res.data || [];
-        if (fetchedClasses.length === 0) {
-          fetchedClasses = [
-            { id: "class1", classCode: "CNTT101-01", courseName: "Lập trình Web" },
-            { id: "class2", classCode: "CNTT102-01", courseName: "Cơ sở dữ liệu" },
-          ];
-        }
-        setCourseClasses(fetchedClasses);
+        setCourseClasses(res || []);
       } catch (e) {
         console.error("Failed to load classes", e);
       }
@@ -46,18 +39,7 @@ export default function LecturerEnterGrades() {
         const res = await gradeApi.getByClass(selectedClass);
         const fetchedGrades = res.data?.data || res.data || [];
         
-        if (fetchedGrades.length === 0) {
-          // Fallback mock data để xem UI (như yêu cầu của user)
-          setGrades([
-            { id: '1', studentCode: 'SV001', studentName: 'Nguyễn Văn A', attendanceScore: 9.5, midtermScore: 8.0, finalScore: 0, totalScore: 0 },
-            { id: '2', studentCode: 'SV002', studentName: 'Trần Thị B', attendanceScore: 8.5, midtermScore: 7.5, finalScore: 0, totalScore: 0 },
-            { id: '3', studentCode: 'SV003', studentName: 'Lê Văn C', attendanceScore: 7.0, midtermScore: 6.5, finalScore: 0, totalScore: 0 },
-            { id: '4', studentCode: 'SV004', studentName: 'Phạm Thị D', attendanceScore: 10.0, midtermScore: 9.5, finalScore: 0, totalScore: 0 },
-            { id: '5', studentCode: 'SV005', studentName: 'Hoàng Văn E', attendanceScore: 5.0, midtermScore: 4.5, finalScore: 0, totalScore: 0 },
-          ]);
-        } else {
-          setGrades(fetchedGrades);
-        }
+        setGrades(fetchedGrades);
       } catch (error) {
         console.error("Failed to load grades", error);
         toast.error("Không thể tải danh sách điểm. Vui lòng kiểm tra kết nối.");

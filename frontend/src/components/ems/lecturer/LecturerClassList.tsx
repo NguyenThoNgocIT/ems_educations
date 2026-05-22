@@ -12,17 +12,7 @@ export default function LecturerClassList() {
     const fetchClasses = async () => {
       try {
         const res = await courseClassApi.getAll();
-        let fetchedClasses = res.data?.data || res.data || [];
-        
-        if (fetchedClasses.length === 0) {
-          fetchedClasses = [
-            { id: "1", classCode: "CNTT101-01", courseName: "Lập trình Web", credits: 3, capacity: 40, enrolled: 38, status: "ACTIVE" },
-            { id: "2", classCode: "CNTT102-01", courseName: "Cơ sở dữ liệu", credits: 3, capacity: 40, enrolled: 40, status: "ACTIVE" },
-            { id: "3", classCode: "CNTT103-01", courseName: "Mạng máy tính", credits: 3, capacity: 40, enrolled: 35, status: "ACTIVE" },
-            { id: "4", classCode: "CNTT104-01", courseName: "Toán rời rạc", credits: 3, capacity: 40, enrolled: 39, status: "COMPLETED" },
-          ];
-        }
-
+        const fetchedClasses = res || [];
         setClasses(fetchedClasses);
       } catch (error) {
         console.error(error);

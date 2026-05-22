@@ -63,7 +63,7 @@ export default function TimetableBuilder() {
         }
       }));
       setEvents(scheduleEvents);
-      setCourseClasses(classesRes.data || []);
+      setCourseClasses(classesRes || []);
       setRooms(roomsRes.data || roomsRes || []);
       setTimeSlots(slotsRes.data || []);
       setLecturers(Array.isArray(lecturersRes) ? lecturersRes : []);

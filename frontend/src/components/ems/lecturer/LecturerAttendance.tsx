@@ -23,14 +23,7 @@ export default function LecturerAttendance() {
     const fetchClasses = async () => {
       try {
         const res = await courseClassApi.getAll();
-        let fetchedClasses = res.data?.data || res.data || [];
-        if (fetchedClasses.length === 0) {
-          fetchedClasses = [
-            { id: "class1", classCode: "CNTT101-01", courseName: "Lập trình Web" },
-            { id: "class2", classCode: "CNTT102-01", courseName: "Cơ sở dữ liệu" },
-          ];
-        }
-        setCourseClasses(fetchedClasses);
+        setCourseClasses(res || []);
       } catch (e) {
         console.error("Failed to load classes", e);
       }
@@ -48,19 +41,8 @@ export default function LecturerAttendance() {
       setLoading(true);
       try {
         const res = await attendanceApi.getStudentsByClass(selectedClass);
-        let fetchedStudents = res.data?.data || res.data || [];
+        const fetchedStudents = res.data?.data || res.data || [];
         
-        if (fetchedStudents.length === 0) {
-          // Mock data fallback
-          fetchedStudents = [
-            { id: '1', studentCode: 'SV001', studentName: 'Nguyễn Văn A' },
-            { id: '2', studentCode: 'SV002', studentName: 'Trần Thị B' },
-            { id: '3', studentCode: 'SV003', studentName: 'Lê Văn C' },
-            { id: '4', studentCode: 'SV004', studentName: 'Phạm Thị D' },
-            { id: '5', studentCode: 'SV005', studentName: 'Hoàng Văn E' },
-          ];
-        }
-
         setStudents(fetchedStudents);
         
         // Default all present for existing students
