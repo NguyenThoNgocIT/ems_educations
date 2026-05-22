@@ -13,18 +13,9 @@ export default function LecturerRoomInfo() {
       try {
         // Thay the roomApi.getAll() bằng gọi API thực tế nếu có
         // const res = await roomApi.getAll();
-        // let fetchedRooms = res.data?.data || res.data || [];
+        // const fetchedRooms = res.data?.data || res.data || [];
         
-        let fetchedRooms: any[] = []; // Tạm giả định API trả về rỗng vì giảng viên chưa có room API riêng
-
-        if (fetchedRooms.length === 0) {
-          fetchedRooms = [
-            { id: "1", roomCode: "A305", name: "Phòng A305", type: "Lý thuyết", capacity: 80, buildingName: "Tòa A", status: "ACTIVE", currentClass: "Lập trình Web" },
-            { id: "2", roomCode: "B204", name: "Phòng Thực hành B204", type: "Thực hành", capacity: 40, buildingName: "Tòa B", status: "MAINTENANCE", currentClass: null },
-            { id: "3", roomCode: "C102", name: "Phòng Hội thảo C102", type: "Hội trường", capacity: 150, buildingName: "Tòa C", status: "ACTIVE", currentClass: "Hội thảo AI" },
-          ];
-        }
-        
+        const fetchedRooms: any[] = []; // Tạm giả định API trả về rỗng vì giảng viên chưa có room API riêng
         setRooms(fetchedRooms);
       } catch (error) {
         console.error(error);
