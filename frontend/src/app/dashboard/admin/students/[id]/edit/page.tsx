@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpenCheck, GraduationCap, Save, UserPlus } from 'lucide-react';
+import { ArrowLeft, BookOpenCheck, GraduationCap, Save, UserPlus, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { academicCohortApi } from '@/api/academic-cohort';
@@ -363,6 +363,31 @@ export default function EditStudentPage() {
             <div>
               <Label htmlFor="studentCode">Mã sinh viên</Label>
               <Input id="studentCode" value={formData.studentCode} onChange={(e) => setField('studentCode', e.target.value)} className="mt-1.5 h-10" />
+            </div>
+
+            {/* HIỂN THỊ STUDENT ID VỚI NÚT COPY */}
+            <div>
+              <Label>ID Sinh viên (Student ID)</Label>
+              <div className="flex items-center gap-2 mt-1.5">
+                <Input 
+                  value={id || ''} 
+                  disabled 
+                  className="bg-gray-100 font-mono text-sm h-10 flex-1" 
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(id || '');
+                    toast.success('Đã copy Student ID');
+                  }}
+                  className="h-10"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Dùng để phân công lớp theo học kỳ</p>
             </div>
 
             <div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Edit, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Edit, Plus, RefreshCw, Search, Trash2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import { schoolYearApi } from "@/api/school-year";
@@ -222,6 +222,11 @@ export default function SemestersPage() {
     }
   };
 
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`Đã copy ${type} ID: ${text.substring(0, 8)}...`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -258,6 +263,7 @@ export default function SemestersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
+                  <th className="px-4 py-3 text-left text-sm font-semibold">ID học kỳ</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Mã học kỳ</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Tên học kỳ</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Năm học</th>
@@ -270,19 +276,31 @@ export default function SemestersPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center">
+                    <td colSpan={8} className="py-8 text-center">
                       Đang tải...
                     </td>
                   </tr>
                 ) : semesters.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center">
+                    <td colSpan={8} className="py-8 text-center">
                       Chưa có học kỳ nào
                     </td>
                   </tr>
                 ) : (
                   semesters.map((item) => (
                     <tr key={item.semesterId} className="border-b hover:bg-muted/50">
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs">{item.semesterId.substring(0, 8)}...</span>
+                          <button
+                            onClick={() => copyToClipboard(item.semesterId, "Học kỳ")}
+                            className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50"
+                            title="Copy Semester ID"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                       </td>
                       <td className="px-4 py-3 text-sm font-medium">{item.code}</td>
                       <td className="px-4 py-3 text-sm">{item.name}</td>
                       <td className="px-4 py-3 text-sm">{getSchoolYearName(item.schoolYearId)}</td>
@@ -327,6 +345,23 @@ export default function SemestersPage() {
             <DialogTitle>{editingSemester ? "Chỉnh sửa học kỳ" : "Thêm học kỳ mới"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {editingSemester && (
+              <div>
+                <Label className="text-sm font-semibold">ID học kỳ</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input value={editingSemester.semesterId} disabled className="bg-gray-100 font-mono text-sm" />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(editingSemester.semesterId, "Học kỳ")}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">ID duy nhất của học kỳ</p>
+              </div>
+            )}
             <div>
               <Label className="text-sm font-semibold">Mã học kỳ *</Label>
               <Input
