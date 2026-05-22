@@ -1,3 +1,4 @@
+package com.quanlydaotao.backend;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 

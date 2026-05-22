@@ -1,25 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen, GraduationCap } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { courseClassApi } from '@/api/course';
 
-// Định nghĩa type
 interface CourseClass {
   id: string;
+  courseClassId?: string;
   classCode: string;
-  courseId: string;
+  courseId?: string;
+  courseCode?: string;
   courseName: string;
-  semesterId: string;
+  semesterId?: string;
   semesterName: string;
-  roomId: string;
+  roomId?: string;
+  roomCode?: string;
   roomName: string;
   maxStudent: number;
   currentStudent: number;
@@ -27,54 +29,88 @@ interface CourseClass {
   isActive: boolean;
 }
 
+const getCourseClassId = (item: any) => item.id || item.courseClassId || '';
+
+const normalizeCourseClass = (item: any): CourseClass => {
+  const id = getCourseClassId(item);
+  const roomLabel = item.roomName || item.roomCode || item.roomId || 'Chua xep phong';
+  const courseLabel = item.courseName || item.courseCode || item.courseId || 'Chua lien ket mon hoc';
+  const semesterLabel = item.semesterName || item.semesterCode || item.semesterId || 'Chua lien ket hoc ky';
+
+  return {
+    ...item,
+    id,
+    courseClassId: item.courseClassId || id,
+    classCode: item.classCode || item.code || '',
+    courseName: courseLabel,
+    semesterName: semesterLabel,
+    roomName: roomLabel,
+    maxStudent: Number(item.maxStudent ?? item.maxStudents ?? 0),
+    currentStudent: Number(item.currentStudent ?? item.currentEnrollment ?? 0),
+    status: item.status || (item.isActive === false ? 'INACTIVE' : 'ACTIVE'),
+    isActive: item.isActive !== false,
+  };
+};
+
 export default function CourseClassesPage() {
   const router = useRouter();
   const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filterSemester, setFilterSemester] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-
-  useEffect(() => {
-    async function fetchCourseClasses() {
-      try {
-        const response: any = await courseClassApi.getAll();
-        const listData = Array.isArray(response) ? response : (response?.data || []);
-        setCourseClasses(listData);
-      } catch (error) {
-        console.error(error);
-        toast.error('Không thể lấy danh sách lớp học phần');
-      }
-    }
-    fetchCourseClasses();
-  }, []);
-
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSemester, setFilterSemester] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortColumn, setSortColumn] = useState<keyof CourseClass>('classCode');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Lấy danh sách semester unique cho filter
-  const semesters = [...new Set(courseClasses.map(c => c.semesterName))];
+  const fetchCourseClasses = async () => {
+    setLoading(true);
+    try {
+      const response = await courseClassApi.getAll();
+      setCourseClasses((Array.isArray(response) ? response : []).map(normalizeCourseClass));
+    } catch (error) {
+      console.error(error);
+      toast.error('Khong the lay danh sach lop hoc phan');
+      setCourseClasses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Filter
-  let filteredData = courseClasses.filter(item => {
-    const matchesSearch = item.classCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.courseName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSemester = filterSemester === 'all' || item.semesterName === filterSemester;
-    return matchesSearch && matchesSemester;
-  });
+  useEffect(() => {
+    fetchCourseClasses();
+  }, []);
 
-  // Sort
-  filteredData = [...filteredData].sort((a, b) => {
-    const aVal = a[sortColumn];
-    const bVal = b[sortColumn];
+  const semesters = useMemo(
+    () => Array.from(new Set(courseClasses.map((item) => item.semesterName).filter(Boolean))),
+    [courseClasses],
+  );
+
+  const filteredData = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
     const direction = sortDirection === 'asc' ? 1 : -1;
-    if (aVal < bVal) return -direction;
-    if (aVal > bVal) return direction;
-    return 0;
-  });
 
-  // Pagination
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    return courseClasses
+      .filter((item) => {
+        const matchesSearch =
+          !search ||
+          item.classCode.toLowerCase().includes(search) ||
+          item.courseName.toLowerCase().includes(search) ||
+          item.semesterName.toLowerCase().includes(search);
+        const matchesSemester = filterSemester === 'all' || item.semesterName === filterSemester;
+        return matchesSearch && matchesSemester;
+      })
+      .sort((a, b) => {
+        const aVal = a[sortColumn];
+        const bVal = b[sortColumn];
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return (aVal - bVal) * direction;
+        }
+        return String(aVal ?? '').localeCompare(String(bVal ?? '')) * direction;
+      });
+  }, [courseClasses, filterSemester, searchTerm, sortColumn, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
   const paginatedData = filteredData.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
   const handleSort = (column: keyof CourseClass) => {
@@ -87,147 +123,143 @@ export default function CourseClassesPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Đang mở</Badge>;
-      case 'full':
-        return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Đã đầy</Badge>;
-      case 'inactive':
-        return <Badge variant="secondary">Đã đóng</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+    const normalized = status?.toUpperCase();
+    if (normalized === 'ACTIVE' || normalized === 'OPEN') {
+      return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Dang mo</Badge>;
     }
+    if (normalized === 'FULL') {
+      return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Da day</Badge>;
+    }
+    return <Badge variant="secondary">Da dong</Badge>;
   };
 
   const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Ban co chac muon xoa lop ${name}?`)) return;
+
     try {
       await courseClassApi.delete(id);
-      setCourseClasses(prev => prev.filter(c => c.id !== id));
-      toast.success(`Đã xóa lớp ${name}`);
+      setCourseClasses((prev) => prev.filter((item) => item.id !== id));
+      toast.success(`Da xoa lop ${name}`);
     } catch (error) {
       console.error(error);
-      toast.error('Lỗi khi xóa lớp học phần');
+      toast.error('Loi khi xoa lop hoc phan');
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Quản lý lớp học phần</h1>
-          <p className="text-muted-foreground">Danh sách các lớp học phần theo từng môn học</p>
+          <h1 className="mb-2 text-3xl font-bold">Quan ly lop hoc phan</h1>
+          <p className="text-muted-foreground">Danh sach lop hoc phan theo mon hoc va hoc ky</p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => router.push('/dashboard/admin/majors/create')} 
-            className="border-blue-600 text-blue-600 hover:bg-blue-50"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm ngành học
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => router.push('/dashboard/admin/training-programs/create')} 
-            className="border-green-600 text-green-600 hover:bg-green-50"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm CT đào tạo
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={fetchCourseClasses} disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Tai lai
           </Button>
           <Button onClick={() => router.push('/dashboard/admin/course-classes/create')} className="bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm lớp học phần
+            <Plus className="mr-2 h-4 w-4" />
+            Them lop hoc phan
           </Button>
         </div>
       </div>
 
-      {/* Filter Card */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
               <Input
-                placeholder="Tìm kiếm theo mã lớp, tên môn học..."
+                placeholder="Tim theo ma lop, mon hoc, hoc ky..."
                 className="pl-10"
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
                   setCurrentPage(1);
                 }}
               />
             </div>
-            <Select value={filterSemester} onValueChange={(val) => {
-              setFilterSemester(val || 'all');
-              setCurrentPage(1);
-            }}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Chọn học kỳ" />
+            <Select
+              value={filterSemester}
+              onValueChange={(value) => {
+                setFilterSemester(value || 'all');
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="Chon hoc ky" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả học kỳ</SelectItem>
-                {semesters.map(sem => (
-                  <SelectItem key={sem} value={sem}>{sem}</SelectItem>
+                <SelectItem value="all">Tat ca hoc ky</SelectItem>
+                {semesters.map((semester) => (
+                  <SelectItem key={semester} value={semester}>
+                    {semester}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-semibold text-sm cursor-pointer hover:bg-muted/50" onClick={() => handleSort('classCode')}>
-                    Mã lớp {sortColumn === 'classCode' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm cursor-pointer hover:bg-muted/50" onClick={() => handleSort('courseName')}>
-                    Môn học {sortColumn === 'courseName' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Học kỳ</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Phòng</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm cursor-pointer hover:bg-muted/50" onClick={() => handleSort('currentStudent')}>
-                    Sĩ số {sortColumn === 'currentStudent' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Trạng thái</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Thao tác</th>
+                  <th className="cursor-pointer px-4 py-3 text-left text-sm font-semibold hover:bg-muted/50" onClick={() => handleSort('classCode')}>Ma lop</th>
+                  <th className="cursor-pointer px-4 py-3 text-left text-sm font-semibold hover:bg-muted/50" onClick={() => handleSort('courseName')}>Mon hoc</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Hoc ky</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Phong</th>
+                  <th className="cursor-pointer px-4 py-3 text-left text-sm font-semibold hover:bg-muted/50" onClick={() => handleSort('currentStudent')}>Si so</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Trang thai</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Thao tac</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.map((item) => (
-                  <tr key={item.id} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="py-3 px-4 text-sm font-medium">{item.classCode}</td>
-                    <td className="py-3 px-4 text-sm">{item.courseName}</td>
-                    <td className="py-3 px-4 text-sm">{item.semesterName}</td>
-                    <td className="py-3 px-4 text-sm">{item.roomName}</td>
-                    <td className="py-3 px-4 text-sm">{item.currentStudent}/{item.maxStudent}</td>
-                    <td className="py-3 px-4 text-sm">{getStatusBadge(item.status)}</td>
-                    <td className="py-3 px-4 text-sm">
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/admin/course-classes/${item.id}/edit`)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(item.id, item.classCode)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="py-10 text-center text-muted-foreground">Dang tai du lieu...</td>
                   </tr>
-                ))}
+                ) : paginatedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-10 text-center text-muted-foreground">Chua co lop hoc phan phu hop</td>
+                  </tr>
+                ) : (
+                  paginatedData.map((item) => (
+                    <tr key={item.id} className="border-b transition-colors hover:bg-muted/50">
+                      <td className="px-4 py-3 text-sm font-medium">{item.classCode}</td>
+                      <td className="px-4 py-3 text-sm">{item.courseName}</td>
+                      <td className="px-4 py-3 text-sm">{item.semesterName}</td>
+                      <td className="px-4 py-3 text-sm">{item.roomName}</td>
+                      <td className="px-4 py-3 text-sm">{item.currentStudent}/{item.maxStudent}</td>
+                      <td className="px-4 py-3 text-sm">{getStatusBadge(item.status)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/admin/course-classes/${item.id}/edit`)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(item.id, item.classCode)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
+          <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Hiển thị</span>
-              <Select value={String(rowsPerPage)} onValueChange={(val) => {
-                setRowsPerPage(Number(val));
-                setCurrentPage(1);
-              }}>
+              <span className="text-muted-foreground text-sm">Hien thi</span>
+              <Select
+                value={String(rowsPerPage)}
+                onValueChange={(value) => {
+                  setRowsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}
+              >
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -237,27 +269,15 @@ export default function CourseClassesPage() {
                   <SelectItem value="50">50</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-sm text-muted-foreground">
-                trên tổng {filteredData.length} bản ghi
-              </span>
+              <span className="text-muted-foreground text-sm">tren tong {filteredData.length} ban ghi</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              >
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm">Trang {currentPage} / {totalPages}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-              >
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

@@ -12,6 +12,7 @@ import { majorApi } from '@/api/major';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -196,12 +197,12 @@ export default function CreateLecturerPage() {
 
             <div>
               <Label htmlFor="dateOfBirth">Ngày sinh *</Label>
-              <Input
+              <DatePicker
                 id="dateOfBirth"
-                type="date"
                 value={formData.dateOfBirth}
-                onChange={(e) => setField('dateOfBirth', e.target.value)}
-                className="mt-1.5 h-10"
+                onChange={(value) => setField('dateOfBirth', value)}
+                placeholder="Chọn ngày sinh"
+                className="mt-1.5"
               />
               {errors.dateOfBirth && <p className="mt-1 text-sm text-destructive">{errors.dateOfBirth}</p>}
             </div>
@@ -268,84 +269,6 @@ export default function CreateLecturerPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-5 pt-5 md:grid-cols-2">
-            <div>
-              <Label htmlFor="employeeCode">Mã nhân viên</Label>
-              <Input
-                id="employeeCode"
-                value={formData.employeeCode}
-                onChange={(e) => setField('employeeCode', e.target.value)}
-                className="mt-1.5 h-10"
-                placeholder="Tự sinh nếu để trống"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="instructorCode">Mã giảng viên</Label>
-              <Input
-                id="instructorCode"
-                value={formData.instructorCode}
-                onChange={(e) => setField('instructorCode', e.target.value)}
-                className="mt-1.5 h-10"
-                placeholder="Tự sinh nếu để trống"
-              />
-            </div>
-
-            <div>
-              <Label>Khoa/Bộ môn *</Label>
-              <Select value={formData.departmentId} onValueChange={(value) => setField('departmentId', value || '')}>
-                <SelectTrigger className="mt-1.5 h-10 w-full">
-                  <SelectValue placeholder="Chọn khoa/bộ môn" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((department) => (
-                    <SelectItem key={getDepartmentId(department)} value={getDepartmentId(department)}>
-                      {department.code ? `${department.code} - ${department.name}` : department.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.departmentId && <p className="mt-1 text-sm text-destructive">{errors.departmentId}</p>}
-            </div>
-
-            <div>
-              <Label>Loại hợp đồng</Label>
-              <Select value={formData.contractType} onValueChange={(value) => setField('contractType', value || '')}>
-                <SelectTrigger className="mt-1.5 h-10 w-full">
-                  <SelectValue placeholder="Chọn loại hợp đồng" />
-                </SelectTrigger>
-                <SelectContent>
-                  {contractTypeOptions.map((contractType) => (
-                    <SelectItem key={contractType.value} value={contractType.value}>
-                      {contractType.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="startWorkDate">Ngày bắt đầu làm việc</Label>
-              <Input
-                id="startWorkDate"
-                type="date"
-                value={formData.startWorkDate}
-                onChange={(e) => setField('startWorkDate', e.target.value)}
-                className="mt-1.5 h-10"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="endWorkDate">Ngày kết thúc</Label>
-              <Input
-                id="endWorkDate"
-                type="date"
-                value={formData.endWorkDate}
-                onChange={(e) => setField('endWorkDate', e.target.value)}
-                className="mt-1.5 h-10"
-              />
-            </div>
-          </CardContent>
         </Card>
 
         <Card className="border-primary/10 shadow-sm">

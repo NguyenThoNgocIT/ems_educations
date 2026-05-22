@@ -1,11 +1,10 @@
 "use client";
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { User, Settings, LifeBuoy, LogOut } from "lucide-react";
+import { User, Settings, LogOut } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 // Định nghĩa Props để nhận role từ AppHeader
 interface UserDropdownProps {
@@ -15,6 +14,7 @@ interface UserDropdownProps {
 export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const { user, logout } = useAuth();
 
   // 1. ÁNH XẠ VAI TRÒ SANG TIẾNG VIỆT
   const roleLabels: Record<string, string> = {
@@ -26,7 +26,17 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
     parents: "Phụ huynh",
   };
 
-  const currentRoleLabel = roleLabels[role] || "Người dùng";
+  const activeRole = user?.role || role;
+  const currentRoleLabel = roleLabels[activeRole] || "Người dùng";
+  const displayName = user?.fullName || user?.username || currentRoleLabel;
+  const displayEmail = user?.email || user?.username || "";
+  const initials = useMemo(() => {
+    const parts = displayName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "U";
+    const first = parts[0]?.[0] || "";
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] : "";
+    return `${first}${last}`.toUpperCase();
+  }, [displayName]);
 
   // 2. LOGIC ĐĂNG XUẤT: Xóa sạch Cookie gác cổng
   const handleSignOut = () => {
@@ -35,6 +45,8 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
       "user-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
     document.cookie =
       "user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    localStorage.removeItem("refresh_token");
+    logout();
 
     // Đẩy về trang chủ và làm mới Middleware
     router.push("/");
@@ -56,19 +68,13 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
         onClick={toggleDropdown}
         className="flex items-center text-slate-700 transition-colors hover:text-indigo-600 dark:text-slate-300"
       >
-        <span className="mr-3 h-10 w-10 overflow-hidden rounded-full border-2 border-indigo-50 shadow-sm">
-          <Image
-            width={40}
-            height={40}
-            src="/images/user/owner.jpg"
-            alt="User"
-            className="object-cover"
-          />
+        <span className="mr-3 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-indigo-50 bg-emerald-600 text-sm font-bold text-white shadow-sm">
+          {initials}
         </span>
 
-        {/* HIỂN THỊ ROLE Ở ĐÂY */}
-        <span className="mr-1 hidden text-sm font-bold sm:block">
-          {currentRoleLabel}
+        <span className="mr-1 hidden max-w-44 flex-col items-start sm:flex">
+          <span className="max-w-full truncate text-sm font-bold">{displayName}</span>
+          <span className="max-w-full truncate text-xs text-slate-400">{currentRoleLabel}</span>
         </span>
 
         <svg
@@ -95,10 +101,10 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
       >
         <div className="mb-2 border-b border-slate-50 px-3 py-2 dark:border-slate-800">
           <span className="block text-sm font-bold text-slate-9 leading-relaxed00 dark:text-white">
-            Mona Software
+            {displayName}
           </span>
           <span className="mt-0.5 block text-xs text-slate-400">
-            {role}@mona.guide
+            {displayEmail || currentRoleLabel}
           </span>
         </div>
 

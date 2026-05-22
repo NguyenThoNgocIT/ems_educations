@@ -1,4 +1,5 @@
 import { request } from '@/utils/request';
+import { unwrapApiResponse } from '@/api/response';
 
 export const courseApi = {
   getAll: () => request.get('/api/v1/courses'),
@@ -13,12 +14,12 @@ export const courseApi = {
 };
 
 export const courseClassApi = {
-  getAll: () => request.get('/api/v1/courses/classes'),
-  getById: (id: string) => request.get(`/api/v1/courses/classes/${id}`),
-  getByCourse: (courseId: string) => request.get(`/api/v1/courses/${courseId}/classes`),
-  getBySemester: (semesterId: string) => request.get(`/api/v1/courses/classes/semester/${semesterId}`),
-  create: (data: any) => request.post('/api/v1/courses/classes', data),
-  update: (id: string, data: any) => request.put(`/api/v1/courses/classes/${id}`, data),
+  getAll: async () => unwrapApiResponse<any[]>(await request.get('/api/v1/courses/classes')),
+  getById: async (id: string) => unwrapApiResponse<any>(await request.get(`/api/v1/courses/classes/${id}`)),
+  getByCourse: async (courseId: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/${courseId}/classes`)),
+  getBySemester: async (semesterId: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/classes/semester/${semesterId}`)),
+  create: async (data: any) => unwrapApiResponse<any>(await request.post('/api/v1/courses/classes', data)),
+  update: async (id: string, data: any) => unwrapApiResponse<any>(await request.put(`/api/v1/courses/classes/${id}`, data)),
   delete: (id: string) => request.delete(`/api/v1/courses/classes/${id}`),
 };
 

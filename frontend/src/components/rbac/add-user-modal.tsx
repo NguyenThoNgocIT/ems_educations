@@ -11,6 +11,7 @@ import {
   Upload
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
+import { DatePicker } from '@/components/ui/date-picker';
 import type { Role } from '@/types/rbac';
 import { request } from '@/utils/request';
 import { parseUserList } from './shared';
@@ -250,11 +251,10 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
                     Ngày sinh <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    type="date" 
+                  <DatePicker
                     value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm" 
+                    onChange={setDob}
+                    placeholder="Chọn ngày sinh"
                   />
                 </div>
 

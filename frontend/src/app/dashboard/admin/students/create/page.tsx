@@ -7,17 +7,21 @@ import { toast } from 'sonner';
 
 import { academicCohortApi } from '@/api/academic-cohort';
 import { administrativeClassApi } from '@/api/administrative-class';
+import { departmentApi } from '@/api/department';
 import { majorApi } from '@/api/major';
+import { semesterApi } from '@/api/semester';
 import { studentApi } from '@/api/student';
 import { trainingProgramApi } from '@/api/training-program';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { AcademicCohort, AdministrativeClass, Major, TrainingProgram } from '@/types/lookup';
+import type { AcademicCohort, AdministrativeClass, Department, Major, TrainingProgram } from '@/types/lookup';
+import type { Semester } from '@/api/admin-resources';
 import type { StudentAdminFormData } from '@/types/student';
 
 type FormErrors = Partial<Record<keyof StudentAdminFormData, string>>;
@@ -26,16 +30,22 @@ const isPresent = <T,>(value: T | null | undefined): value is T => value != null
 const getProgramId = (program: TrainingProgram) => program.trainingProgramId || program.programId || program.id || '';
 const getProgramCode = (program: TrainingProgram) => program.code || program.programCode || 'CTDT';
 const getProgramName = (program: TrainingProgram) => program.name || program.programName || 'Chương trình đào tạo';
+const getDepartmentId = (department: Department) => department.departmentId || department.id || '';
+const getDepartmentName = (department: Department) => department.name || 'Khoa/Bộ môn';
 const getMajorId = (major: Major) => major.majorId || major.id || '';
 const getCohortId = (cohort: AcademicCohort) => cohort.academicCohortId || cohort.cohortId || cohort.id || '';
+const getSemesterId = (semester: Semester) => semester.semesterId || '';
+const getSemesterName = (semester: Semester) => semester.name || 'Học kỳ';
 const getClassId = (classItem: AdministrativeClass) => classItem.classId || classItem.id || '';
 
 export default function CreateStudentPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
   const [majors, setMajors] = useState<Major[]>([]);
   const [cohorts, setCohorts] = useState<AcademicCohort[]>([]);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
   const [classes, setClasses] = useState<AdministrativeClass[]>([]);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -47,23 +57,30 @@ export default function CreateStudentPage() {
     phoneNumber: '',
     contactEmail: '',
     permanentAddress: '',
+    departmentId: '',
     trainingProgramId: '',
     majorId: '',
     academicCohortId: '',
     classId: '',
+    semesterId: '',
     admissionDate: '',
     note: '',
   });
 
   useEffect(() => {
     const fetchLookups = async () => {
-      const [programResult, majorResult, cohortResult, classResult] = await Promise.allSettled([
+      const [departmentResult, programResult, majorResult, cohortResult, semesterResult, classResult] = await Promise.allSettled([
+        departmentApi.getAll({ isActive: true }),
         trainingProgramApi.getAll({ size: 100 }),
         majorApi.getAll({ isActive: true }),
         academicCohortApi.getAll({ isActive: true }),
+        semesterApi.getAll({ isActive: true }),
         administrativeClassApi.getAll({ isActive: true }),
       ]);
 
+      if (departmentResult.status === 'fulfilled' && isPresent(departmentResult.value)) {
+        setDepartments(departmentResult.value);
+      }
       if (programResult.status === 'fulfilled' && isPresent(programResult.value)) {
         setPrograms(programResult.value);
       }
@@ -73,22 +90,32 @@ export default function CreateStudentPage() {
       if (cohortResult.status === 'fulfilled' && isPresent(cohortResult.value)) {
         setCohorts(cohortResult.value);
       }
+      if (semesterResult.status === 'fulfilled' && isPresent(semesterResult.value)) {
+        setSemesters(semesterResult.value);
+      }
       if (classResult.status === 'fulfilled' && isPresent(classResult.value)) {
         setClasses(classResult.value);
       }
 
       const requiredLookupFailed =
+        departmentResult.status === 'rejected' ||
         programResult.status === 'rejected' ||
         majorResult.status === 'rejected' ||
         cohortResult.status === 'rejected';
 
       if (requiredLookupFailed) {
         console.error('Không thể tải đủ danh mục bắt buộc:', {
+          departmentResult,
           programResult,
           majorResult,
           cohortResult,
         });
-        toast.error('Không thể tải đủ chương trình, ngành hoặc khóa tuyển sinh');
+        toast.error('Không thể tải đủ khoa, chương trình, ngành hoặc khóa tuyển sinh');
+      }
+
+      if (semesterResult.status === 'rejected') {
+        console.warn('Không thể tải học kỳ, có thể không chọn lớp:', semesterResult.reason);
+        toast.warning('Chưa tải được danh sách học kỳ. Nếu chọn lớp phải chọn học kỳ.');
       }
 
       if (classResult.status === 'rejected') {
@@ -106,6 +133,45 @@ export default function CreateStudentPage() {
     () => programs.find((program) => getProgramId(program) === formData.trainingProgramId),
     [formData.trainingProgramId, programs],
   );
+
+  const selectedDepartment = useMemo(
+    () => departments.find((dept) => getDepartmentId(dept) === formData.departmentId),
+    [formData.departmentId, departments],
+  );
+
+  const selectedMajor = useMemo(
+    () => majors.find((major) => getMajorId(major) === formData.majorId),
+    [formData.majorId, majors],
+  );
+
+  const selectedCohort = useMemo(
+    () => cohorts.find((cohort) => getCohortId(cohort) === formData.academicCohortId),
+    [formData.academicCohortId, cohorts],
+  );
+
+  const selectedSemester = useMemo(
+    () => semesters.find((semester) => getSemesterId(semester) === formData.semesterId),
+    [formData.semesterId, semesters],
+  );
+
+  const selectedClass = useMemo(
+    () => classes.find((classItem) => getClassId(classItem) === formData.classId),
+    [formData.classId, classes],
+  );
+
+  const renderSelectLabel = (label: string | undefined, placeholder: string) => (
+    <span className={label ? 'truncate' : 'truncate text-muted-foreground'}>
+      {label || placeholder}
+    </span>
+  );
+
+  const majorLabel = selectedMajor ? (selectedMajor.code ? `${selectedMajor.code} - ${selectedMajor.name || ''}` : selectedMajor.name || '') : '';
+  const departmentLabel = selectedDepartment ? getDepartmentName(selectedDepartment) : '';
+  const cohortLabel = selectedCohort ? (selectedCohort.code ? `${selectedCohort.code} - ${selectedCohort.name || ''}` : selectedCohort.name || '') : '';
+  const semesterLabel = selectedSemester ? (selectedSemester.code ? `${selectedSemester.code} - ${getSemesterName(selectedSemester) || ''}` : getSemesterName(selectedSemester) || '') : '';
+  const classLabel = selectedClass
+    ? (selectedClass.classCode ? `${selectedClass.classCode} - ${selectedClass.className || ''}` : selectedClass.className || '')
+    : '';
 
   const setField = (field: keyof StudentAdminFormData, value: string) => {
     setFormData((current) => ({ ...current, [field]: value }));
@@ -151,9 +217,11 @@ export default function CreateStudentPage() {
 
     if (!formData.fullName.trim()) nextErrors.fullName = 'Vui lòng nhập họ và tên';
     if (!formData.dateOfBirth) nextErrors.dateOfBirth = 'Vui lòng chọn ngày sinh';
+    if (!formData.departmentId) nextErrors.departmentId = 'Vui lòng chọn khoa';
     if (!formData.trainingProgramId) nextErrors.trainingProgramId = 'Vui lòng chọn chương trình đào tạo';
     if (!formData.majorId) nextErrors.majorId = 'Vui lòng chọn ngành';
     if (!formData.academicCohortId) nextErrors.academicCohortId = 'Vui lòng chọn khóa tuyển sinh';
+    if (formData.classId && !formData.semesterId) nextErrors.semesterId = 'Vui lòng chọn học kỳ khi chọn lớp quản lý';
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -167,26 +235,46 @@ export default function CreateStudentPage() {
     try {
       const enrollData = {
         fullName: formData.fullName,
-        studentCode: formData.studentCode || undefined,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
         phoneNumber: formData.phoneNumber,
         contactEmail: formData.contactEmail || generateEmail(formData.fullName),
         permanentAddress: formData.permanentAddress,
+        departmentId: formData.departmentId,
         trainingProgramId: formData.trainingProgramId,
         majorId: formData.majorId,
         academicCohortId: formData.academicCohortId,
         classId: formData.classId || undefined,
+        semesterId: formData.semesterId || undefined,
         admissionDate: formData.admissionDate || undefined,
         note: formData.note,
       };
 
+      console.log('Request payload:', JSON.stringify(enrollData, null, 2));
       await studentApi.createAdmin(enrollData);
       toast.success('Thêm sinh viên thành công');
       router.push('/dashboard/admin/students');
     } catch (error: any) {
       console.error('Lỗi thêm sinh viên:', error);
-      toast.error(error.response?.data?.message || 'Thêm sinh viên thất bại. API sẽ được khớp ở bước sau.');
+      console.error('Response data:', error.response?.data);
+      
+      // Extract detailed error message from backend
+      let errorMessage = 'Thêm sinh viên thất bại';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        // Handle field-level validation errors
+        const errors = error.response.data.errors;
+        if (Array.isArray(errors)) {
+          errorMessage = errors.map((e: any) => e.message || e).join('; ');
+        } else if (typeof errors === 'object') {
+          errorMessage = Object.entries(errors)
+            .map(([field, msg]) => `${field}: ${msg}`)
+            .join('; ');
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -245,24 +333,13 @@ export default function CreateStudentPage() {
             </div>
 
             <div>
-              <Label htmlFor="studentCode">Mã sinh viên</Label>
-              <Input
-                id="studentCode"
-                value={formData.studentCode}
-                onChange={(e) => setField('studentCode', e.target.value)}
-                className="mt-1.5 h-10"
-                placeholder="Tự sinh nếu để trống"
-              />
-            </div>
-
-            <div>
               <Label htmlFor="dateOfBirth">Ngày sinh *</Label>
-              <Input
+              <DatePicker
                 id="dateOfBirth"
-                type="date"
                 value={formData.dateOfBirth}
-                onChange={(e) => setField('dateOfBirth', e.target.value)}
-                className="mt-1.5 h-10"
+                onChange={(value) => setField('dateOfBirth', value)}
+                placeholder="Chọn ngày sinh"
+                className="mt-1.5"
               />
               {errors.dateOfBirth && <p className="mt-1 text-sm text-destructive">{errors.dateOfBirth}</p>}
             </div>
@@ -271,7 +348,7 @@ export default function CreateStudentPage() {
               <Label>Giới tính</Label>
               <Select value={formData.gender} onValueChange={(value) => setField('gender', value || '')}>
                 <SelectTrigger className="mt-1.5 h-10 w-full">
-                  <SelectValue placeholder="Chọn giới tính" />
+                  {renderSelectLabel(formData.gender, 'Chọn giới tính')}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Nam">Nam</SelectItem>
@@ -331,6 +408,23 @@ export default function CreateStudentPage() {
           </CardHeader>
           <CardContent className="grid gap-5 pt-5 md:grid-cols-2">
             <div className="md:col-span-2">
+              <Label>Khoa/Bộ môn *</Label>
+              <Select value={formData.departmentId} onValueChange={(value) => setField('departmentId', value || '')}>
+                <SelectTrigger className="mt-1.5 h-10 w-full">
+                  {renderSelectLabel(departmentLabel, 'Chọn khoa/bộ môn')}
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={getDepartmentId(dept)} value={getDepartmentId(dept)}>
+                      {getDepartmentName(dept)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.departmentId && <p className="mt-1 text-sm text-destructive">{errors.departmentId}</p>}
+            </div>
+
+            <div className="md:col-span-2">
               <div className="mb-1.5 flex items-center justify-between gap-3">
                 <Label>Chương trình đào tạo *</Label>
                 <Button
@@ -345,7 +439,10 @@ export default function CreateStudentPage() {
               </div>
               <Select value={formData.trainingProgramId} onValueChange={handleProgramChange}>
                 <SelectTrigger className="h-10 w-full">
-                  <SelectValue placeholder={loadingPrograms ? 'Đang tải chương trình...' : 'Chọn chương trình đào tạo'} />
+                  {renderSelectLabel(
+                    selectedProgram ? `${getProgramCode(selectedProgram)} - ${getProgramName(selectedProgram)}` : '',
+                    loadingPrograms ? 'Đang tải chương trình...' : 'Chọn chương trình đào tạo',
+                  )}
                 </SelectTrigger>
                 <SelectContent>
                   {programs.map((program) => (
@@ -367,7 +464,7 @@ export default function CreateStudentPage() {
               <Label>Ngành *</Label>
               <Select value={formData.majorId} onValueChange={(value) => setField('majorId', value || '')}>
                 <SelectTrigger className="mt-1.5 h-10 w-full">
-                  <SelectValue placeholder="Chọn ngành" />
+                  {renderSelectLabel(majorLabel, 'Chọn ngành')}
                 </SelectTrigger>
                 <SelectContent>
                   {majors.map((major) => (
@@ -384,7 +481,7 @@ export default function CreateStudentPage() {
               <Label>Khóa tuyển sinh *</Label>
               <Select value={formData.academicCohortId} onValueChange={(value) => setField('academicCohortId', value || '')}>
                 <SelectTrigger className="mt-1.5 h-10 w-full">
-                  <SelectValue placeholder="Chọn khóa" />
+                  {renderSelectLabel(cohortLabel, 'Chọn khóa')}
                 </SelectTrigger>
                 <SelectContent>
                   {cohorts.map((cohort) => (
@@ -401,7 +498,7 @@ export default function CreateStudentPage() {
               <Label>Lớp quản lý</Label>
               <Select value={formData.classId} onValueChange={(value) => setField('classId', value || '')}>
                 <SelectTrigger className="mt-1.5 h-10 w-full">
-                  <SelectValue placeholder="Chọn lớp nếu có" />
+                  {renderSelectLabel(classLabel, 'Chọn lớp nếu có')}
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map((classItem) => (
@@ -414,13 +511,32 @@ export default function CreateStudentPage() {
             </div>
 
             <div>
+              <Label htmlFor="semesterId">Học kỳ {formData.classId ? '*' : ''}</Label>
+              <Select value={formData.semesterId} onValueChange={(value) => setField('semesterId', value || '')}>
+                <SelectTrigger className="mt-1.5 h-10 w-full">
+                  {renderSelectLabel(semesterLabel, 'Chọn học kỳ nếu có lớp')}
+                </SelectTrigger>
+                <SelectContent>
+                  {semesters.map((semester) => (
+                    <SelectItem key={getSemesterId(semester)} value={getSemesterId(semester)}>
+                      {semester.code ? `${semester.code} - ${getSemesterName(semester)}` : getSemesterName(semester)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.classId && !formData.semesterId && (
+                <p className="mt-1 text-sm text-destructive">Học kỳ bắt buộc khi chọn lớp quản lý</p>
+              )}
+            </div>
+
+            <div>
               <Label htmlFor="admissionDate">Ngày nhập học</Label>
-              <Input
+              <DatePicker
                 id="admissionDate"
-                type="date"
                 value={formData.admissionDate}
-                onChange={(e) => setField('admissionDate', e.target.value)}
-                className="mt-1.5 h-10"
+                onChange={(value) => setField('admissionDate', value)}
+                placeholder="Chọn ngày nhập học"
+                className="mt-1.5"
               />
             </div>
 

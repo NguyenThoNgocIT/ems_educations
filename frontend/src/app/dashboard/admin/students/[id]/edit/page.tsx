@@ -13,6 +13,7 @@ import { trainingProgramApi } from '@/api/training-program';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -365,34 +366,11 @@ export default function EditStudentPage() {
               <Input id="studentCode" value={formData.studentCode} onChange={(e) => setField('studentCode', e.target.value)} className="mt-1.5 h-10" />
             </div>
 
-            {/* HIỂN THỊ STUDENT ID VỚI NÚT COPY */}
-            <div>
-              <Label>ID Sinh viên (Student ID)</Label>
-              <div className="flex items-center gap-2 mt-1.5">
-                <Input 
-                  value={id || ''} 
-                  disabled 
-                  className="bg-gray-100 font-mono text-sm h-10 flex-1" 
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(id || '');
-                    toast.success('Đã copy Student ID');
-                  }}
-                  className="h-10"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Dùng để phân công lớp theo học kỳ</p>
-            </div>
+            {/* Student ID removed from edit form per request */}
 
             <div>
               <Label htmlFor="dateOfBirth">Ngày sinh *</Label>
-              <Input id="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={(e) => setField('dateOfBirth', e.target.value)} className="mt-1.5 h-10" />
+              <DatePicker id="dateOfBirth" value={formData.dateOfBirth} onChange={(value) => setField('dateOfBirth', value)} placeholder="Chọn ngày sinh" className="mt-1.5" />
               {errors.dateOfBirth && <p className="mt-1 text-sm text-destructive">{errors.dateOfBirth}</p>}
             </div>
 
@@ -521,7 +499,7 @@ export default function EditStudentPage() {
 
             <div>
               <Label htmlFor="admissionDate">Ngày nhập học</Label>
-              <Input id="admissionDate" type="date" value={formData.admissionDate} onChange={(e) => setField('admissionDate', e.target.value)} className="mt-1.5 h-10" />
+              <DatePicker id="admissionDate" value={formData.admissionDate} onChange={(value) => setField('admissionDate', value)} placeholder="Chọn ngày nhập học" className="mt-1.5" />
             </div>
 
             <div>

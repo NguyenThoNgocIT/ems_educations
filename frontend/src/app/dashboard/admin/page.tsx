@@ -401,7 +401,6 @@ export default function AdminDashboard() {
               { label: 'Thêm GV', icon: <UserPlus className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/lecturers/create' },
               { label: 'Tạo lớp học', icon: <PlusCircle className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/classes/create' },
               { label: 'Tạo môn học', icon: <BookOpen className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/courses/create' },
-              { label: 'Nhập điểm', icon: <FileText className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/grades' },
               { label: 'Lịch biểu', icon: <CalendarDays className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/schedules' },
               { label: 'Báo cáo', icon: <BarChart3 className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/reports' },
               { label: 'Cài đặt', icon: <Settings className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/settings' },
