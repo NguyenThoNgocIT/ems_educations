@@ -1,18 +1,18 @@
-// src/middleware.ts
+// src/proxy.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Các route công khai (không cần đăng nhập)
 const publicRoutes = ['/dashboard/admin/signin', '/forgot-password'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Check xem có phải route admin không
   const isAdminRoute = pathname.startsWith('/dashboard/admin');
   const isPublicRoute = publicRoutes.some(route => pathname === route);
   
-  // Lấy token từ cookie hoặc localStorage (cần chuyển từ client)
+  // Lấy token từ cookie
   const token = request.cookies.get('access_token')?.value;
   
   // Nếu là route admin, không phải public, và không có token -> redirect về login
