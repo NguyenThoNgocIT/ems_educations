@@ -68,7 +68,8 @@ public class RbacAuthorizationFilter extends OncePerRequestFilter {
         return HttpMethod.OPTIONS.matches(request.getMethod())
                 || path.startsWith("/api/auth/")
                 || path.startsWith("/swagger-ui/")
-                || path.startsWith("/v3/api-docs");
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/h2-console");
     }
 
     private PermissionApis findMatchedPermissionApi(HttpServletRequest request) {

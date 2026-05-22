@@ -1,216 +1,238 @@
-// TODO: Chuy?n d?i t? code AI Hosting
 'use client';
 
-import React, { useState } from 'react';
+import { studentPortalApi } from '@/api/student-portal';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { GraduationCap, Users, BookOpen, DoorOpen, TrendingUp, Calendar } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line
-} from 'recharts';
+import type { StudentAcademicResult } from '@/types/student-portal';
+import { Award, BookCheck, GraduationCap, TrendingUp } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 
-// Định nghĩa type cho stats
-interface StatItem {
-  label: string;
-  value: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  change: string;
-}
+export default function StudentAcademicResultsPage() {
+  const [result, setResult] = useState<StudentAcademicResult | null>(null);
+  const [filterMode, setFilterMode] = useState<'single' | 'range'>('single');
+  const [singleSemester, setSingleSemester] = useState('');
+  const [fromSemester, setFromSemester] = useState('');
+  const [toSemester, setToSemester] = useState('');
 
-// Định nghĩa type cho schedule
-interface ScheduleItem {
-  time: string;
-  course: string;
-  room: string;
-  lecturer: string;
-  students: string;
-}
+  useEffect(() => {
+    studentPortalApi.getAcademicResult().then((payload) => {
+      setResult(payload.data);
+      const currentSemester = payload.data.semesters.at(-2)?.id || payload.data.semesters[0]?.id || '';
+      setSingleSemester(currentSemester);
+      setFromSemester(payload.data.semesters[0]?.id || '');
+      setToSemester(currentSemester);
+    });
+  }, []);
 
-// Định nghĩa type cho enrollment data
-interface EnrollmentData {
-  month: string;
-  students: number;
-}
+  const semesterOrder = result?.semesters.map((semester) => semester.id) ?? [];
+  const filteredGrades = useMemo(() => {
+    if (!result) return [];
+    if (filterMode === 'single') return result.grades.filter((grade) => grade.semesterId === singleSemester);
 
-export default function AdminDashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+    const fromIndex = semesterOrder.indexOf(fromSemester);
+    const toIndex = semesterOrder.indexOf(toSemester);
+    const start = Math.min(fromIndex, toIndex);
+    const end = Math.max(fromIndex, toIndex);
 
-  const stats: StatItem[] = [
-    { label: 'Tổng sinh viên', value: '2,847', icon: GraduationCap, color: 'bg-blue-500', change: '+12.3%' },
-    { label: 'Tổng giảng viên', value: '187', icon: Users, color: 'bg-green-500', change: '+5.7%' },
-    { label: 'Tổng môn học', value: '342', icon: BookOpen, color: 'bg-purple-500', change: '+8.1%' },
-    { label: 'Tổng phòng học', value: '124', icon: DoorOpen, color: 'bg-orange-500', change: '+2.4%' }
-  ];
+    return result.grades.filter((grade) => {
+      const index = semesterOrder.indexOf(grade.semesterId);
+      return start >= 0 && end >= 0 && index >= start && index <= end;
+    });
+  }, [filterMode, fromSemester, result, semesterOrder, singleSemester, toSemester]);
 
-  const enrollmentData: EnrollmentData[] = [
-    { month: 'T1', students: 2400 },
-    { month: 'T2', students: 2510 },
-    { month: 'T3', students: 2680 },
-    { month: 'T4', students: 2720 },
-    { month: 'T5', students: 2847 },
-    { month: 'T6', students: 2900 }
-  ];
-
-  const todaySchedule: ScheduleItem[] = [
-    { time: '07:00 - 09:00', course: 'Lập trình Web', room: 'A301', lecturer: 'TS. Nguyễn Văn An', students: '45/50' },
-    { time: '09:15 - 11:15', course: 'Cơ sở dữ liệu', room: 'B205', lecturer: 'ThS. Trần Thị Bình', students: '38/45' },
-    { time: '13:00 - 15:00', course: 'Mạng máy tính', room: 'C102', lecturer: 'TS. Lê Văn Cường', students: '42/50' },
-    { time: '15:15 - 17:15', course: 'Trí tuệ nhân tạo', room: 'A401', lecturer: 'PGS. Phạm Thị Dung', students: '35/40' }
-  ];
+  const passedCredits = filteredGrades.filter((grade) => grade.status === 'Đạt').reduce((total, grade) => total + grade.credits, 0);
+  const registeredCredits = filteredGrades.reduce((total, grade) => total + grade.credits, 0);
+  const gpaCredits = filteredGrades.filter((grade) => grade.gradePoint !== null).reduce((total, grade) => total + grade.credits, 0);
+  const filterGpa = gpaCredits
+    ? filteredGrades.reduce((total, grade) => total + (grade.gradePoint ?? 0) * grade.credits, 0) / gpaCredits
+    : 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <main className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-            <p className="text-muted-foreground">Tổng quan hệ thống quản lý giáo dục</p>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <Card key={index} className="relative overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">{stat.label}</p>
-                        <p className="text-3xl font-bold mb-2">{stat.value}</p>
-                        <div className="flex items-center gap-1 text-sm">
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600 font-medium">{stat.change}</span>
-                          <span className="text-muted-foreground">so với tháng trước</span>
-                        </div>
-                      </div>
-                      <div className={`${stat.color} w-12 h-12 rounded-xl flex items-center justify-center`}>
-                        <Icon className="h-6 w-6 text-white" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Xu hướng tuyển sinh</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={enrollmentData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="students" stroke="hsl(150, 100%, 20%)" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Thống kê theo tháng</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={enrollmentData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="students" fill="hsl(150, 100%, 20%)" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Today Schedule */}
-          <Card className="mb-8">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Lịch học hôm nay
-              </CardTitle>
-              <Button variant="outline" size="sm">Xem tất cả</Button>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-semibold text-sm">Thời gian</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm">Môn học</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm">Phòng</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm">Giảng viên</th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm">Sĩ số</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {todaySchedule.map((item, index) => (
-                      <tr key={index} className="border-b hover:bg-muted/50 transition-colors">
-                        <td className="py-3 px-4 text-sm">{item.time}</td>
-                        <td className="py-3 px-4 text-sm font-medium">{item.course}</td>
-                        <td className="py-3 px-4 text-sm">{item.room}</td>
-                        <td className="py-3 px-4 text-sm">{item.lecturer}</td>
-                        <td className="py-3 px-4 text-sm">{item.students}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Access Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2 text-blue-900">Quản lý sinh viên</h3>
-                <p className="text-sm text-blue-700 mb-4">Thêm, sửa, xóa thông tin sinh viên</p>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
-                  Truy cập
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2 text-green-900">Quản lý giảng viên</h3>
-                <p className="text-sm text-green-700 mb-4">Quản lý thông tin giảng viên</p>
-                <Button className="bg-green-600 hover:bg-green-700 text-white" size="sm">
-                  Truy cập
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2 text-purple-900">Quản lý môn học</h3>
-                <p className="text-sm text-purple-700 mb-4">Cập nhật danh sách môn học</p>
-                <Button className="bg-purple-600 hover:bg-purple-700 text-white" size="sm">
-                  Truy cập
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+    <div className="flex w-full flex-col gap-5 pb-8">
+      <header className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-950 dark:text-white">Kết quả học tập</h1>
         </div>
-      </main>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Theo dõi điểm học kỳ, tín chỉ đạt và các học phần cần chú ý.</p>
+      </header>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <ResultMetric icon={Award} label="GPA tích lũy" value={result?.cumulativeGpa.toFixed(2) || '--'} />
+        <ResultMetric icon={TrendingUp} label="GPA học kỳ" value={result?.semesterGpa.toFixed(2) || '--'} />
+        <ResultMetric icon={GraduationCap} label="Tín chỉ chương trình" value={result ? `${result.accumulatedCredits}/${result.programCredits}` : '--'} />
+        <ResultMetric icon={BookCheck} label="Tín chỉ đạt kỳ này" value={`${passedCredits}`} />
+      </div>
+
+      <Card>
+        <CardContent className="grid gap-4 p-4 xl:grid-cols-[auto_1fr] xl:items-end">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setFilterMode('single')}
+              className={`h-10 rounded-lg border px-4 text-sm font-semibold transition ${filterMode === 'single' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200'}`}
+            >
+              Xem 1 kỳ
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterMode('range')}
+              className={`h-10 rounded-lg border px-4 text-sm font-semibold transition ${filterMode === 'range' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200'}`}
+            >
+              Từ kỳ - đến kỳ
+            </button>
+          </div>
+
+          {filterMode === 'single' ? (
+            <SemesterSelect label="Học kỳ" value={singleSemester} onChange={setSingleSemester} semesters={result?.semesters ?? []} />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SemesterSelect label="Từ kỳ" value={fromSemester} onChange={setFromSemester} semesters={result?.semesters ?? []} />
+              <SemesterSelect label="Đến kỳ" value={toSemester} onChange={setToSemester} semesters={result?.semesters ?? []} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="border-b">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle>Bảng điểm theo bộ lọc</CardTitle>
+            <Badge variant="secondary">{filteredGrades.length} học phần</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500 dark:bg-slate-900">
+                <tr>
+                  <th className="px-4 py-3">Học phần</th>
+                  <th className="px-4 py-3">Tín chỉ</th>
+                  <th className="px-4 py-3">Quá trình</th>
+                  <th className="px-4 py-3">Thi</th>
+                  <th className="px-4 py-3">Tổng kết</th>
+                  <th className="px-4 py-3">Hệ 4</th>
+                  <th className="px-4 py-3">Điểm chữ</th>
+                  <th className="px-4 py-3">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredGrades.map((grade) => (
+                  <tr key={grade.id} className="border-t border-slate-100 dark:border-slate-800">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-slate-950 dark:text-white">{grade.courseName}</p>
+                      <p className="text-xs text-slate-500">{grade.courseCode} · {grade.semesterLabel}</p>
+                    </td>
+                    <td className="px-4 py-3">{grade.credits}</td>
+                    <td className="px-4 py-3">{formatScore(grade.processScore)}</td>
+                    <td className="px-4 py-3">{formatScore(grade.examScore)}</td>
+                    <td className="px-4 py-3 font-semibold">{formatScore(grade.finalScore)}</td>
+                    <td className="px-4 py-3 font-semibold">{formatGradePoint(grade.gradePoint)}</td>
+                    <td className="px-4 py-3">{grade.letterGrade}</td>
+                    <td className="px-4 py-3"><GradeStatus status={grade.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t-2 border-emerald-100 bg-emerald-50/60 text-slate-800 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-slate-100">
+                <tr>
+                  <td className="px-4 py-3 font-semibold">
+                    Tổng kết GPA theo bộ lọc
+                    <p className="mt-1 text-xs font-normal text-slate-500 dark:text-slate-400">
+                      {filteredGrades.length} học phần
+                    </p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold">{registeredCredits}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Tín chỉ đăng ký</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold">{passedCredits}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Tín chỉ đạt</p>
+                  </td>
+                  <td className="px-4 py-3">--</td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold">{filterGpa ? filterGpa.toFixed(2) : '--'}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">GPA hệ 4</p>
+                  </td>
+                  <td className="px-4 py-3">--</td>
+                  <td className="px-4 py-3">
+                    <Badge variant="outline">Đã tổng hợp</Badge>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          {filteredGrades.length === 0 && (
+            <p className="border-t border-slate-100 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800">
+              Không có kết quả trong kỳ đã chọn.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
+}
+
+function ResultMetric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <Card size="sm">
+      <CardContent className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">
+          <Icon className="h-5 w-5" />
+        </span>
+        <span>
+          <span className="block text-xs font-semibold uppercase text-slate-400">{label}</span>
+          <span className="block text-xl font-bold text-slate-950 dark:text-white">{value}</span>
+        </span>
+      </CardContent>
+    </Card>
+  );
+}
+
+function GradeStatus({ status }: { status: StudentAcademicResult['grades'][number]['status'] }) {
+  const variant = status === 'Đạt' ? 'secondary' : status === 'Đang học' ? 'outline' : 'destructive';
+  return <Badge variant={variant}>{status}</Badge>;
+}
+
+function SemesterSelect({
+  label,
+  value,
+  onChange,
+  semesters,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  semesters: StudentAcademicResult['semesters'];
+}) {
+  return (
+    <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-950 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+      >
+        {semesters.map((semester) => (
+          <option key={semester.id} value={semester.id}>{semester.label}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function formatScore(score: number | null) {
+  return score === null ? '--' : score.toFixed(1);
+}
+
+function formatGradePoint(score: number | null) {
+  return score === null ? '--' : score.toFixed(1);
 }

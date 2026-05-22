@@ -1,0 +1,40 @@
+server:
+  port: 8081
+
+spring:
+  config:
+    activate:
+      on-profile: h2
+  datasource:
+    url: ${H2_DB_URL:jdbc:h2:file:./data/uems-h2;MODE=MSSQLServer;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1}
+    username: ${H2_DB_USERNAME:sa}
+    password: ${H2_DB_PASSWORD:}
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration-h2
+    baseline-on-migrate: false
+
+logging:
+  level:
+    "[org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver]": ERROR
+    "[com.quanlydaotao.backend]": DEBUG
+    "[org.hibernate.SQL]": INFO
+    "[org.hibernate.type.descriptor.sql.BasicBinder]": INFO
+
+open:
+  api:
+    title: API Quản lý Đào tạo
+    description: Tài liệu API cho dự án hệ thống Quản lý Đào tạo
+    version: 1.0.0
+    serverName: Local H2 Server
+    serverUrl: http://localhost:${server.port}

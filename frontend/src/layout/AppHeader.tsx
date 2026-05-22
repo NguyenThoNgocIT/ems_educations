@@ -97,7 +97,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ role = "admin" }) => {
             {roleLabel}
           </div>
           <ThemeToggleButton />
-          <NotificationDropdown />
+          <NotificationDropdown href={`/dashboard/${role}/notifications`} />
           <div className="mx-1 hidden h-8 w-px bg-border sm:block" />
           <UserDropdown role={role} />
         </div>
