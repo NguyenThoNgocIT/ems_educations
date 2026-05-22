@@ -5,6 +5,8 @@ import com.quanlydaotao.backend.common.dto.ApiResponse;
 import com.quanlydaotao.backend.student.dto.StudentAdminCreateRequest;
 import com.quanlydaotao.backend.student.dto.StudentAdminResponse;
 import com.quanlydaotao.backend.student.dto.StudentAdminUpdateRequest;
+import com.quanlydaotao.backend.student.dto.StudentPortalAcademicResultResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalScheduleResponse;
 import com.quanlydaotao.backend.student.dto.StudentSelfResponse;
 import com.quanlydaotao.backend.student.dto.StudentSelfUpdateRequest;
 import com.quanlydaotao.backend.student.service.StudentService;
@@ -87,5 +89,19 @@ public class StudentController {
             Authentication authentication,
             @RequestBody StudentSelfUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin cá nhân thành công", studentService.updateCurrentStudent(authentication.getName(), request)));
+    }
+
+    @GetMapping("/me/schedule")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên xem thời khóa biểu của chính mình")
+    public ResponseEntity<ApiResponse<List<StudentPortalScheduleResponse>>> getCurrentStudentSchedule(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy thời khóa biểu sinh viên thành công", studentService.getCurrentStudentSchedule(authentication.getName())));
+    }
+
+    @GetMapping("/me/academic-results")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên xem kết quả học tập của chính mình")
+    public ResponseEntity<ApiResponse<StudentPortalAcademicResultResponse>> getCurrentStudentAcademicResult(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy kết quả học tập sinh viên thành công", studentService.getCurrentStudentAcademicResult(authentication.getName())));
     }
 }

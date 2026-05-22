@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { StudentDashboard } from '@/types/student-portal';
 import type { StudentSelfResponse } from '@/types/student';
-import { Award, Bell, BookOpen, CalendarDays, Clock3, CreditCard, GraduationCap, MapPin } from 'lucide-react';
+import { Award, BookOpen, CalendarDays, Clock3, GraduationCap, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -26,6 +26,7 @@ export default function StudentDashboardPage() {
   const academic = dashboard?.academic;
   const creditProgress = useMemo(() => {
     if (!academic) return 0;
+    if (!academic.programCredits) return 0;
     return Math.min(100, Math.round((academic.accumulatedCredits / academic.programCredits) * 100));
   }, [academic]);
 
@@ -125,22 +126,5 @@ function Metric({
         </span>
       </CardContent>
     </Card>
-  );
-}
-
-function Shortcut({
-  href,
-  icon: Icon,
-  title,
-}: {
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-}) {
-  return (
-    <Link href={href} className="flex items-center gap-2 rounded-lg border border-slate-100 p-3 text-sm font-semibold text-slate-800 hover:border-emerald-200 hover:text-emerald-700 dark:border-slate-800 dark:text-slate-100">
-      <Icon className="h-4 w-4" />
-      {title}
-    </Link>
   );
 }

@@ -4,6 +4,8 @@ import com.quanlydaotao.backend.account.dto.AccountCreationResponse;
 import com.quanlydaotao.backend.student.dto.StudentAdminCreateRequest;
 import com.quanlydaotao.backend.student.dto.StudentAdminResponse;
 import com.quanlydaotao.backend.student.dto.StudentAdminUpdateRequest;
+import com.quanlydaotao.backend.student.dto.StudentPortalAcademicResultResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalScheduleResponse;
 import com.quanlydaotao.backend.student.dto.StudentSelfResponse;
 import com.quanlydaotao.backend.student.dto.StudentSelfUpdateRequest;
 
@@ -18,4 +20,6 @@ public interface StudentService {
     void deleteStudentForAdmin(UUID id);
     StudentSelfResponse getCurrentStudent(String username);
     StudentSelfResponse updateCurrentStudent(String username, StudentSelfUpdateRequest request);
+    List<StudentPortalScheduleResponse> getCurrentStudentSchedule(String username);
+    StudentPortalAcademicResultResponse getCurrentStudentAcademicResult(String username);
 }

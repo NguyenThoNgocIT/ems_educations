@@ -163,7 +163,6 @@ export const lecturerNavItems: NavItem[] = [
 export const studentNavItems: NavItem[] = [
   { name: "Thời khóa biểu", icon: <Calendar className={iconClassName} />, path: "/dashboard/student/my-schedule" },
   { name: "Kết quả học tập", icon: <Award className={iconClassName} />, path: "/dashboard/student/academic-results" },
-  { name: "Đăng ký học phần", icon: <ClipboardList className={iconClassName} />, path: "/dashboard/student/course-registration" },
 ];
 
 export const CenterItems: NavItem[] = adminNavItems;

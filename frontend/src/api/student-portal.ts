@@ -1,9 +1,13 @@
+import { unwrapApiResponse } from '@/api/response';
 import { studentApi } from '@/api/student';
+import { request } from '@/utils/request';
 import type {
   StudentAcademicResult,
   StudentAnnouncement,
   StudentDashboard,
+  StudentPortalAcademicResultApi,
   StudentPortalPayload,
+  StudentPortalScheduleApiItem,
   StudentScheduleItem,
 } from '@/types/student-portal';
 import type { StudentSelfResponse } from '@/types/student';
@@ -47,21 +51,47 @@ function withMock<T>(data: T): StudentPortalPayload<T> {
   return { data, source: 'mock' };
 }
 
+function withApi<T>(data: T): StudentPortalPayload<T> {
+  return { data, source: 'api' };
+}
+
+async function readAcademicResult(): Promise<StudentPortalPayload<StudentAcademicResult>> {
+  try {
+    const response = await request.get('/api/v1/students/me/academic-results');
+    const data = normalizeAcademicResult(unwrapApiResponse<StudentPortalAcademicResultApi>(response));
+    return data.grades.length ? withApi(data) : withMock(academicResult);
+  } catch {
+    return withMock(academicResult);
+  }
+}
+
+async function readSchedule(): Promise<StudentPortalPayload<StudentScheduleItem[]>> {
+  try {
+    const response = await request.get('/api/v1/students/me/schedule');
+    const data = unwrapApiResponse<StudentPortalScheduleApiItem[]>(response).map(normalizeSchedule);
+    return data.length ? withApi(data) : withMock(schedules);
+  } catch {
+    return withMock(schedules);
+  }
+}
+
 export const studentPortalApi = {
-  // Replace these mock-backed reads with /api/v1/students/me/* endpoints when available.
-  getDashboard: async (): Promise<StudentPortalPayload<StudentDashboard>> =>
-    withMock({
-      semesterLabel: academicResult.semesterLabel,
-      academic: academicResult,
-      nextSchedules: schedules.slice(0, 3),
-      announcements,
-    }),
+  getDashboard: async (): Promise<StudentPortalPayload<StudentDashboard>> => {
+    const [academic, mySchedule] = await Promise.all([readAcademicResult(), readSchedule()]);
+    return {
+      data: {
+        semesterLabel: academic.data.semesterLabel,
+        academic: academic.data,
+        nextSchedules: mySchedule.data.slice(0, 3),
+        announcements,
+      },
+      source: academic.source === 'api' || mySchedule.source === 'api' ? 'api' : 'mock',
+    };
+  },
 
-  getAcademicResult: async (): Promise<StudentPortalPayload<StudentAcademicResult>> =>
-    withMock(academicResult),
+  getAcademicResult: readAcademicResult,
 
-  getMySchedule: async (): Promise<StudentPortalPayload<StudentScheduleItem[]>> =>
-    withMock(schedules),
+  getMySchedule: readSchedule,
 
   getAnnouncements: async (): Promise<StudentPortalPayload<StudentAnnouncement[]>> =>
     withMock(announcements),
@@ -74,3 +104,83 @@ export const studentPortalApi = {
     }
   },
 };
+
+function normalizeAcademicResult(data: StudentPortalAcademicResultApi): StudentAcademicResult {
+  const grades = data.grades.map((grade) => ({
+    id: grade.gradeId,
+    semesterId: grade.semesterId || 'unassigned',
+    semesterLabel: grade.semesterLabel || 'Chưa xác định học kỳ',
+    courseCode: grade.courseCode || '--',
+    courseName: grade.courseName || 'Học phần chưa đặt tên',
+    credits: grade.credits ?? 0,
+    processScore: null,
+    examScore: null,
+    finalScore: grade.finalScore,
+    gradePoint: grade.gradePoint,
+    letterGrade: grade.letterGrade || '--',
+    status: normalizeGradeStatus(grade.status),
+  }));
+  const semesters = data.semesters
+    .filter((semester) => semester.semesterId)
+    .map((semester) => ({
+      id: semester.semesterId,
+      label: semester.label || 'Học kỳ chưa đặt tên',
+    }));
+  if (grades.some((grade) => grade.semesterId === 'unassigned')) {
+    semesters.unshift({ id: 'unassigned', label: 'Chưa xác định học kỳ' });
+  }
+
+  return {
+    semesters,
+    semesterLabel: data.semesterLabel || semesters.at(-1)?.label || 'Học kỳ hiện tại',
+    cumulativeGpa: data.cumulativeGpa ?? 0,
+    semesterGpa: data.semesterGpa ?? 0,
+    accumulatedCredits: data.accumulatedCredits ?? 0,
+    programCredits: data.programCredits ?? 0,
+    grades,
+  };
+}
+
+function normalizeGradeStatus(status: string | null): StudentAcademicResult['grades'][number]['status'] {
+  if (status === 'IN_PROGRESS') return 'Đang học';
+  if (status === 'FAILED') return 'Cần cải thiện';
+  return 'Đạt';
+}
+
+function normalizeSchedule(item: StudentPortalScheduleApiItem): StudentScheduleItem {
+  return {
+    id: item.scheduleId,
+    dayLabel: toDayLabel(item.dayOfWeek),
+    dateLabel: formatDate(item.date),
+    time: formatTimeRange(item.startTime, item.endTime),
+    courseCode: item.courseCode || '--',
+    courseName: item.courseName || 'Học phần chưa đặt tên',
+    classCode: item.classCode || '--',
+    room: item.roomCode || 'Chưa xếp phòng',
+    lecturer: item.instructorName || 'Chưa phân công',
+    mode: normalizeScheduleMode(item.mode),
+  };
+}
+
+function toDayLabel(dayOfWeek: number | null) {
+  if (dayOfWeek === 1) return 'Chủ nhật';
+  if (dayOfWeek && dayOfWeek >= 2 && dayOfWeek <= 7) return `Thứ ${dayOfWeek}`;
+  return 'Chưa xếp ngày';
+}
+
+function formatDate(date: string | null) {
+  if (!date) return '--';
+  const [year, month, day] = date.split('-');
+  return year && month && day ? `${day}/${month}` : date;
+}
+
+function formatTimeRange(startTime: string | null, endTime: string | null) {
+  if (!startTime || !endTime) return 'Chưa xếp ca';
+  return `${startTime.slice(0, 5)} - ${endTime.slice(0, 5)}`;
+}
+
+function normalizeScheduleMode(mode: string | null): StudentScheduleItem['mode'] {
+  if (mode?.toLowerCase().includes('online')) return 'Online';
+  if (mode?.toUpperCase().includes('TH')) return 'TH';
+  return 'LT';
+}

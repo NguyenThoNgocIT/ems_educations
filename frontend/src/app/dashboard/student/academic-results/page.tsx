@@ -232,8 +232,8 @@ function SemesterSelect({
   );
 }
 
-function formatScore(score: number) {
-  return score ? score.toFixed(1) : '--';
+function formatScore(score: number | null) {
+  return score === null ? '--' : score.toFixed(1);
 }
 
 function formatGradePoint(score: number | null) {
