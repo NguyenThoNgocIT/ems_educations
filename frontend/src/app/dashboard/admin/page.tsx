@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { request } from '@/utils/request';
+import { unwrapApiResponse } from '@/api/response';
 import {
   UserPlus,
   PlusCircle,
@@ -14,6 +16,32 @@ import {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  
+  // State cho dữ liệu từ API
+  const [stats, setStats] = useState({
+    totalStudents: 12560,
+    totalLecturers: 356,
+    totalClasses: 512,
+    totalCourses: 1248,
+    studentGrowth: 8.2,
+    lecturerGrowth: 4.1,
+    classGrowth: 6.7,
+    courseGrowth: 5.3,
+  });
+  
+  const [studyStats, setStudyStats] = useState({
+    attendanceRate: 92.5,
+    passRate: 87.3,
+    graduationRate: 89.1,
+    employmentRate: 95.2,
+    attendanceGrowth: 3.2,
+    passGrowth: 2.7,
+    graduationGrowth: 4.5,
+    employmentGrowth: 3.8,
+  });
+  
+  const [currentDate, setCurrentDate] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const userName = 
     user?.fullName || 
@@ -23,8 +51,96 @@ export default function AdminDashboard() {
     user?.email || 
     'Tài khoản Admin';
 
+  // Format ngày tháng
+  const formatDate = (date: Date) => {
+    const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const dayName = days[date.getDay()];
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `${dayName}, ${day}/${month}/${year}`;
+  };
+
+  // API 1: Lấy thống kê tổng quan
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await request.get('/api/v1/dashboard/admin/stats');
+      const data = unwrapApiResponse<any>(response);
+      if (data) {
+        setStats(prev => ({ ...prev, ...data }));
+      }
+    } catch (error) {
+      console.log('Dashboard stats API chưa có, đang dùng dữ liệu mặc định');
+    }
+  };
+
+  // API 2: Lấy số liệu từ các API đã có (số lượng sinh viên, giảng viên, lớp, môn)
+  const fetchRealCounts = async () => {
+    try {
+      const [studentsRes, lecturersRes, classesRes, coursesRes] = await Promise.all([
+        request.get('/api/v1/students/admin', { params: { size: 1 } }),
+        request.get('/api/v1/instructors/admin', { params: { size: 1 } }),
+        request.get('/api/v1/classes/admin', { params: { size: 1 } }),
+        request.get('/api/v1/courses', { params: { size: 1 } }),
+      ]);
+
+      const studentsData = unwrapApiResponse<any>(studentsRes);
+      const lecturersData = unwrapApiResponse<any>(lecturersRes);
+      const classesData = unwrapApiResponse<any>(classesRes);
+      const coursesData = unwrapApiResponse<any>(coursesRes);
+
+      setStats(prev => ({
+        ...prev,
+        totalStudents: studentsData.totalElements || studentsData.length || prev.totalStudents,
+        totalLecturers: lecturersData.totalElements || lecturersData.length || prev.totalLecturers,
+        totalClasses: classesData.totalElements || classesData.length || prev.totalClasses,
+        totalCourses: coursesData.totalElements || coursesData.length || prev.totalCourses,
+      }));
+    } catch (error) {
+      console.log('Không thể lấy số liệu thực tế, giữ nguyên dữ liệu mặc định');
+    }
+  };
+
+  // API 3: Lấy thống kê học tập
+  const fetchStudyStats = async () => {
+    try {
+      const response = await request.get('/api/v1/dashboard/admin/study-stats');
+      const data = unwrapApiResponse<any>(response);
+      if (data) {
+        setStudyStats(prev => ({ ...prev, ...data }));
+      }
+    } catch (error) {
+      console.log('Study stats API chưa có, đang dùng dữ liệu mặc định');
+    }
+  };
+
+  useEffect(() => {
+    setCurrentDate(formatDate(new Date()));
+    
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchRealCounts(),      // API đã có - lấy số liệu thật
+        fetchDashboardStats(),  // API sẽ có - dùng khi BE có
+        fetchStudyStats(),      // API sẽ có - dùng khi BE có
+      ]);
+      setLoading(false);
+    };
+    
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
-<div className="p-4 md:p-8 pt-[20px] md:pt-[40px] space-y-6 bg-[#f8fafc] min-h-screen w-full max-w-full overflow-x-hidden font-sans">      {/* Welcome Header */}
+    <div className="p-4 md:p-8 pt-[20px] md:pt-[40px] space-y-6 bg-[#f8fafc] min-h-screen w-full max-w-full overflow-x-hidden font-sans">
+      {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:items-center">
         <div>
           <h1 className="text-[22px] font-bold text-gray-900 flex items-center gap-2">
@@ -34,7 +150,7 @@ export default function AdminDashboard() {
         </div>
         <div className="bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 shadow-sm flex items-center gap-2 flex-shrink-0">
           <CalendarDays className="h-4 w-4 text-gray-400" />
-          Thứ 4, 22/05/2024
+          {currentDate}
         </div>
       </div>
 
@@ -44,9 +160,9 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-2xl p-6 shadow-[0_2px_12px_rgba(11,22,44,0.03)] border border-gray-100 flex items-start justify-between w-full">
           <div className="space-y-1.5">
             <p className="text-sm font-medium text-gray-500">Sinh viên</p>
-            <p className="text-[28px] font-bold text-gray-900 tracking-tight">12.560</p>
+            <p className="text-[28px] font-bold text-gray-900 tracking-tight">{stats.totalStudents.toLocaleString()}</p>
             <div className="flex items-center gap-1 text-[12px] pt-1">
-              <span className="text-emerald-600 font-medium flex items-center">↑ 8.2%</span>
+              <span className="text-emerald-600 font-medium flex items-center">↑ {stats.studentGrowth}%</span>
               <span className="text-gray-400">so với tháng trước</span>
             </div>
           </div>
@@ -59,9 +175,9 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-2xl p-6 shadow-[0_2px_12px_rgba(11,22,44,0.03)] border border-gray-100 flex items-start justify-between w-full">
           <div className="space-y-1.5">
             <p className="text-sm font-medium text-gray-500">Giảng viên</p>
-            <p className="text-[28px] font-bold text-gray-900 tracking-tight">356</p>
+            <p className="text-[28px] font-bold text-gray-900 tracking-tight">{stats.totalLecturers.toLocaleString()}</p>
             <div className="flex items-center gap-1 text-[12px] pt-1">
-              <span className="text-emerald-600 font-medium flex items-center">↑ 4.1%</span>
+              <span className="text-emerald-600 font-medium flex items-center">↑ {stats.lecturerGrowth}%</span>
               <span className="text-gray-400">so với tháng trước</span>
             </div>
           </div>
@@ -74,9 +190,9 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-2xl p-6 shadow-[0_2px_12px_rgba(11,22,44,0.03)] border border-gray-100 flex items-start justify-between w-full">
           <div className="space-y-1.5">
             <p className="text-sm font-medium text-gray-500">Lớp học</p>
-            <p className="text-[28px] font-bold text-gray-900 tracking-tight">512</p>
+            <p className="text-[28px] font-bold text-gray-900 tracking-tight">{stats.totalClasses.toLocaleString()}</p>
             <div className="flex items-center gap-1 text-[12px] pt-1">
-              <span className="text-emerald-600 font-medium flex items-center">↑ 6.7%</span>
+              <span className="text-emerald-600 font-medium flex items-center">↑ {stats.classGrowth}%</span>
               <span className="text-gray-400">so với tháng trước</span>
             </div>
           </div>
@@ -89,9 +205,9 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-2xl p-6 shadow-[0_2px_12px_rgba(11,22,44,0.03)] border border-gray-100 flex items-start justify-between w-full">
           <div className="space-y-1.5">
             <p className="text-sm font-medium text-gray-500">Môn học</p>
-            <p className="text-[28px] font-bold text-gray-900 tracking-tight">1.248</p>
+            <p className="text-[28px] font-bold text-gray-900 tracking-tight">{stats.totalCourses.toLocaleString()}</p>
             <div className="flex items-center gap-1 text-[12px] pt-1">
-              <span className="text-emerald-600 font-medium flex items-center">↑ 5.3%</span>
+              <span className="text-emerald-600 font-medium flex items-center">↑ {stats.courseGrowth}%</span>
               <span className="text-gray-400">so với tháng trước</span>
             </div>
           </div>
@@ -230,10 +346,10 @@ export default function AdminDashboard() {
             <div className="bg-[#f8fafc] rounded-2xl p-4 border border-gray-100 flex flex-col justify-between h-full relative overflow-hidden w-full">
               <div>
                 <p className="text-xs font-semibold text-gray-500 min-h-[32px] flex items-start">Tỷ lệ chuyên cần</p>
-                <p className="text-[22px] font-bold text-gray-900 mt-2 tracking-tight">92.5%</p>
+                <p className="text-[22px] font-bold text-gray-900 mt-2 tracking-tight">{studyStats.attendanceRate}%</p>
               </div>
               <div className="text-[11px] text-emerald-600 mt-4 pt-1 flex items-center justify-between gap-1">
-                <span className="font-medium truncate">↑ 3.2% <span className="text-gray-400 font-normal">so với trước</span></span>
+                <span className="font-medium truncate">↑ {studyStats.attendanceGrowth}% <span className="text-gray-400 font-normal">so với trước</span></span>
                 <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] flex-shrink-0">✓</div>
               </div>
             </div>
@@ -242,10 +358,10 @@ export default function AdminDashboard() {
             <div className="bg-[#f8fafc] rounded-2xl p-4 border border-gray-100 flex flex-col justify-between h-full relative overflow-hidden w-full">
               <div>
                 <p className="text-xs font-semibold text-gray-500 min-h-[32px] flex items-start">Tỷ lệ đạt</p>
-                <p className="text-[22px] font-bold text-gray-900 mt-2 tracking-tight">87.3%</p>
+                <p className="text-[22px] font-bold text-gray-900 mt-2 tracking-tight">{studyStats.passRate}%</p>
               </div>
               <div className="text-[11px] text-emerald-600 mt-4 pt-1 flex items-center justify-between gap-1">
-                <span className="font-medium truncate">↑ 2.7% <span className="text-gray-400 font-normal">so với trước</span></span>
+                <span className="font-medium truncate">↑ {studyStats.passGrowth}% <span className="text-gray-400 font-normal">so với trước</span></span>
                 <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center text-[10px] flex-shrink-0">★</div>
               </div>
             </div>
@@ -254,10 +370,10 @@ export default function AdminDashboard() {
             <div className="bg-[#f8fafc] rounded-2xl p-4 border border-gray-100 flex flex-col justify-between h-full relative overflow-hidden w-full">
               <div>
                 <p className="text-xs font-semibold text-gray-500 min-h-[32px] flex items-start">Tỷ lệ tốt nghiệp đúng hạn</p>
-                <p className="text-[22px] font-bold text-gray-900 mt-2 tracking-tight">89.1%</p>
+                <p className="text-[22px] font-bold text-gray-900 mt-2 tracking-tight">{studyStats.graduationRate}%</p>
               </div>
               <div className="text-[11px] text-emerald-600 mt-4 pt-1 flex items-center justify-between gap-1">
-                <span className="font-medium truncate">↑ 4.5% <span className="text-gray-400 font-normal">so với trước</span></span>
+                <span className="font-medium truncate">↑ {studyStats.graduationGrowth}% <span className="text-gray-400 font-normal">so với trước</span></span>
                 <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] flex-shrink-0">🎓</div>
               </div>
             </div>
@@ -266,10 +382,10 @@ export default function AdminDashboard() {
             <div className="bg-[#f8fafc] rounded-2xl p-4 border border-gray-100 flex flex-col justify-between h-full relative overflow-hidden w-full">
               <div>
                 <p className="text-xs font-semibold text-gray-500 min-h-[32px] flex items-start">Tỷ lệ SV có việc làm</p>
-                <p className="text-[22px] font-bold text-gray-900 mt-2 tracking-tight">95.2%</p>
+                <p className="text-[22px] font-bold text-gray-900 mt-2 tracking-tight">{studyStats.employmentRate}%</p>
               </div>
               <div className="text-[11px] text-emerald-600 mt-4 pt-1 flex items-center justify-between gap-1">
-                <span className="font-medium truncate">↑ 3.8% <span className="text-gray-400 font-normal">so với trước</span></span>
+                <span className="font-medium truncate">↑ {studyStats.employmentGrowth}% <span className="text-gray-400 font-normal">so với trước</span></span>
                 <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] flex-shrink-0">💼</div>
               </div>
             </div>
@@ -281,23 +397,23 @@ export default function AdminDashboard() {
           <h3 className="font-bold text-gray-800 text-[16px] mb-5">Truy cập nhanh</h3>
           <div className="grid grid-cols-4 gap-4 w-full">
             {[
-              { label: 'Thêm sinh viên', icon: <UserPlus className="h-5 w-5 text-emerald-600" /> },
-              { label: 'Thêm GV', icon: <UserPlus className="h-5 w-5 text-emerald-600" /> },
-              { label: 'Tạo lớp học', icon: <PlusCircle className="h-5 w-5 text-emerald-600" /> },
-              { label: 'Tạo môn học', icon: <BookOpen className="h-5 w-5 text-emerald-600" /> },
-              { label: 'Nhập điểm', icon: <FileText className="h-5 w-5 text-emerald-600" /> },
-              { label: 'Lịch biểu', icon: <CalendarDays className="h-5 w-5 text-emerald-600" /> },
-              { label: 'Báo cáo', icon: <BarChart3 className="h-5 w-5 text-emerald-600" /> },
-              { label: 'Cài đặt', icon: <Settings className="h-5 w-5 text-emerald-600" /> },
+              { label: 'Thêm sinh viên', icon: <UserPlus className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/students/create' },
+              { label: 'Thêm GV', icon: <UserPlus className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/lecturers/create' },
+              { label: 'Tạo lớp học', icon: <PlusCircle className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/classes/create' },
+              { label: 'Tạo môn học', icon: <BookOpen className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/courses/create' },
+              { label: 'Nhập điểm', icon: <FileText className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/grades' },
+              { label: 'Lịch biểu', icon: <CalendarDays className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/schedules' },
+              { label: 'Báo cáo', icon: <BarChart3 className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/reports' },
+              { label: 'Cài đặt', icon: <Settings className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/settings' },
             ].map((item, idx) => (
-              <button key={idx} className="flex flex-col items-center gap-1.5 text-center group min-w-0 w-full">
+              <a key={idx} href={item.href} className="flex flex-col items-center gap-1.5 text-center group min-w-0 w-full">
                 <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center transition group-hover:bg-emerald-50 group-hover:border-emerald-200 group-hover:scale-105 flex-shrink-0">
                   {item.icon}
                 </div>
                 <span className="text-[11px] font-medium text-gray-600 group-hover:text-emerald-600 transition block truncate w-full">
                   {item.label}
                 </span>
-              </button>
+              </a>
             ))}
           </div>
         </div>
