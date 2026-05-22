@@ -73,6 +73,7 @@ export const adminNavGroups: NavGroup[] = [
       { name: "Sinh viên", icon: <Users className={iconClassName} />, path: "/dashboard/admin/students" },
       { name: "Giảng viên", icon: <User className={iconClassName} />, path: "/dashboard/admin/lecturers" },
       { name: "Nhân viên", icon: <Users className={iconClassName} />, path: "/dashboard/admin/staffs", badge: "BE" },
+      { name: "Phân lớp theo học kỳ", icon: <Layers className={iconClassName} />, path: "/dashboard/admin/student-class-assignments", badge: "NEW" },
     ],
   },
   {
@@ -85,6 +86,7 @@ export const adminNavGroups: NavGroup[] = [
       { name: "Ngành học", icon: <GraduationCap className={iconClassName} />, path: "/dashboard/admin/majors" },
       { name: "Khóa đào tạo", icon: <Network className={iconClassName} />, path: "/dashboard/admin/academic-cohorts" },
       { name: "Chương trình đào tạo", icon: <Target className={iconClassName} />, path: "/dashboard/admin/training-programs" },
+      { name: "Chuyên ngành", icon: <Target className={iconClassName} />, path: "/dashboard/admin/specializations", badge: "NEW" },
     ],
   },
   {
@@ -145,6 +147,7 @@ export const adminNavGroups: NavGroup[] = [
         path: "/dashboard/admin/password-reset-requests",
         badge: "BE",
       },
+      { name: "Danh mục trạng thái SV", icon: <CheckSquare className={iconClassName} />, path: "/dashboard/admin/student-status-catalog", badge: "NEW" },
     ],
   },
 ];

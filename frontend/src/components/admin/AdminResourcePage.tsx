@@ -208,14 +208,17 @@ export function AdminResourcePage<T extends Record<string, any>>({
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
-                    <tr>
+                    <tr key="empty-row">
                       <td colSpan={columns.length + (readOnly ? 0 : 1)} className="px-4 py-12 text-center text-slate-500">
                         Chưa có dữ liệu phù hợp.
-                      </td>
+                       </td>
                     </tr>
                   ) : (
-                    filtered.map((row) => (
-                      <tr key={String(row[idKey])} className="border-b hover:bg-slate-50/70 dark:hover:bg-slate-900/50">
+                    filtered.map((row, index) => (
+                      <tr 
+                        key={row[idKey] ? String(row[idKey]) : `row-${index}`} 
+                        className="border-b hover:bg-slate-50/70 dark:hover:bg-slate-900/50"
+                      >
                         {columns.map((column) => (
                           <td key={column.key} className="max-w-[260px] px-4 py-3 text-slate-700 dark:text-slate-200">
                             <span className="block truncate">
@@ -243,7 +246,7 @@ export function AdminResourcePage<T extends Record<string, any>>({
                     ))
                   )}
                 </tbody>
-              </table>
+               </table>
             </div>
           )}
         </CardContent>

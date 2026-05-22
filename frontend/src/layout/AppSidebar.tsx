@@ -3,7 +3,8 @@
 import { adminNavGroups } from "@/constants/navigation";
 import { useSidebar } from "@/context/SidebarContext";
 import { cn } from "@/lib/utils";
-import { ChevronDown, GraduationCap } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -57,31 +58,32 @@ export default function AppSidebar() {
         isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
       )}
     >
-      <div className="flex h-20 shrink-0 items-center border-b border-border/80 px-4">
-        <Link
-          href="/dashboard/admin"
-          className={cn(
-            "flex min-w-0 items-center gap-3 rounded-xl transition-colors hover:bg-muted/60",
-            isOpen ? "w-full px-2 py-2" : "mx-auto justify-center p-2",
+      {/* Logo Section */}
+      <div className="h-[80px] border-b border-gray-100 flex items-center justify-center px-4 overflow-hidden dark:border-slate-800 flex-shrink-0">
+        <Link href="/dashboard/admin" className="relative flex items-center justify-center w-full h-full">
+          {isOpen ? (
+            <div className="relative w-[310px] h-[88px] transition-all duration-300 flex items-center justify-center">
+              <Image
+                src="/images/logo/logo-sidebar-admin-big.png"
+                alt="Đại Học Đông Á"
+                fill
+                priority
+                sizes="310px"
+                className="object-contain"
+              />
+            </div>
+          ) : (
+            <div className="relative w-9 h-9 transition-all duration-300">
+              <Image
+                src="/images/logo/logo-sidebar-admin-small.png"
+                alt="UDA"
+                fill
+                priority
+                sizes="36px"
+                className="object-contain"
+              />
+            </div>
           )}
-          title="UEMS"
-        >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <GraduationCap className="h-6 w-6" />
-          </span>
-          <span
-            className={cn(
-              "min-w-0 transition-all duration-200",
-              isOpen ? "opacity-100" : "pointer-events-none w-0 overflow-hidden opacity-0",
-            )}
-          >
-            <span className="block truncate text-sm font-semibold tracking-tight text-foreground">
-              UEMS
-            </span>
-            <span className="block truncate text-xs text-muted-foreground">
-              Quản lý đào tạo đại học
-            </span>
-          </span>
         </Link>
       </div>
 
