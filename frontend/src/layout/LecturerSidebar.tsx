@@ -97,18 +97,15 @@ export default function LecturerSidebar() {
                     </span>
                   </div>
                   
-                  {isOpen && (
+                  {isOpen && item.badge && (
                     <span className="ml-2 flex flex-shrink-0 items-center gap-2">
-                      {item.badge && (
-                        <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-none ${
-                          active
-                            ? "bg-emerald-200/70 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200"
-                            : "bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400"
-                        }`}>
-                          {item.badge}
-                        </span>
-                      )}
-                      <ChevronRight className={`h-3.5 w-3.5 transition-transform ${active ? "text-emerald-500 translate-x-0.5 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500"}`} />
+                      <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-none ${
+                        active
+                          ? "bg-emerald-200/70 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200"
+                          : "bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400"
+                      }`}>
+                        {item.badge}
+                      </span>
                     </span>
                   )}
                 </Link>
