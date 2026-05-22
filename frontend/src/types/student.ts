@@ -16,10 +16,12 @@ export interface StudentAdminCreateRequest {
   avatarUrl?: string;
   note?: string;
   studentCode?: string;
+  departmentId: string;
   majorId: string;
   trainingProgramId: string;
   academicCohortId: string;
   classId?: string;
+  semesterId?: string;
   admissionDate?: string;
 }
 
@@ -87,10 +89,12 @@ export interface StudentAdminFormData {
   phoneNumber: string;
   contactEmail: string;
   permanentAddress: string;
+  departmentId: string;
   trainingProgramId: string;
   majorId: string;
   academicCohortId: string;
   classId: string;
+  semesterId: string;
   admissionDate: string;
   isActive?: boolean;
   note: string;

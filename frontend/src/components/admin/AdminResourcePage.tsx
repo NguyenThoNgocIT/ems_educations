@@ -6,6 +6,7 @@ import { Edit, Loader2, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -279,10 +280,18 @@ export function AdminResourcePage<T extends Record<string, any>>({
                     placeholder={field.placeholder}
                     className="mt-1.5 min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
+                ) : field.type === "date" ? (
+                  <DatePicker
+                    id={field.key}
+                    value={String(form[field.key] ?? "")}
+                    onChange={(value) => setForm((current) => ({ ...current, [field.key]: value }))}
+                    placeholder={field.placeholder || `Chá»n ${field.label.toLowerCase()}`}
+                    className="mt-1.5"
+                  />
                 ) : (
                   <Input
                     id={field.key}
-                    type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+                    type={field.type === "number" ? "number" : "text"}
                     value={String(form[field.key] ?? "")}
                     onChange={(event) => {
                       const value = field.type === "number" ? Number(event.target.value) : event.target.value;

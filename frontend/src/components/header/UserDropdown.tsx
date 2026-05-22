@@ -14,6 +14,7 @@ interface UserDropdownProps {
 export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const { user, logout } = useAuth();
 
   const roleLabels: Record<string, string> = {
     admin: "Quản trị viên",
