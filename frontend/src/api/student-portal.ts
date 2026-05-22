@@ -5,63 +5,39 @@ import type {
   StudentAcademicResult,
   StudentAnnouncement,
   StudentDashboard,
+  StudentDocument,
+  StudentExam,
   StudentPortalAcademicResultApi,
   StudentPortalPayload,
   StudentPortalScheduleApiItem,
+  StudentRegistration,
   StudentScheduleItem,
+  StudentSupportRequest,
+  StudentTuition,
 } from '@/types/student-portal';
 import type { StudentSelfResponse } from '@/types/student';
-
-const schedules: StudentScheduleItem[] = [
-  { id: 'web-mon', dayLabel: 'Thứ 2', dateLabel: '25/05', time: '07:30 - 09:50', courseCode: 'WEB302', courseName: 'Lập trình Web', classCode: 'WEB302.03', room: 'A3.05', lecturer: 'ThS. Nguyễn Văn An', mode: 'LT' },
-  { id: 'db-tue', dayLabel: 'Thứ 3', dateLabel: '26/05', time: '09:15 - 11:35', courseCode: 'DBS201', courseName: 'Cơ sở dữ liệu', classCode: 'DBS201.02', room: 'B2.04', lecturer: 'ThS. Trần Thu Hà', mode: 'TH' },
-  { id: 'se-thu', dayLabel: 'Thứ 5', dateLabel: '28/05', time: '13:30 - 15:50', courseCode: 'SWE301', courseName: 'Công nghệ phần mềm', classCode: 'SWE301.01', room: 'C1.12', lecturer: 'TS. Lê Minh Khôi', mode: 'LT' },
-  { id: 'eng-fri', dayLabel: 'Thứ 6', dateLabel: '29/05', time: '07:30 - 09:00', courseCode: 'ENG214', courseName: 'Tiếng Anh chuyên ngành', classCode: 'ENG214.04', room: 'Online', lecturer: 'Cô Phạm Mai', mode: 'Online' },
-];
-
-const academicResult: StudentAcademicResult = {
-  semesters: [
-    { id: 'hk1-2025', label: 'Học kỳ 1 - 2025-2026' },
-    { id: 'hk2-2025', label: 'Học kỳ 2 - 2025-2026' },
-    { id: 'he-2026', label: 'Học kỳ hè - 2025-2026' },
-  ],
-  semesterLabel: 'Học kỳ 2 - 2025-2026',
-  cumulativeGpa: 3.32,
-  semesterGpa: 3.48,
-  accumulatedCredits: 84,
-  programCredits: 130,
-  grades: [
-    { id: 'oop201', semesterId: 'hk1-2025', semesterLabel: 'Học kỳ 1 - 2025-2026', courseCode: 'OOP201', courseName: 'Lập trình hướng đối tượng', credits: 3, processScore: 8.0, examScore: 8.4, finalScore: 8.2, gradePoint: 3.5, letterGrade: 'B+', status: 'Đạt' },
-    { id: 'math221', semesterId: 'hk1-2025', semesterLabel: 'Học kỳ 1 - 2025-2026', courseCode: 'MTH221', courseName: 'Toán rời rạc', credits: 3, processScore: 7.2, examScore: 7.4, finalScore: 7.3, gradePoint: 3.0, letterGrade: 'B', status: 'Đạt' },
-    { id: 'web302', semesterId: 'hk2-2025', semesterLabel: 'Học kỳ 2 - 2025-2026', courseCode: 'WEB302', courseName: 'Lập trình Web', credits: 3, processScore: 8.4, examScore: 8.7, finalScore: 8.6, gradePoint: 4.0, letterGrade: 'A', status: 'Đạt' },
-    { id: 'dbs201', semesterId: 'hk2-2025', semesterLabel: 'Học kỳ 2 - 2025-2026', courseCode: 'DBS201', courseName: 'Cơ sở dữ liệu', credits: 3, processScore: 7.8, examScore: 8.2, finalScore: 8.0, gradePoint: 3.5, letterGrade: 'B+', status: 'Đạt' },
-    { id: 'swe301', semesterId: 'hk2-2025', semesterLabel: 'Học kỳ 2 - 2025-2026', courseCode: 'SWE301', courseName: 'Công nghệ phần mềm', credits: 3, processScore: 8.9, examScore: 0, finalScore: 0, gradePoint: null, letterGrade: '--', status: 'Đang học' },
-    { id: 'net220', semesterId: 'hk2-2025', semesterLabel: 'Học kỳ 2 - 2025-2026', courseCode: 'NET220', courseName: 'Mạng máy tính', credits: 3, processScore: 6.3, examScore: 6.5, finalScore: 6.4, gradePoint: 2.0, letterGrade: 'C', status: 'Cần cải thiện' },
-    { id: 'mob401', semesterId: 'he-2026', semesterLabel: 'Học kỳ hè - 2025-2026', courseCode: 'MOB401', courseName: 'Phát triển ứng dụng di động', credits: 3, processScore: 0, examScore: 0, finalScore: 0, gradePoint: null, letterGrade: '--', status: 'Đang học' },
-  ],
-};
-
-const announcements: StudentAnnouncement[] = [
-  { id: 'exam-plan', title: 'Cập nhật kế hoạch thi cuối kỳ và phòng thi', sender: 'Phòng Đào tạo', date: '22/05/2026', type: 'Đào tạo' },
-  { id: 'exam', title: 'Rà soát lịch thi và phòng thi trước ngày khóa lịch', sender: 'Phòng Khảo thí', date: '20/05/2026', type: 'Học vụ' },
-  { id: 'tuition', title: 'Đối chiếu học phí trước khi xác nhận đăng ký', sender: 'Phòng Tài chính', date: '18/05/2026', type: 'Tài chính' },
-];
-
-function withMock<T>(data: T): StudentPortalPayload<T> {
-  return { data, source: 'mock' };
-}
 
 function withApi<T>(data: T): StudentPortalPayload<T> {
   return { data, source: 'api' };
 }
 
+const emptyAcademicResult: StudentAcademicResult = {
+  semesters: [],
+  semesterLabel: 'Học kỳ hiện tại',
+  cumulativeGpa: 0,
+  semesterGpa: 0,
+  accumulatedCredits: 0,
+  programCredits: 0,
+  grades: [],
+};
+
 async function readAcademicResult(): Promise<StudentPortalPayload<StudentAcademicResult>> {
   try {
     const response = await request.get('/api/v1/students/me/academic-results');
     const data = normalizeAcademicResult(unwrapApiResponse<StudentPortalAcademicResultApi>(response));
-    return data.grades.length ? withApi(data) : withMock(academicResult);
+    return withApi(data);
   } catch {
-    return withMock(academicResult);
+    return withApi(emptyAcademicResult);
   }
 }
 
@@ -69,9 +45,9 @@ async function readSchedule(): Promise<StudentPortalPayload<StudentScheduleItem[
   try {
     const response = await request.get('/api/v1/students/me/schedule');
     const data = unwrapApiResponse<StudentPortalScheduleApiItem[]>(response).map(normalizeSchedule);
-    return data.length ? withApi(data) : withMock(schedules);
+    return withApi(data);
   } catch {
-    return withMock(schedules);
+    return withApi([]);
   }
 }
 
@@ -83,9 +59,9 @@ export const studentPortalApi = {
         semesterLabel: academic.data.semesterLabel,
         academic: academic.data,
         nextSchedules: mySchedule.data.slice(0, 3),
-        announcements,
+        announcements: [],
       },
-      source: academic.source === 'api' || mySchedule.source === 'api' ? 'api' : 'mock',
+      source: 'api',
     };
   },
 
@@ -93,8 +69,69 @@ export const studentPortalApi = {
 
   getMySchedule: readSchedule,
 
-  getAnnouncements: async (): Promise<StudentPortalPayload<StudentAnnouncement[]>> =>
-    withMock(announcements),
+  getAnnouncements: async (): Promise<StudentPortalPayload<StudentAnnouncement[]>> => {
+    try {
+      const response = await request.get('/api/v1/students/me/announcements');
+      const data = unwrapApiResponse<any[]>(response).map(normalizeAnnouncement);
+      return withApi(data);
+    } catch {
+      return withApi([]);
+    }
+  },
+
+  getDocuments: async (): Promise<StudentPortalPayload<StudentDocument[]>> => {
+    try {
+      const response = await request.get('/api/v1/students/me/documents');
+      const data = unwrapApiResponse<any[]>(response).map(normalizeDocument);
+      return withApi(data);
+    } catch {
+      return withApi([]);
+    }
+  },
+
+  getTuition: async (): Promise<StudentPortalPayload<StudentTuition>> => {
+    try {
+      const response = await request.get('/api/v1/students/me/tuition');
+      return withApi(normalizeTuition(unwrapApiResponse<any>(response)));
+    } catch {
+      return withApi({ totalAmount: 0, paidAmount: 0, remainingAmount: 0, registeredCredits: 0, unpaidRegistrations: 0 });
+    }
+  },
+
+  getRegistrations: async (): Promise<StudentPortalPayload<StudentRegistration[]>> => {
+    try {
+      const response = await request.get('/api/v1/students/me/registrations');
+      const data = unwrapApiResponse<any[]>(response).map(normalizeRegistration);
+      return withApi(data);
+    } catch {
+      return withApi([]);
+    }
+  },
+
+  getExams: async (): Promise<StudentPortalPayload<StudentExam[]>> => {
+    try {
+      const response = await request.get('/api/v1/students/me/exams');
+      const data = unwrapApiResponse<any[]>(response).map(normalizeExam);
+      return withApi(data);
+    } catch {
+      return withApi([]);
+    }
+  },
+
+  getSupportRequests: async (): Promise<StudentPortalPayload<StudentSupportRequest[]>> => {
+    try {
+      const response = await request.get('/api/v1/students/me/support-requests');
+      const data = unwrapApiResponse<any[]>(response).map(normalizeSupportRequest);
+      return withApi(data);
+    } catch {
+      return withApi([]);
+    }
+  },
+
+  createSupportRequest: async (payload: { title: string; content: string }): Promise<StudentSupportRequest> => {
+    const response = await request.post('/api/v1/students/me/support-requests', payload);
+    return normalizeSupportRequest(unwrapApiResponse<any>(response));
+  },
 
   getStudentProfile: async (): Promise<StudentSelfResponse | null> => {
     try {
@@ -106,7 +143,7 @@ export const studentPortalApi = {
 };
 
 function normalizeAcademicResult(data: StudentPortalAcademicResultApi): StudentAcademicResult {
-  const grades = data.grades.map((grade) => ({
+  const grades = (data.grades ?? []).map((grade) => ({
     id: grade.gradeId,
     semesterId: grade.semesterId || 'unassigned',
     semesterLabel: grade.semesterLabel || 'Chưa xác định học kỳ',
@@ -120,7 +157,7 @@ function normalizeAcademicResult(data: StudentPortalAcademicResultApi): StudentA
     letterGrade: grade.letterGrade || '--',
     status: normalizeGradeStatus(grade.status),
   }));
-  const semesters = data.semesters
+  const semesters = (data.semesters ?? [])
     .filter((semester) => semester.semesterId)
     .map((semester) => ({
       id: semester.semesterId,
@@ -139,6 +176,83 @@ function normalizeAcademicResult(data: StudentPortalAcademicResultApi): StudentA
     programCredits: data.programCredits ?? 0,
     grades,
   };
+}
+
+function normalizeAnnouncement(item: any): StudentAnnouncement {
+  return {
+    id: String(item.id ?? item.announcementId ?? item.notificationId ?? crypto.randomUUID()),
+    title: String(item.title ?? item.subject ?? 'Thông báo'),
+    sender: String(item.sender ?? item.departmentName ?? item.createdBy ?? 'Nhà trường'),
+    date: formatDisplayDate(item.date ?? item.createdAt ?? item.publishedAt),
+    type: normalizeAnnouncementType(item.type ?? item.category),
+  };
+}
+
+function normalizeDocument(item: any): StudentDocument {
+  return {
+    id: String(item.id ?? item.documentId),
+    title: String(item.title ?? 'Tài liệu học tập'),
+    courseCode: String(item.courseCode ?? '--'),
+    fileType: String(item.fileType ?? item.type ?? '--'),
+    updatedAt: formatDisplayDate(item.updatedAt ?? item.createdAt),
+    downloadUrl: item.downloadUrl ?? undefined,
+  };
+}
+
+function normalizeTuition(item: any): StudentTuition {
+  return {
+    totalAmount: Number(item.totalAmount ?? 0),
+    paidAmount: Number(item.paidAmount ?? 0),
+    remainingAmount: Number(item.remainingAmount ?? 0),
+    registeredCredits: Number(item.registeredCredits ?? 0),
+    unpaidRegistrations: Number(item.unpaidRegistrations ?? 0),
+  };
+}
+
+function normalizeRegistration(item: any): StudentRegistration {
+  return {
+    registrationId: String(item.registrationId ?? item.courseRegistrationId),
+    courseClassId: String(item.courseClassId ?? ''),
+    courseCode: String(item.courseCode ?? '--'),
+    courseName: String(item.courseName ?? 'Học phần chưa đặt tên'),
+    classCode: String(item.classCode ?? '--'),
+    credits: Number(item.credits ?? 0),
+    semesterLabel: String(item.semesterLabel ?? 'Chưa xác định học kỳ'),
+    registrationPeriodName: String(item.registrationPeriodName ?? 'Chưa xác định đợt đăng ký'),
+    registeredAt: formatDisplayDate(item.registeredAt),
+    status: item.status ?? null,
+    paid: Boolean(item.paid),
+  };
+}
+
+function normalizeExam(item: any): StudentExam {
+  return {
+    id: String(item.id ?? item.examId),
+    courseCode: String(item.courseCode ?? '--'),
+    courseName: String(item.courseName ?? 'Học phần chưa đặt tên'),
+    examDate: formatDisplayDate(item.examDate),
+    startTime: formatTime(item.startTime),
+    endTime: formatTime(item.endTime),
+    roomCode: String(item.roomCode ?? 'Chưa xếp phòng'),
+    format: String(item.format ?? '--'),
+  };
+}
+
+function normalizeSupportRequest(item: any): StudentSupportRequest {
+  return {
+    id: String(item.id ?? item.requestId),
+    title: String(item.title ?? 'Yêu cầu hỗ trợ'),
+    content: String(item.content ?? ''),
+    status: String(item.status ?? 'RECEIVED'),
+    createdAt: formatDisplayDate(item.createdAt),
+  };
+}
+
+function normalizeAnnouncementType(type: unknown): StudentAnnouncement['type'] {
+  const value = String(type ?? '').toLowerCase();
+  if (value.includes('tài') || value.includes('finance')) return 'Tài chính';
+  if (value.includes('vụ') || value.includes('academic')) return 'Học vụ';
+  return 'Đào tạo';
 }
 
 function normalizeGradeStatus(status: string | null): StudentAcademicResult['grades'][number]['status'] {
@@ -174,9 +288,21 @@ function formatDate(date: string | null) {
   return year && month && day ? `${day}/${month}` : date;
 }
 
+function formatDisplayDate(date: string | null) {
+  if (!date) return '--';
+  const [ymd] = date.split('T');
+  const [year, month, day] = ymd.split('-');
+  return year && month && day ? `${day}/${month}/${year}` : date;
+}
+
 function formatTimeRange(startTime: string | null, endTime: string | null) {
   if (!startTime || !endTime) return 'Chưa xếp ca';
   return `${startTime.slice(0, 5)} - ${endTime.slice(0, 5)}`;
+}
+
+function formatTime(time: string | null) {
+  if (!time) return '--';
+  return time.slice(0, 5);
 }
 
 function normalizeScheduleMode(mode: string | null): StudentScheduleItem['mode'] {

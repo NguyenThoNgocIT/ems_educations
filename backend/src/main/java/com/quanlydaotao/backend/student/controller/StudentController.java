@@ -5,10 +5,17 @@ import com.quanlydaotao.backend.common.dto.ApiResponse;
 import com.quanlydaotao.backend.student.dto.StudentAdminCreateRequest;
 import com.quanlydaotao.backend.student.dto.StudentAdminResponse;
 import com.quanlydaotao.backend.student.dto.StudentAdminUpdateRequest;
+import com.quanlydaotao.backend.student.dto.StudentPortalAnnouncementResponse;
 import com.quanlydaotao.backend.student.dto.StudentPortalAcademicResultResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalDocumentResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalExamResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalRegistrationResponse;
 import com.quanlydaotao.backend.student.dto.StudentPortalScheduleResponse;
 import com.quanlydaotao.backend.student.dto.StudentSelfResponse;
 import com.quanlydaotao.backend.student.dto.StudentSelfUpdateRequest;
+import com.quanlydaotao.backend.student.dto.StudentPortalSupportRequest;
+import com.quanlydaotao.backend.student.dto.StudentPortalSupportRequestResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalTuitionResponse;
 import com.quanlydaotao.backend.student.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -103,5 +110,56 @@ public class StudentController {
     @Operation(summary = "Sinh viên xem kết quả học tập của chính mình")
     public ResponseEntity<ApiResponse<StudentPortalAcademicResultResponse>> getCurrentStudentAcademicResult(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success("Lấy kết quả học tập sinh viên thành công", studentService.getCurrentStudentAcademicResult(authentication.getName())));
+    }
+
+    @GetMapping("/me/announcements")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên xem thông báo của chính mình")
+    public ResponseEntity<ApiResponse<List<StudentPortalAnnouncementResponse>>> getCurrentStudentAnnouncements(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông báo sinh viên thành công", studentService.getCurrentStudentAnnouncements(authentication.getName())));
+    }
+
+    @GetMapping("/me/documents")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên xem tài liệu học tập của chính mình")
+    public ResponseEntity<ApiResponse<List<StudentPortalDocumentResponse>>> getCurrentStudentDocuments(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy tài liệu học tập sinh viên thành công", studentService.getCurrentStudentDocuments(authentication.getName())));
+    }
+
+    @GetMapping("/me/tuition")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên xem thông tin học phí của chính mình")
+    public ResponseEntity<ApiResponse<StudentPortalTuitionResponse>> getCurrentStudentTuition(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin học phí sinh viên thành công", studentService.getCurrentStudentTuition(authentication.getName())));
+    }
+
+    @GetMapping("/me/registrations")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên xem học phần đã đăng ký")
+    public ResponseEntity<ApiResponse<List<StudentPortalRegistrationResponse>>> getCurrentStudentRegistrations(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy đăng ký học phần sinh viên thành công", studentService.getCurrentStudentRegistrations(authentication.getName())));
+    }
+
+    @GetMapping("/me/exams")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên xem lịch thi của chính mình")
+    public ResponseEntity<ApiResponse<List<StudentPortalExamResponse>>> getCurrentStudentExams(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy lịch thi sinh viên thành công", studentService.getCurrentStudentExams(authentication.getName())));
+    }
+
+    @GetMapping("/me/support-requests")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên xem yêu cầu hỗ trợ của chính mình")
+    public ResponseEntity<ApiResponse<List<StudentPortalSupportRequestResponse>>> getCurrentStudentSupportRequests(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy yêu cầu hỗ trợ sinh viên thành công", studentService.getCurrentStudentSupportRequests(authentication.getName())));
+    }
+
+    @PostMapping("/me/support-requests")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Sinh viên gửi yêu cầu hỗ trợ")
+    public ResponseEntity<ApiResponse<StudentPortalSupportRequestResponse>> createCurrentStudentSupportRequest(
+            Authentication authentication,
+            @RequestBody StudentPortalSupportRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Gửi yêu cầu hỗ trợ thành công", studentService.createCurrentStudentSupportRequest(authentication.getName(), request)));
     }
 }

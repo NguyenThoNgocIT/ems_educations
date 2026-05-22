@@ -1,4 +1,4 @@
-export type StudentPortalSource = 'api' | 'mock';
+export type StudentPortalSource = 'api';
 
 export type StudentPortalPayload<T> = {
   data: T;
@@ -84,6 +84,56 @@ export type StudentAnnouncement = {
   sender: string;
   date: string;
   type: 'Đào tạo' | 'Học vụ' | 'Tài chính';
+};
+
+export type StudentDocument = {
+  id: string;
+  title: string;
+  courseCode: string;
+  fileType: string;
+  updatedAt: string;
+  downloadUrl?: string;
+};
+
+export type StudentTuition = {
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  registeredCredits: number;
+  unpaidRegistrations: number;
+};
+
+export type StudentRegistration = {
+  registrationId: string;
+  courseClassId: string;
+  courseCode: string;
+  courseName: string;
+  classCode: string;
+  credits: number;
+  semesterLabel: string;
+  registrationPeriodName: string;
+  registeredAt: string;
+  status: number | null;
+  paid: boolean;
+};
+
+export type StudentExam = {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  roomCode: string;
+  format: string;
+};
+
+export type StudentSupportRequest = {
+  id: string;
+  title: string;
+  content: string;
+  status: string;
+  createdAt: string;
 };
 
 export type StudentDashboard = {

@@ -18,6 +18,8 @@ import com.quanlydaotao.backend.major.repository.MajorRepository;
 import com.quanlydaotao.backend.trainingprogram.repository.TrainingProgramRepository;
 import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.person.repository.PersonRepository;
+import com.quanlydaotao.backend.registrationperiod.entity.RegistrationPeriod;
+import com.quanlydaotao.backend.registrationperiod.repository.RegistrationPeriodRepository;
 import com.quanlydaotao.backend.scheduling.entity.Schedule;
 import com.quanlydaotao.backend.scheduling.repository.ScheduleRepository;
 import com.quanlydaotao.backend.semester.entity.Semester;
@@ -25,12 +27,19 @@ import com.quanlydaotao.backend.semester.repository.SemesterRepository;
 import com.quanlydaotao.backend.student.dto.StudentAdminResponse;
 import com.quanlydaotao.backend.student.dto.StudentAdminCreateRequest;
 import com.quanlydaotao.backend.student.dto.StudentAdminUpdateRequest;
+import com.quanlydaotao.backend.student.dto.StudentPortalAnnouncementResponse;
 import com.quanlydaotao.backend.student.dto.StudentPortalAcademicResultResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalDocumentResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalExamResponse;
 import com.quanlydaotao.backend.student.dto.StudentPortalGradeResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalRegistrationResponse;
 import com.quanlydaotao.backend.student.dto.StudentPortalScheduleResponse;
 import com.quanlydaotao.backend.student.dto.StudentPortalSemesterResponse;
 import com.quanlydaotao.backend.student.dto.StudentSelfResponse;
 import com.quanlydaotao.backend.student.dto.StudentSelfUpdateRequest;
+import com.quanlydaotao.backend.student.dto.StudentPortalSupportRequest;
+import com.quanlydaotao.backend.student.dto.StudentPortalSupportRequestResponse;
+import com.quanlydaotao.backend.student.dto.StudentPortalTuitionResponse;
 import com.quanlydaotao.backend.student.entity.Student;
 import com.quanlydaotao.backend.student.mapper.StudentMapper;
 import com.quanlydaotao.backend.student.repository.StudentRepository;
@@ -47,6 +56,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -76,6 +86,7 @@ public class StudentServiceImpl implements StudentService {
     private final StudentGradeRepository studentGradeRepository;
     private final ScheduleRepository scheduleRepository;
     private final SemesterRepository semesterRepository;
+    private final RegistrationPeriodRepository registrationPeriodRepository;
     private final StudentMapper studentMapper;
     private final StudentClassService studentClassService;
     private final StudentStatusHistoryService studentStatusHistoryService;
@@ -252,6 +263,93 @@ public class StudentServiceImpl implements StudentService {
                 .build();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentPortalAnnouncementResponse> getCurrentStudentAnnouncements(String username) {
+        findCurrentStudent(username);
+        return List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentPortalDocumentResponse> getCurrentStudentDocuments(String username) {
+        findCurrentStudent(username);
+        return List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentPortalTuitionResponse getCurrentStudentTuition(String username) {
+        Student student = findCurrentStudent(username);
+        List<CourseRegistration> registrations = courseRegistrationRepository.findByStudentIdAndIsActiveTrue(student.getStudentId());
+        double registeredCredits = registrations.stream()
+                .map(CourseRegistration::getCourseClass)
+                .filter(Objects::nonNull)
+                .map(CourseClass::getCourse)
+                .filter(Objects::nonNull)
+                .map(Course::getCredits)
+                .filter(Objects::nonNull)
+                .mapToDouble(Double::doubleValue)
+                .sum();
+        int unpaidRegistrations = (int) registrations.stream()
+                .filter(registration -> !Boolean.TRUE.equals(registration.getIsPaid()))
+                .count();
+
+        return StudentPortalTuitionResponse.builder()
+                .totalAmount(BigDecimal.ZERO)
+                .paidAmount(BigDecimal.ZERO)
+                .remainingAmount(BigDecimal.ZERO)
+                .registeredCredits(registeredCredits)
+                .unpaidRegistrations(unpaidRegistrations)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentPortalRegistrationResponse> getCurrentStudentRegistrations(String username) {
+        Student student = findCurrentStudent(username);
+        List<CourseRegistration> registrations = courseRegistrationRepository.findByStudentIdAndIsActiveTrue(student.getStudentId());
+        Map<UUID, Semester> semestersById = loadSemesters(registrations);
+        Set<UUID> registrationPeriodIds = registrations.stream()
+                .map(CourseRegistration::getRegistrationPeriodId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, RegistrationPeriod> periodsById = registrationPeriodRepository.findAllById(registrationPeriodIds).stream()
+                .collect(Collectors.toMap(RegistrationPeriod::getRegistrationPeriodId, Function.identity()));
+
+        return registrations.stream()
+                .map(registration -> toRegistrationResponse(registration, semestersById, periodsById))
+                .sorted(Comparator.comparing(StudentPortalRegistrationResponse::getRegisteredAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentPortalExamResponse> getCurrentStudentExams(String username) {
+        findCurrentStudent(username);
+        return List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentPortalSupportRequestResponse> getCurrentStudentSupportRequests(String username) {
+        findCurrentStudent(username);
+        return List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentPortalSupportRequestResponse createCurrentStudentSupportRequest(String username, StudentPortalSupportRequest request) {
+        findCurrentStudent(username);
+        return StudentPortalSupportRequestResponse.builder()
+                .id(UUID.randomUUID())
+                .title(request == null ? null : request.getTitle())
+                .content(request == null ? null : request.getContent())
+                .status("RECEIVED")
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
     private Student findStudent(UUID id) {
         return studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sinh viên"));
@@ -280,6 +378,32 @@ public class StudentServiceImpl implements StudentService {
                 .instructorName(schedule.getInstructor() == null || schedule.getInstructor().getPerson() == null
                         ? null : schedule.getInstructor().getPerson().getFullName())
                 .mode(schedule.getMode())
+                .build();
+    }
+
+    private StudentPortalRegistrationResponse toRegistrationResponse(
+            CourseRegistration registration,
+            Map<UUID, Semester> semestersById,
+            Map<UUID, RegistrationPeriod> periodsById) {
+        CourseClass courseClass = registration.getCourseClass();
+        Course course = courseClass == null ? null : courseClass.getCourse();
+        Semester semester = courseClass == null ? null : semestersById.get(courseClass.getSemesterId());
+        RegistrationPeriod period = registration.getRegistrationPeriodId() == null
+                ? null
+                : periodsById.get(registration.getRegistrationPeriodId());
+
+        return StudentPortalRegistrationResponse.builder()
+                .registrationId(registration.getCourseRegistrationId())
+                .courseClassId(registration.getCourseClassId())
+                .courseCode(course == null ? null : course.getCode())
+                .courseName(course == null ? null : course.getName())
+                .classCode(courseClass == null ? null : courseClass.getClassCode())
+                .credits(course == null ? null : course.getCredits())
+                .semesterLabel(semester == null ? null : semester.getName())
+                .registrationPeriodName(period == null ? null : period.getName())
+                .registeredAt(registration.getRegisteredAt())
+                .status(registration.getStatus())
+                .paid(registration.getIsPaid())
                 .build();
     }
 

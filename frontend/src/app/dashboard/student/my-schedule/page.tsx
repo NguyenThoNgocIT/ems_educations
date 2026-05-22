@@ -9,13 +9,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 export default function StudentMySchedulePage() {
   const [schedules, setSchedules] = useState<StudentScheduleItem[]>([]);
-  const [source, setSource] = useState<'api' | 'mock'>('mock');
   const [query, setQuery] = useState('');
 
   useEffect(() => {
     studentPortalApi.getMySchedule().then((payload) => {
       setSchedules(payload.data);
-      setSource(payload.source);
     });
   }, []);
 
@@ -34,7 +32,6 @@ export default function StudentMySchedulePage() {
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold text-slate-950 dark:text-white">Thời khóa biểu tuần</h1>
-          <Badge variant="outline">{source === 'mock' ? 'Dữ liệu mẫu' : 'Dữ liệu hệ thống'}</Badge>
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400">Lịch học theo học phần đã đăng ký, phòng học và giảng viên phụ trách.</p>
       </header>

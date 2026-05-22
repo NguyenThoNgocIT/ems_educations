@@ -1,5 +1,5 @@
 import { StudentProfilePanel } from '@/components/student/StudentProfilePanel';
 
-export default function ProfilePage() {
+export default function StudentProfilePage() {
   return <StudentProfilePanel />;
 }

@@ -9,7 +9,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 export default function StudentAcademicResultsPage() {
   const [result, setResult] = useState<StudentAcademicResult | null>(null);
-  const [source, setSource] = useState<'api' | 'mock'>('mock');
   const [filterMode, setFilterMode] = useState<'single' | 'range'>('single');
   const [singleSemester, setSingleSemester] = useState('');
   const [fromSemester, setFromSemester] = useState('');
@@ -18,7 +17,6 @@ export default function StudentAcademicResultsPage() {
   useEffect(() => {
     studentPortalApi.getAcademicResult().then((payload) => {
       setResult(payload.data);
-      setSource(payload.source);
       const currentSemester = payload.data.semesters.at(-2)?.id || payload.data.semesters[0]?.id || '';
       setSingleSemester(currentSemester);
       setFromSemester(payload.data.semesters[0]?.id || '');
@@ -54,7 +52,6 @@ export default function StudentAcademicResultsPage() {
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold text-slate-950 dark:text-white">Kết quả học tập</h1>
-          <Badge variant="outline">{source === 'mock' ? 'Dữ liệu mẫu' : 'Dữ liệu hệ thống'}</Badge>
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400">Theo dõi điểm học kỳ, tín chỉ đạt và các học phần cần chú ý.</p>
       </header>
