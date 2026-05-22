@@ -2,6 +2,7 @@ package com.quanlydaotao.backend.course.dto;
 
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -13,6 +14,8 @@ public class CourseClassDto {
     private Integer currentStudent;
     private UUID roomId;
     private String status;
+    private LocalDate startDate;
+    private LocalDate endDate;
     private UUID semesterId;
     private UUID courseId;
     private Boolean isActive;

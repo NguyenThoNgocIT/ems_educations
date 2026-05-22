@@ -236,4 +236,105 @@ Phân quyền theo chuẩn RBAC:
 - Chức vụ kiểm tra phòng ban.
 - Hợp đồng kiểm tra employee, ngày hiệu lực, lương/phụ cấp/ngày phép.
 
-class lớp hành chính sẽ được admin tạo trước đúng . nghiệp vụ kèm theo khi thêm 1 class là sẽ chọn department, AdvisorId gíao viên cố vấn xử lí là 1 giáo viên cố vấn chỉ được gán cho 1 lớp hành chính, AcademicCohortId... sau đó khi thêm student chọn class cho student trong bước thêm sinh viên record được lưu trong bảng studentclass, StudentStatusCatalog Danh mục — định nghĩa các loại trạng thái gán cho sinh viên đó, Admin quản lý qua UI. StudentStatusHistories Lịch sử — ghi lại từng lần thay đổi trạng thái của từng sinh viên.
+- class lớp hành chính sẽ được admin tạo trước đúng . nghiệp vụ kèm theo khi thêm 1 class là sẽ chọn department, AdvisorId gíao viên cố vấn xử lí là 1 giáo viên cố vấn chỉ được gán cho 1 lớp hành chính, AcademicCohortId... sau đó khi thêm student chọn class cho student trong bước thêm sinh viên record được lưu trong bảng studentclass, StudentStatusCatalog Danh mục — định nghĩa các loại trạng thái gán cho sinh viên đó, Admin quản lý qua UI. StudentStatusHistories Lịch sử — ghi lại từng lần thay đổi trạng thái của từng sinh viên.
+
+- Major, Specialization, StudentSpecialization là 3 tầng khác nhau trong nghiệp vụ đào tạo.
+
+Major
+Major là ngành đào tạo.
+
+Ví dụ trong Khoa Công nghệ thông tin:
+
+Công nghệ thông tin
+Kỹ thuật phần mềm
+Hệ thống thông tin
+Khoa học dữ liệu
+Vai trò:
+
+Thuộc một Department.
+Dùng để nhóm chương trình đào tạo theo ngành.
+Sau giai đoạn học cơ sở, sinh viên có thể được gán vào một ngành cụ thể.
+Specialization
+Specialization là chuyên ngành/chuyên sâu bên trong một ngành.
+
+Ví dụ ngành Công nghệ thông tin có thể có:
+
+Trí tuệ nhân tạo
+An toàn thông tin
+Mạng máy tính
+Phát triển phần mềm
+Dữ liệu lớn
+Vai trò:
+
+Thuộc một Major.
+Thuộc gián tiếp một Department.
+Dùng để chia lớp chuyên ngành.
+Dùng để lọc chương trình đào tạo và môn học chuyên sâu.
+StudentSpecialization
+StudentSpecialization là lịch sử/ghi nhận việc sinh viên được phân vào ngành/chuyên ngành nào.
+
+Nó không phải danh mục như Major hay Specialization, mà là bảng nghiệp vụ cho từng sinh viên.
+
+Ví dụ:
+Sinh viên A nhập học Khoa CNTT khóa K24, học chung 2 năm đầu. Đến học kỳ 5, admin phân sinh viên A vào:
+
+Major: Công nghệ thông tin
+Specialization: Trí tuệ nhân tạo
+TrainingProgram: Chương trình CNTT AI K24
+EffectiveSemester: Học kỳ 5
+Vai trò:
+
+Ghi lại sinh viên được phân chuyên ngành từ học kỳ nào.
+Lưu lịch sử nếu sau này đổi chuyên ngành.
+Cập nhật Students.majorId, Students.specializationId, Students.trainingProgramId.
+Có thể gán sinh viên sang lớp chuyên ngành mới qua StudentClasses.
+Tóm lại:
+
+Department: Khoa
+Major: Ngành
+Specialization: Chuyên ngành
+StudentSpecialization: Sinh viên này được phân vào ngành/chuyên ngành nào, từ học kỳ nào
+Ví dụ đầy đủ:
+
+Khoa CNTT
+  -> Ngành Công nghệ thông tin
+      -> Chuyên ngành AI
+
+Sinh viên Nguyễn Văn A
+  -> Năm 1-2: chỉ thuộc Khoa CNTT, lớp CNTT_K24A
+  -> Năm 3: được phân vào Ngành CNTT, Chuyên ngành AI
+  -> Chuyển sang lớp CNTT_K24_AI1
+  -> Học chương trình đào tạo AI tương ứng
+
+  TeachingAssignments: phân công giảng viên cho lớp học phần.
+API: /api/v1/teaching-assignments/admin
+Validate: giảng viên tồn tại, lớp học phần đúng học kỳ, lớp hành chính tồn tại, không phân công trùng.
+
+TeachingProgressLogs: theo dõi tiến độ giảng dạy từng buổi.
+API ghi buổi dạy: /api/v1/teaching-progress/admin
+API xem log: /api/v1/teaching-progress/admin/course-classes/{courseClassId}/logs
+API tổng hợp: /api/v1/teaching-progress/admin/course-classes/{courseClassId}/summary
+Tính được: lớp học phần, học phần, tín chỉ, ngày bắt đầu/kết thúc, tổng tiết HP, GV nghỉ, đã dạy, còn lại.
+
+Bổ sung CourseClasses.StartDate, CourseClasses.EndDate.
+
+Bổ sung validate cho Schedules:
+Không trùng phòng.
+Không trùng lớp học phần.
+Không trùng giảng viên.
+Giảng viên phải đã được phân công trong TeachingAssignments.
+Nếu giảng viên có đơn nghỉ đã duyệt trong ngày đó thì không cho xếp lịch.
+
+Bổ sung nền cho đăng ký học phần:
+RegistrationPeriods
+EquivalentCourses
+Validate đăng ký theo đợt đăng ký hiện hành.
+Kiểm tra sĩ số lớp học phần.
+Không đăng ký trùng lớp/học phần trong cùng kỳ.
+Học phần phải thuộc TrainingProgramCourses của chương trình đào tạo hiện tại của sinh viên.
+Kiểm tra môn tiên quyết, môn song hành, môn tương đương.
+
+Migration mới:
+V16__Teaching_Registration_Progress_Workflow.sql
+Lưu ý phần đăng ký học lại: mình đã để logic nền qua RegistrationType, ReplacedGradeId, prerequisites/equivalent courses, nhưng nghiệp vụ học lại đầy đủ vẫn cần module điểm hoàn chỉnh để xác định rớt/đạt/thay thế điểm. Hiện tại chưa nên mở full retake tự động nếu điểm chưa chuẩn.
+

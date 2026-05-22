@@ -19,8 +19,8 @@ public class CourseRegistration extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "RegistrationId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
-    private UUID registrationId;
+    @Column(name = "CourseRegistrationId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    private UUID courseRegistrationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "StudentId", nullable = false, insertable = false, updatable = false)
@@ -36,9 +36,21 @@ public class CourseRegistration extends SoftDeleteEntity {
     @Column(name = "CourseClassId", nullable = false)
     private UUID courseClassId;
 
-    @Column(name = "RegistrationDate")
-    private LocalDateTime registrationDate;
+    @Column(name = "RegistrationPeriodId", nullable = false)
+    private UUID registrationPeriodId;
 
-    @Column(name = "Status", length = 20)
-    private String status; // REGISTERED, CANCELLED, COMPLETED
+    @Column(name = "RegistrationType")
+    private Integer registrationType;
+
+    @Column(name = "ReplacedGradeId")
+    private UUID replacedGradeId;
+
+    @Column(name = "RegisteredAt")
+    private LocalDateTime registeredAt;
+
+    @Column(name = "Status")
+    private Integer status;
+
+    @Column(name = "IsPaid")
+    private Boolean isPaid;
 }
