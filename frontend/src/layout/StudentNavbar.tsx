@@ -25,7 +25,7 @@ export default function StudentSidebar() {
     >
       {/* 1. KHU VỰC LOGO ĐẠI HỌC ĐÔNG Á (Thu phóng đồng bộ theo Admin) */}
       <div className="h-[80px] border-b border-gray-100 flex items-center justify-center px-4 overflow-hidden dark:border-slate-800 flex-shrink-0">
-        <Link href="/dashboard/student/my-schedule" className="relative flex items-center justify-center w-full h-full">
+        <Link href="/dashboard/student" className="relative flex items-center justify-center w-full h-full">
           {isOpen ? (
             <div className="relative w-[310px] h-[88px] transition-all duration-300 flex items-center justify-center">
               <Image

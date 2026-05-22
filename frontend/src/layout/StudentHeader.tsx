@@ -31,7 +31,7 @@ export default function StudentHeader({ role = "student" }: StudentHeaderProps) 
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-40 flex h-[80px] border-b border-gray-100 bg-white/80 backdrop-blur-md transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-900/80
-        ${isSidebarOpen ? "pl-[290px]" : "pl-[78px]"}
+        ${isSidebarOpen ? "md:pl-[290px]" : "md:pl-[78px]"}
       `}
     >
       {/* Container co giãn linh hoạt chống tràn nội dung */}
@@ -65,7 +65,7 @@ export default function StudentHeader({ role = "student" }: StudentHeaderProps) 
         {/* PHẦN PHẢI: UTILS & USER DROPDOWN */}
         <div className="flex items-center gap-3 pl-4 flex-shrink-0">
           <ThemeToggleButton />
-          <NotificationDropdown />
+          <NotificationDropdown href="/dashboard/student/notifications" />
           <div className="h-6 w-[1px] bg-gray-100 dark:bg-slate-800" />
           <UserDropdown role={role} />
         </div>

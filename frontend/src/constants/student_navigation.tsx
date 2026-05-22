@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Calendar,      // Lịch học
   GraduationCap, // Kết quả học tập
-  BookOpen,      // Đăng ký học phần
   Bell,
   CreditCard,
   FileText,
@@ -35,33 +34,33 @@ export const StudentNavGroups = [
         icon: <GraduationCap className="w-[18px] h-[18px]" />,
       },
       {
-        name: "Đăng ký học phần",
-        path: "/dashboard/student/course-registration",
-        icon: <BookOpen className="w-[18px] h-[18px]" />,
-      },
-      {
         name: "Học phí",
         path: "/dashboard/student/tuition",
         icon: <CreditCard className="w-[18px] h-[18px]" />,
-        badge: "Sắp có",
+        badge: "Mẫu",
+      },
+    ],
+  },
+  {
+    groupName: "Học vụ",
+    items: [
+      {
+        name: "Thông báo",
+        path: "/dashboard/student/notifications",
+        icon: <Bell className="w-[18px] h-[18px]" />,
+        badge: "Mẫu",
+      },
+      {
+        name: "Tài liệu học tập",
+        path: "/dashboard/student/documents",
+        icon: <FileText className="w-[18px] h-[18px]" />,
+        badge: "Mẫu",
       },
     ],
   },
   {
     groupName: "Cá nhân",
     items: [
-      {
-        name: "Thông báo",
-        path: "/dashboard/student/notifications",
-        icon: <Bell className="w-[18px] h-[18px]" />,
-        badge: "Sắp có",
-      },
-      {
-        name: "Tài liệu học tập",
-        path: "/dashboard/student/documents",
-        icon: <FileText className="w-[18px] h-[18px]" />,
-        badge: "Sắp có",
-      },
       {
         name: "Thông tin cá nhân",
         path: "/profile",

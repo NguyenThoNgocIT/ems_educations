@@ -57,6 +57,24 @@ export interface StudentAdminResponse {
   avatarUrl?: string;
 }
 
+export type StudentSelfResponse = Omit<StudentAdminResponse, 'isActive' | 'createdAt' | 'updatedAt'>;
+
+export interface StudentSelfUpdateRequest {
+  fullName?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  placeOfBirth?: string;
+  ethnicity?: string;
+  dateOfIssue?: string;
+  cardPlace?: string;
+  nationality?: string;
+  contactEmail?: string;
+  phoneNumber?: string;
+  permanentAddress?: string;
+  temporaryAddress?: string;
+  avatarUrl?: string;
+}
+
 export type StudentListItem = StudentAdminResponse & {
   id: string;
 };

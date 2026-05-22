@@ -6,6 +6,8 @@ import type {
   StudentAdminResponse,
   StudentAdminUpdateRequest,
   StudentListItem,
+  StudentSelfResponse,
+  StudentSelfUpdateRequest,
 } from '@/types/student';
 
 const normalizeStudent = (student: StudentAdminResponse): StudentListItem => ({
@@ -44,5 +46,15 @@ export const studentApi = {
 
   delete: async (id: string): Promise<void> => {
     await request.delete(`/api/v1/students/admin/${id}`);
+  },
+
+  getMe: async (): Promise<StudentSelfResponse> => {
+    const response = await request.get('/api/v1/students/me');
+    return unwrapApiResponse<StudentSelfResponse>(response);
+  },
+
+  updateMe: async (data: StudentSelfUpdateRequest): Promise<StudentSelfResponse> => {
+    const response = await request.put('/api/v1/students/me', data);
+    return unwrapApiResponse<StudentSelfResponse>(response);
   },
 };
