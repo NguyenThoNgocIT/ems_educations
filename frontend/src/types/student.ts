@@ -16,10 +16,12 @@ export interface StudentAdminCreateRequest {
   avatarUrl?: string;
   note?: string;
   studentCode?: string;
+  departmentId: string;
   majorId: string;
   trainingProgramId: string;
   academicCohortId: string;
   classId?: string;
+  semesterId?: string;
   admissionDate?: string;
 }
 
@@ -57,6 +59,24 @@ export interface StudentAdminResponse {
   avatarUrl?: string;
 }
 
+export type StudentSelfResponse = Omit<StudentAdminResponse, 'isActive' | 'createdAt' | 'updatedAt'>;
+
+export interface StudentSelfUpdateRequest {
+  fullName?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  placeOfBirth?: string;
+  ethnicity?: string;
+  dateOfIssue?: string;
+  cardPlace?: string;
+  nationality?: string;
+  contactEmail?: string;
+  phoneNumber?: string;
+  permanentAddress?: string;
+  temporaryAddress?: string;
+  avatarUrl?: string;
+}
+
 export type StudentListItem = StudentAdminResponse & {
   id: string;
 };
@@ -69,10 +89,12 @@ export interface StudentAdminFormData {
   phoneNumber: string;
   contactEmail: string;
   permanentAddress: string;
+  departmentId: string;
   trainingProgramId: string;
   majorId: string;
   academicCohortId: string;
   classId: string;
+  semesterId: string;
   admissionDate: string;
   isActive?: boolean;
   note: string;

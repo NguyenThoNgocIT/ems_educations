@@ -1,23 +1,24 @@
 import React from "react";
-import { 
-  LayoutDashboard,
+import {
   Calendar,      // Lịch học
   GraduationCap, // Kết quả học tập
-  BookOpen,      // Đăng ký học phần
   Bell,
   CreditCard,
   FileText,
+  ClipboardList,
+  ClipboardCheck,
+  HelpCircle,
   UserCircle,
 } from "lucide-react"; 
 
 export const StudentNavGroups = [
   {
-    groupName: "Tổng quan",
+    groupName: "Thông báo",
     items: [
       {
-        name: "Bảng điều khiển",
-        path: "/dashboard/student",
-        icon: <LayoutDashboard className="w-[18px] h-[18px]" />,
+        name: "Thông báo",
+        path: "/dashboard/student/notifications",
+        icon: <Bell className="w-[18px] h-[18px]" />,
       },
     ],
   },
@@ -36,14 +37,33 @@ export const StudentNavGroups = [
       },
       {
         name: "Đăng ký học phần",
-        path: "/dashboard/student/course-registration",
-        icon: <BookOpen className="w-[18px] h-[18px]" />,
+        path: "/dashboard/student/registrations",
+        icon: <ClipboardList className="w-[18px] h-[18px]" />,
+      },
+      {
+        name: "Lịch thi",
+        path: "/dashboard/student/exams",
+        icon: <ClipboardCheck className="w-[18px] h-[18px]" />,
       },
       {
         name: "Học phí",
         path: "/dashboard/student/tuition",
         icon: <CreditCard className="w-[18px] h-[18px]" />,
-        badge: "Sắp có",
+      },
+    ],
+  },
+  {
+    groupName: "Học vụ",
+    items: [
+      {
+        name: "Tài liệu học tập",
+        path: "/dashboard/student/documents",
+        icon: <FileText className="w-[18px] h-[18px]" />,
+      },
+      {
+        name: "Yêu cầu hỗ trợ",
+        path: "/dashboard/student/requests",
+        icon: <HelpCircle className="w-[18px] h-[18px]" />,
       },
     ],
   },
@@ -51,20 +71,8 @@ export const StudentNavGroups = [
     groupName: "Cá nhân",
     items: [
       {
-        name: "Thông báo",
-        path: "/dashboard/student/notifications",
-        icon: <Bell className="w-[18px] h-[18px]" />,
-        badge: "Sắp có",
-      },
-      {
-        name: "Tài liệu học tập",
-        path: "/dashboard/student/documents",
-        icon: <FileText className="w-[18px] h-[18px]" />,
-        badge: "Sắp có",
-      },
-      {
         name: "Thông tin cá nhân",
-        path: "/profile",
+        path: "/dashboard/student/profile",
         icon: <UserCircle className="w-[18px] h-[18px]" />,
       },
     ],

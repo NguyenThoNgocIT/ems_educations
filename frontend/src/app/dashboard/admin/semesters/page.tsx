@@ -8,6 +8,7 @@ import { schoolYearApi } from "@/api/school-year";
 import { semesterApi } from "@/api/semester";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -408,19 +409,19 @@ export default function SemestersPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label className="text-sm font-semibold">Ngày bắt đầu *</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={formData.startDate}
-                  onChange={(event) => setFormData({ ...formData, startDate: event.target.value })}
+                  onChange={(value) => setFormData({ ...formData, startDate: value })}
+                  placeholder="Chọn ngày"
                   className="mt-1"
                 />
               </div>
               <div>
                 <Label className="text-sm font-semibold">Ngày kết thúc *</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={formData.endDate}
-                  onChange={(event) => setFormData({ ...formData, endDate: event.target.value })}
+                  onChange={(value) => setFormData({ ...formData, endDate: value })}
+                  placeholder="Chọn ngày"
                   className="mt-1"
                 />
               </div>

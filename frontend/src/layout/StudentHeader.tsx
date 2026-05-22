@@ -5,14 +5,14 @@ import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
 import React, { useEffect, useRef } from "react";
-import { Search, Command, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Search, Command, ChevronsLeft, ChevronsRight, Menu } from "lucide-react";
 
 interface StudentHeaderProps {
   role?: string;
 }
 
 export default function StudentHeader({ role = "student" }: StudentHeaderProps) {
-  const { isExpanded, isHovered, toggleSidebar } = useSidebar();
+  const { isExpanded, isHovered, toggleSidebar, toggleMobileSidebar } = useSidebar();
   const inputRef = useRef<HTMLInputElement>(null);
   const isSidebarOpen = isExpanded || isHovered;
 
@@ -31,7 +31,7 @@ export default function StudentHeader({ role = "student" }: StudentHeaderProps) 
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-40 flex h-[80px] border-b border-gray-100 bg-white/80 backdrop-blur-md transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-900/80
-        ${isSidebarOpen ? "pl-[290px]" : "pl-[78px]"}
+        ${isSidebarOpen ? "md:pl-[290px]" : "md:pl-[78px]"}
       `}
     >
       {/* Container co giãn linh hoạt chống tràn nội dung */}
@@ -40,7 +40,15 @@ export default function StudentHeader({ role = "student" }: StudentHeaderProps) 
         {/* PHẦN TRÁI: ĐIỀU HƯỚNG & Ô TÌM KIẾM */}
         <div className="flex flex-1 items-center gap-6 py-4">
           <button
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-500 shadow-sm transition-all hover:bg-gray-50 hover:text-emerald-600 dark:border-slate-800 dark:text-slate-400"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-500 shadow-sm transition-all hover:bg-gray-50 hover:text-emerald-600 dark:border-slate-800 dark:text-slate-400 md:hidden"
+            onClick={toggleMobileSidebar}
+            title="Mở menu"
+          >
+            <Menu size={20} />
+          </button>
+
+          <button
+            className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-500 shadow-sm transition-all hover:bg-gray-50 hover:text-emerald-600 dark:border-slate-800 dark:text-slate-400 md:flex"
             onClick={toggleSidebar}
             title={isSidebarOpen ? "Thu gọn menu" : "Mở rộng menu"}
           >
@@ -65,7 +73,7 @@ export default function StudentHeader({ role = "student" }: StudentHeaderProps) 
         {/* PHẦN PHẢI: UTILS & USER DROPDOWN */}
         <div className="flex items-center gap-3 pl-4 flex-shrink-0">
           <ThemeToggleButton />
-          <NotificationDropdown />
+          <NotificationDropdown href="/dashboard/student/notifications" />
           <div className="h-6 w-[1px] bg-gray-100 dark:bg-slate-800" />
           <UserDropdown role={role} />
         </div>

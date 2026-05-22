@@ -42,14 +42,14 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
                                                            UUID academicCohortId, String classPhase, Boolean isActive) {
         return administrativeClassRepository.search(normalizeBlank(keyword), departmentId, majorId, specializationId,
                         academicCohortId, normalizePhase(classPhase), isActive).stream()
-                .map(administrativeClassMapper::toDto)
+                .map(this::toResponse)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public AdministrativeClassResponse getClass(UUID id) {
-        return administrativeClassMapper.toDto(findClass(id));
+        return toResponse(findClass(id));
     }
 
     @Override
@@ -67,7 +67,7 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         administrativeClass.setClassName(request.getClassName().trim());
         administrativeClass.setClassPhase(resolveClassPhase(request.getClassPhase()));
         administrativeClass.setIsActive(request.getIsActive() == null || request.getIsActive());
-        return administrativeClassMapper.toDto(administrativeClassRepository.save(administrativeClass));
+        return toResponse(administrativeClassRepository.save(administrativeClass));
     }
 
     @Override
@@ -88,7 +88,7 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         if (StringUtils.hasText(request.getClassCode())) administrativeClass.setClassCode(normalizeCode(request.getClassCode()));
         if (StringUtils.hasText(request.getClassName())) administrativeClass.setClassName(request.getClassName().trim());
         if (StringUtils.hasText(request.getClassPhase())) administrativeClass.setClassPhase(resolveClassPhase(request.getClassPhase()));
-        return administrativeClassMapper.toDto(administrativeClassRepository.save(administrativeClass));
+        return toResponse(administrativeClassRepository.save(administrativeClass));
     }
 
     @Override
@@ -103,6 +103,47 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
     private AdministrativeClass findClass(UUID id) {
         return administrativeClassRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp hành chính"));
+    }
+
+    private AdministrativeClassResponse toResponse(AdministrativeClass administrativeClass) {
+        AdministrativeClassResponse response = administrativeClassMapper.toDto(administrativeClass);
+        enrichLookupLabels(response);
+        return response;
+    }
+
+    private void enrichLookupLabels(AdministrativeClassResponse response) {
+        if (response.getDepartmentId() != null) {
+            departmentRepository.findById(response.getDepartmentId()).ifPresent(department -> {
+                response.setDepartmentCode(department.getCode());
+                response.setDepartmentName(department.getName());
+            });
+        }
+        if (response.getMajorId() != null) {
+            majorRepository.findById(response.getMajorId()).ifPresent(major -> {
+                response.setMajorCode(major.getCode());
+                response.setMajorName(major.getName());
+            });
+        }
+        if (response.getSpecializationId() != null) {
+            specializationRepository.findById(response.getSpecializationId()).ifPresent(specialization -> {
+                response.setSpecializationCode(specialization.getCode());
+                response.setSpecializationName(specialization.getName());
+            });
+        }
+        if (response.getAcademicCohortId() != null) {
+            academicCohortRepository.findById(response.getAcademicCohortId()).ifPresent(cohort -> {
+                response.setAcademicCohortCode(cohort.getCode());
+                response.setAcademicCohortName(cohort.getName());
+            });
+        }
+        if (response.getAdvisorId() != null) {
+            instructorProfileRepository.findById(response.getAdvisorId()).ifPresent(advisor -> {
+                response.setAdvisorCode(advisor.getInstructorCode());
+                if (advisor.getEmployee() != null && advisor.getEmployee().getPerson() != null) {
+                    response.setAdvisorName(advisor.getEmployee().getPerson().getFullName());
+                }
+            });
+        }
     }
 
     private void validateRequired(AdministrativeClassRequest request) {

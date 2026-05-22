@@ -1,224 +1,284 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { courseApi, courseClassApi } from '@/api/course';
+import { semesterApi } from '@/api/semester';
+import { roomApi } from '@/api/room';
+import { unwrapApiResponse } from '@/api/response';
 
-// Định nghĩa type cho form data
 interface CourseClassFormData {
   classCode: string;
   courseId: string;
   semesterId: string;
   roomId: string;
   maxStudent: number;
-  currentStudent: number;
   status: string;
-  isActive: boolean;
+  startDate: string;
+  endDate: string;
 }
 
 interface FormErrors {
   classCode?: string;
   courseId?: string;
   semesterId?: string;
-  roomId?: string;
   maxStudent?: string;
+  dateRange?: string;
 }
 
-// Mock data cho các select options
-const mockCourses = [
-  { id: 'course1', name: 'Lập trình Web' },
-  { id: 'course2', name: 'Cơ sở dữ liệu' },
-  { id: 'course3', name: 'Mạng máy tính' },
-  { id: 'course4', name: 'Trí tuệ nhân tạo' },
-];
+const normalizeList = (response: any) => {
+  const unwrapped = unwrapApiResponse<any>(response);
+  if (Array.isArray(unwrapped)) return unwrapped;
+  if (Array.isArray(unwrapped?.content)) return unwrapped.content;
+  if (Array.isArray(unwrapped?.data)) return unwrapped.data;
+  if (Array.isArray(unwrapped?.data?.content)) return unwrapped.data.content;
+  return [];
+};
 
-const mockSemesters = [
-  { id: 'sem1', name: 'Học kỳ 1 - 2024-2025' },
-  { id: 'sem2', name: 'Học kỳ 2 - 2024-2025' },
-  { id: 'sem3', name: 'Học kỳ 3 - 2024-2025' },
-];
-
-const mockRooms = [
-  { id: 'room1', name: 'A101' },
-  { id: 'room2', name: 'A102' },
-  { id: 'room3', name: 'B201' },
-  { id: 'room4', name: 'Lab3' },
-];
+const getCourseId = (course: any) => course.id || course.courseId || '';
+const getSemesterId = (semester: any) => semester.semesterId || semester.id || '';
+const getRoomId = (room: any) => room.roomId || room.id || '';
 
 export default function CreateCourseClassPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [semesters, setSemesters] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
   const [formData, setFormData] = useState<CourseClassFormData>({
     classCode: '',
     courseId: '',
     semesterId: '',
     roomId: '',
     maxStudent: 50,
-    currentStudent: 0,
-    status: 'active',
-    isActive: true
+    status: 'ACTIVE',
+    startDate: '',
+    endDate: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
+  useEffect(() => {
+    const fetchLookups = async () => {
+      setFetching(true);
+      try {
+        const [courseRes, semesterRes, roomRes] = await Promise.all([
+          courseApi.getAll(),
+          semesterApi.getAll({ isActive: true }),
+          roomApi.getAll(),
+        ]);
+        setCourses(normalizeList(courseRes));
+        setSemesters(normalizeList(semesterRes));
+        setRooms(normalizeList(roomRes));
+      } catch (error) {
+        console.error(error);
+        toast.error('Khong the tai du lieu danh muc');
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchLookups();
+  }, []);
+
   const validate = (): boolean => {
-    const newErrors: FormErrors = {};
-    if (!formData.classCode.trim()) newErrors.classCode = 'Vui lòng nhập mã lớp';
-    if (!formData.courseId) newErrors.courseId = 'Vui lòng chọn môn học';
-    if (!formData.semesterId) newErrors.semesterId = 'Vui lòng chọn học kỳ';
-    if (!formData.roomId) newErrors.roomId = 'Vui lòng chọn phòng học';
-    if (formData.maxStudent <= 0) newErrors.maxStudent = 'Sĩ số tối đa phải lớn hơn 0';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const nextErrors: FormErrors = {};
+    if (!formData.classCode.trim()) nextErrors.classCode = 'Vui long nhap ma lop';
+    if (!formData.courseId) nextErrors.courseId = 'Vui long chon mon hoc';
+    if (!formData.semesterId) nextErrors.semesterId = 'Vui long chon hoc ky';
+    if (!Number.isFinite(formData.maxStudent) || formData.maxStudent <= 0) {
+      nextErrors.maxStudent = 'Si so toi da phai lon hon 0';
+    }
+    if (formData.startDate && formData.endDate && formData.startDate > formData.endDate) {
+      nextErrors.dateRange = 'Ngay bat dau phai nho hon hoac bang ngay ket thuc';
+    }
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!validate()) return;
 
     setLoading(true);
-    // TODO: Gọi API tạo lớp học phần
-    setTimeout(() => {
-      setLoading(false);
-      toast.success('Thêm lớp học phần thành công');
+    try {
+      await courseClassApi.create({
+        classCode: formData.classCode.trim().toUpperCase(),
+        courseId: formData.courseId,
+        semesterId: formData.semesterId,
+        roomId: formData.roomId || null,
+        maxStudent: Number(formData.maxStudent),
+        status: formData.status,
+        startDate: formData.startDate || null,
+        endDate: formData.endDate || null,
+        isActive: true,
+      });
+      toast.success('Them lop hoc phan thanh cong');
       router.push('/dashboard/admin/course-classes');
-    }, 1000);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Them lop hoc phan that bai');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="space-y-6">
       <Button variant="ghost" onClick={() => router.back()} className="mb-2">
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Quay lại
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Quay lai
       </Button>
 
       <Card>
         <CardHeader>
-          <CardTitle>Thêm lớp học phần mới</CardTitle>
+          <CardTitle>Them lop hoc phan moi</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div>
-                <Label htmlFor="classCode">Mã lớp *</Label>
+                <Label htmlFor="classCode">Ma lop *</Label>
                 <Input
                   id="classCode"
                   value={formData.classCode}
-                  onChange={(e) => setFormData({ ...formData, classCode: e.target.value })}
+                  onChange={(event) => setFormData({ ...formData, classCode: event.target.value })}
                   className="mt-1.5"
-                  placeholder="CNTT101-01"
+                  placeholder="VD: INT3306-01"
                 />
-                {errors.classCode && <p className="text-sm text-destructive mt-1">{errors.classCode}</p>}
+                {errors.classCode && <p className="mt-1 text-sm text-destructive">{errors.classCode}</p>}
               </div>
 
               <div>
-                <Label htmlFor="maxStudent">Sĩ số tối đa *</Label>
+                <Label htmlFor="maxStudent">Si so toi da *</Label>
                 <Input
                   id="maxStudent"
                   type="number"
+                  min={1}
                   value={formData.maxStudent}
-                  onChange={(e) => setFormData({ ...formData, maxStudent: parseInt(e.target.value) })}
+                  onChange={(event) => setFormData({ ...formData, maxStudent: Number(event.target.value) })}
                   className="mt-1.5"
-                  placeholder="50"
                 />
-                {errors.maxStudent && <p className="text-sm text-destructive mt-1">{errors.maxStudent}</p>}
+                {errors.maxStudent && <p className="mt-1 text-sm text-destructive">{errors.maxStudent}</p>}
               </div>
             </div>
 
             <div>
-              <Label htmlFor="courseId">Môn học *</Label>
-              <Select 
-                value={formData.courseId} 
-                onValueChange={(val) => setFormData({ ...formData, courseId: val || '' })}
-              >
+              <Label htmlFor="courseId">Mon hoc *</Label>
+              <Select value={formData.courseId} onValueChange={(value) => setFormData({ ...formData, courseId: value || '' })} disabled={fetching}>
                 <SelectTrigger className="mt-1.5">
-                  <SelectValue placeholder="Chọn môn học" />
+                  <SelectValue placeholder={fetching ? 'Dang tai mon hoc...' : 'Chon mon hoc'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockCourses.map(course => (
-                    <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
-                  ))}
+                  {courses.map((course) => {
+                    const id = getCourseId(course);
+                    return (
+                      <SelectItem key={id} value={id}>
+                        {course.code ? `${course.code} - ` : ''}{course.name || course.courseName || id}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
-              {errors.courseId && <p className="text-sm text-destructive mt-1">{errors.courseId}</p>}
+              {errors.courseId && <p className="mt-1 text-sm text-destructive">{errors.courseId}</p>}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div>
-                <Label htmlFor="semesterId">Học kỳ *</Label>
-                <Select 
-                  value={formData.semesterId} 
-                  onValueChange={(val) => setFormData({ ...formData, semesterId: val || '' })}
-                >
+                <Label htmlFor="semesterId">Hoc ky *</Label>
+                <Select value={formData.semesterId} onValueChange={(value) => setFormData({ ...formData, semesterId: value || '' })} disabled={fetching}>
                   <SelectTrigger className="mt-1.5">
-                    <SelectValue placeholder="Chọn học kỳ" />
+                    <SelectValue placeholder={fetching ? 'Dang tai hoc ky...' : 'Chon hoc ky'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockSemesters.map(semester => (
-                      <SelectItem key={semester.id} value={semester.id}>{semester.name}</SelectItem>
-                    ))}
+                    {semesters.map((semester) => {
+                      const id = getSemesterId(semester);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {semester.code ? `${semester.code} - ` : ''}{semester.name || id}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
-                {errors.semesterId && <p className="text-sm text-destructive mt-1">{errors.semesterId}</p>}
+                {errors.semesterId && <p className="mt-1 text-sm text-destructive">{errors.semesterId}</p>}
               </div>
 
               <div>
-                <Label htmlFor="roomId">Phòng học *</Label>
-                <Select 
-                  value={formData.roomId} 
-                  onValueChange={(val) => setFormData({ ...formData, roomId: val || '' })}
-                >
+                <Label htmlFor="roomId">Phong hoc</Label>
+                <Select value={formData.roomId || 'none'} onValueChange={(value) => setFormData({ ...formData, roomId: !value || value === 'none' ? '' : value })} disabled={fetching}>
                   <SelectTrigger className="mt-1.5">
-                    <SelectValue placeholder="Chọn phòng học" />
+                    <SelectValue placeholder={fetching ? 'Dang tai phong...' : 'Chon phong hoc'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockRooms.map(room => (
-                      <SelectItem key={room.id} value={room.id}>{room.name}</SelectItem>
-                    ))}
+                    <SelectItem value="none">Chua xep phong</SelectItem>
+                    {rooms.map((room) => {
+                      const id = getRoomId(room);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {room.code || room.roomCode || room.name || id}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
-                {errors.roomId && <p className="text-sm text-destructive mt-1">{errors.roomId}</p>}
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="status">Trạng thái</Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(val) => setFormData({ ...formData, status: val || '' })}
-              >
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Đang hoạt động</SelectItem>
-                  <SelectItem value="inactive">Ngừng hoạt động</SelectItem>
-                  <SelectItem value="full">Đã đầy</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <div>
+                <Label htmlFor="startDate">Ngay bat dau</Label>
+                <DatePicker
+                  id="startDate"
+                  value={formData.startDate}
+                  onChange={(value) => setFormData({ ...formData, startDate: value })}
+                  placeholder="Chon ngay"
+                  className="mt-1.5"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="endDate">Ngay ket thuc</Label>
+                <DatePicker
+                  id="endDate"
+                  value={formData.endDate}
+                  onChange={(value) => setFormData({ ...formData, endDate: value })}
+                  placeholder="Chon ngay"
+                  className="mt-1.5"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="status">Trang thai</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value || 'ACTIVE' })}>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">Dang mo</SelectItem>
+                    <SelectItem value="FULL">Da day</SelectItem>
+                    <SelectItem value="INACTIVE">Da dong</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            {errors.dateRange && <p className="text-sm text-destructive">{errors.dateRange}</p>}
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" className="bg-primary hover:bg-primary/90 text-white" disabled={loading}>
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Đang lưu...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Thêm mới
-                  </span>
-                )}
+              <Button type="submit" className="bg-primary hover:bg-primary/90 text-white" disabled={loading || fetching}>
+                <Save className="mr-2 h-4 w-4" />
+                {loading ? 'Dang luu...' : 'Them moi'}
               </Button>
               <Button type="button" variant="outline" onClick={() => router.push('/dashboard/admin/course-classes')}>
-                Hủy
+                Huy
               </Button>
             </div>
           </form>

@@ -156,7 +156,10 @@ export default function TrainingProgramsPage() {
 
   // Lưu
   const handleSave = async () => {
-    if (!formData.code || !formData.name || !formData.majorId || !formData.academicCohortId) {
+    const selectedMajor = majors.find((major) => (major.majorId || major.id) === formData.majorId);
+    const departmentId = formData.departmentId || selectedMajor?.departmentId || '';
+
+    if (!formData.code || !formData.name || !formData.majorId || !formData.academicCohortId || !departmentId) {
       toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
@@ -166,6 +169,7 @@ export default function TrainingProgramsPage() {
       const admissionYearFormatted = `${new Date().getFullYear()}-01-01`;
       const submitData = {
         ...formData,
+        departmentId,
         programCode: formData.code,
         programName: formData.name,
         admissionYear: admissionYearFormatted,
@@ -255,7 +259,8 @@ export default function TrainingProgramsPage() {
                       <td className="py-3 px-4 text-sm font-medium">{item.code || item.programCode}</td>
                       <td className="py-3 px-4 text-sm">{item.name || item.programName}</td>
                       <td className="py-3 px-4 text-sm">{item.majorName || item.majorId || 'N/A'}</td>
-                      <td className="py-3 px-4 text-sm">{item.academicYear || item.academicCohortId || 'N/A'}</td>
+                      <td className="py-3 px-4 text-sm">{item.departmentName || item.departmentId || 'N/A'}</td>
+                      <td className="py-3 px-4 text-sm">{item.academicCohortName || item.academicYear || item.academicCohortId || 'N/A'}</td>
                       <td className="py-3 px-4 text-sm">{item.totalCredits}</td>
                       <td className="py-3 px-4 text-sm">
                         <div className="flex gap-2">
@@ -300,7 +305,10 @@ export default function TrainingProgramsPage() {
               <Label>Ngành học *</Label>
               <select
                 value={formData.majorId}
-                onChange={(e) => setFormData({...formData, majorId: e.target.value})}
+                onChange={(e) => {
+                  const major = majors.find((m) => (m.majorId || m.id) === e.target.value);
+                  setFormData({...formData, majorId: e.target.value, departmentId: major?.departmentId || ''});
+                }}
                 className="w-full rounded-md border px-3 py-2"
               >
                 <option value="">-- Chọn ngành --</option>

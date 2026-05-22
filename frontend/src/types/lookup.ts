@@ -7,7 +7,14 @@ export interface TrainingProgram {
   name?: string;
   programName?: string;
   majorId?: string;
+  majorCode?: string;
+  majorName?: string;
+  departmentId?: string;
+  departmentCode?: string;
+  departmentName?: string;
   academicCohortId?: string;
+  academicCohortCode?: string;
+  academicCohortName?: string;
   isActive?: boolean;
 }
 
@@ -16,6 +23,7 @@ export interface Department {
   departmentId?: string;
   code?: string;
   name?: string;
+  description?: string;
   isActive?: boolean;
 }
 
@@ -36,6 +44,9 @@ export interface Major {
   code?: string;
   name?: string;
   departmentId?: string;
+  departmentCode?: string;
+  departmentName?: string;
+  description?: string;
   isActive?: boolean;
 }
 
@@ -54,10 +65,38 @@ export interface AdministrativeClass {
   classCode?: string;
   className?: string;
   departmentId?: string;
+  departmentCode?: string;
+  departmentName?: string;
+  majorId?: string;
+  majorCode?: string;
+  majorName?: string;
+  specializationId?: string;
+  specializationCode?: string;
+  specializationName?: string;
   advisorId?: string;
+  advisorCode?: string;
+  advisorName?: string;
   academicCohortId?: string;
+  academicCohortCode?: string;
+  academicCohortName?: string;
+  classPhase?: string;
   maxSize?: number;
   status?: number;
   note?: string;
+  isActive?: boolean;
+}
+
+export interface Specialization {
+  id?: string;
+  specializationId?: string;
+  code?: string;
+  name?: string;
+  departmentId?: string;
+  departmentCode?: string;
+  departmentName?: string;
+  majorId?: string;
+  majorCode?: string;
+  majorName?: string;
+  description?: string;
   isActive?: boolean;
 }

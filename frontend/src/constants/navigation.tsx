@@ -8,9 +8,7 @@ import {
   Calendar,
   CalendarDays,
   CheckSquare,
-  ClipboardList,
   Clock,
-  Database,
   DoorOpen,
   FileText,
   GraduationCap,
@@ -43,7 +41,6 @@ export const adminNavItems: NavItem[] = [
   { name: "Tổng quan", icon: <LayoutDashboard className={iconClassName} />, path: "/dashboard/admin" },
   { name: "Sinh viên", icon: <Users className={iconClassName} />, path: "/dashboard/admin/students" },
   { name: "Giảng viên", icon: <User className={iconClassName} />, path: "/dashboard/admin/lecturers" },
-  { name: "Nhân viên", icon: <Users className={iconClassName} />, path: "/dashboard/admin/staffs", badge: "BE" },
   { name: "Khoa / đơn vị", icon: <Landmark className={iconClassName} />, path: "/dashboard/admin/departments" },
   { name: "Ngành học", icon: <GraduationCap className={iconClassName} />, path: "/dashboard/admin/majors" },
   { name: "Khóa đào tạo", icon: <Network className={iconClassName} />, path: "/dashboard/admin/academic-cohorts" },
@@ -72,7 +69,6 @@ export const adminNavGroups: NavGroup[] = [
     items: [
       { name: "Sinh viên", icon: <Users className={iconClassName} />, path: "/dashboard/admin/students" },
       { name: "Giảng viên", icon: <User className={iconClassName} />, path: "/dashboard/admin/lecturers" },
-      { name: "Nhân viên", icon: <Users className={iconClassName} />, path: "/dashboard/admin/staffs", badge: "BE" },
       { name: "Phân lớp theo học kỳ", icon: <Layers className={iconClassName} />, path: "/dashboard/admin/student-class-assignments", badge: "NEW" },
     ],
   },
@@ -83,6 +79,7 @@ export const adminNavGroups: NavGroup[] = [
       { name: "Khoa / đơn vị", icon: <Landmark className={iconClassName} />, path: "/dashboard/admin/departments" },
       { name: "Bộ phận chuyên môn", icon: <Building className={iconClassName} />, path: "/dashboard/admin/divisions", badge: "BE" },
       { name: "Chức vụ", icon: <Award className={iconClassName} />, path: "/dashboard/admin/positions", badge: "BE" },
+      { name: "Bằng cấp", icon: <Award className={iconClassName} />, path: "/dashboard/admin/degrees", badge: "BE" },
       { name: "Ngành học", icon: <GraduationCap className={iconClassName} />, path: "/dashboard/admin/majors" },
       { name: "Khóa đào tạo", icon: <Network className={iconClassName} />, path: "/dashboard/admin/academic-cohorts" },
       { name: "Chương trình đào tạo", icon: <Target className={iconClassName} />, path: "/dashboard/admin/training-programs" },
@@ -105,8 +102,6 @@ export const adminNavGroups: NavGroup[] = [
       { name: "Môn học", icon: <BookOpen className={iconClassName} />, path: "/dashboard/admin/courses" },
       { name: "Môn tiên quyết", icon: <CheckSquare className={iconClassName} />, path: "/dashboard/admin/course-prerequisites", badge: "BE" },
       { name: "Lớp học phần", icon: <Layers className={iconClassName} />, path: "/dashboard/admin/course-classes" },
-      { name: "Đăng ký học phần", icon: <ClipboardList className={iconClassName} />, path: "/dashboard/admin/registrations", badge: "DB" },
-      { name: "Điểm sinh viên", icon: <FileText className={iconClassName} />, path: "/dashboard/admin/grades", badge: "DB" },
       { name: "Lịch học", icon: <CalendarDays className={iconClassName} />, path: "/dashboard/admin/schedules" },
     ],
   },
@@ -117,22 +112,6 @@ export const adminNavGroups: NavGroup[] = [
       { name: "Tòa nhà", icon: <Building className={iconClassName} />, path: "/dashboard/admin/buildings" },
       { name: "Phòng học", icon: <DoorOpen className={iconClassName} />, path: "/dashboard/admin/rooms" },
       { name: "Ca học", icon: <Clock className={iconClassName} />, path: "/dashboard/admin/time-slots" },
-    ],
-  },
-  {
-    groupName: "Hành chính",
-    icon: <FileText className={iconClassName} />,
-    items: [
-      { name: "Hợp đồng", icon: <FileText className={iconClassName} />, path: "/dashboard/admin/contracts", badge: "BE" },
-      { name: "Bằng cấp", icon: <Award className={iconClassName} />, path: "/dashboard/admin/degrees", badge: "BE" },
-    ],
-  },
-  {
-    groupName: "Dữ liệu nền",
-    icon: <Database className={iconClassName} />,
-    items: [
-      { name: "Hồ sơ cá nhân", icon: <User className={iconClassName} />, path: "/dashboard/admin/persons", badge: "BE" },
-      { name: "Dữ liệu nhân viên", icon: <Users className={iconClassName} />, path: "/dashboard/admin/employees", badge: "BE" },
     ],
   },
   {
@@ -163,7 +142,6 @@ export const lecturerNavItems: NavItem[] = [
 export const studentNavItems: NavItem[] = [
   { name: "Thời khóa biểu", icon: <Calendar className={iconClassName} />, path: "/dashboard/student/my-schedule" },
   { name: "Kết quả học tập", icon: <Award className={iconClassName} />, path: "/dashboard/student/academic-results" },
-  { name: "Đăng ký học phần", icon: <ClipboardList className={iconClassName} />, path: "/dashboard/student/course-registration" },
 ];
 
 export const CenterItems: NavItem[] = adminNavItems;

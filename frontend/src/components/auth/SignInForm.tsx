@@ -73,6 +73,18 @@ export default function SignInForm() {
           .toLowerCase()
           .replace("role_", "");
 
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            role: userRole,
+            fullName: authData.fullName || authData.username || "Người dùng",
+            username: authData.username,
+            email: authData.username,
+            roles: authData.roles || [],
+            permissions: authData.permissions || [],
+          }),
+        );
+
         // Cookie time
         const maxAge = isChecked ? 60 * 60 * 24 * 7 : 60 * 60 * 24;
 
