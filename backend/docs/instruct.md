@@ -306,3 +306,35 @@ Sinh viên Nguyễn Văn A
   -> Chuyển sang lớp CNTT_K24_AI1
   -> Học chương trình đào tạo AI tương ứng
 
+  TeachingAssignments: phân công giảng viên cho lớp học phần.
+API: /api/v1/teaching-assignments/admin
+Validate: giảng viên tồn tại, lớp học phần đúng học kỳ, lớp hành chính tồn tại, không phân công trùng.
+
+TeachingProgressLogs: theo dõi tiến độ giảng dạy từng buổi.
+API ghi buổi dạy: /api/v1/teaching-progress/admin
+API xem log: /api/v1/teaching-progress/admin/course-classes/{courseClassId}/logs
+API tổng hợp: /api/v1/teaching-progress/admin/course-classes/{courseClassId}/summary
+Tính được: lớp học phần, học phần, tín chỉ, ngày bắt đầu/kết thúc, tổng tiết HP, GV nghỉ, đã dạy, còn lại.
+
+Bổ sung CourseClasses.StartDate, CourseClasses.EndDate.
+
+Bổ sung validate cho Schedules:
+Không trùng phòng.
+Không trùng lớp học phần.
+Không trùng giảng viên.
+Giảng viên phải đã được phân công trong TeachingAssignments.
+Nếu giảng viên có đơn nghỉ đã duyệt trong ngày đó thì không cho xếp lịch.
+
+Bổ sung nền cho đăng ký học phần:
+RegistrationPeriods
+EquivalentCourses
+Validate đăng ký theo đợt đăng ký hiện hành.
+Kiểm tra sĩ số lớp học phần.
+Không đăng ký trùng lớp/học phần trong cùng kỳ.
+Học phần phải thuộc TrainingProgramCourses của chương trình đào tạo hiện tại của sinh viên.
+Kiểm tra môn tiên quyết, môn song hành, môn tương đương.
+
+Migration mới:
+V16__Teaching_Registration_Progress_Workflow.sql
+Lưu ý phần đăng ký học lại: mình đã để logic nền qua RegistrationType, ReplacedGradeId, prerequisites/equivalent courses, nhưng nghiệp vụ học lại đầy đủ vẫn cần module điểm hoàn chỉnh để xác định rớt/đạt/thay thế điểm. Hiện tại chưa nên mở full retake tự động nếu điểm chưa chuẩn.
+
