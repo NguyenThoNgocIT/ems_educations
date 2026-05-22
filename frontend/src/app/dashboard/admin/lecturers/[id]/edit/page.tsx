@@ -12,6 +12,7 @@ import { majorApi } from '@/api/major';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -346,7 +347,7 @@ export default function EditLecturerPage() {
 
             <div>
               <Label htmlFor="dateOfBirth">Ngày sinh *</Label>
-              <Input id="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={(e) => setField('dateOfBirth', e.target.value)} className="mt-1.5 h-10" />
+              <DatePicker id="dateOfBirth" value={formData.dateOfBirth} onChange={(value) => setField('dateOfBirth', value)} placeholder="Chọn ngày sinh" className="mt-1.5" />
               {errors.dateOfBirth && <p className="mt-1 text-sm text-destructive">{errors.dateOfBirth}</p>}
             </div>
 
@@ -442,12 +443,12 @@ export default function EditLecturerPage() {
 
             <div>
               <Label htmlFor="startWorkDate">Ngày bắt đầu làm việc</Label>
-              <Input id="startWorkDate" type="date" value={formData.startWorkDate} onChange={(e) => setField('startWorkDate', e.target.value)} className="mt-1.5 h-10" />
+              <DatePicker id="startWorkDate" value={formData.startWorkDate} onChange={(value) => setField('startWorkDate', value)} placeholder="Chọn ngày" className="mt-1.5" />
             </div>
 
             <div>
               <Label htmlFor="endWorkDate">Ngày kết thúc</Label>
-              <Input id="endWorkDate" type="date" value={formData.endWorkDate} onChange={(e) => setField('endWorkDate', e.target.value)} className="mt-1.5 h-10" />
+              <DatePicker id="endWorkDate" value={formData.endWorkDate} onChange={(value) => setField('endWorkDate', value)} placeholder="Chọn ngày" className="mt-1.5" />
             </div>
 
             <div>

@@ -18,6 +18,7 @@ import { roomApi } from "@/api/room";
 import { timeSlotApi } from "@/api/timeSlot";
 import { lecturerApi } from "@/api/lecturer";
 import { toast } from "sonner";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface CalendarEvent extends EventInput {
   extendedProps: {
@@ -78,7 +79,7 @@ const Calendar: React.FC = () => {
       setEvents(scheduleEvents);
 
       // Set other data for select inputs
-      setCourseClasses(classesRes.data || []);
+      setCourseClasses(Array.isArray(classesRes) ? classesRes : []);
       setRooms(roomsRes.data || roomsRes || []);
       setTimeSlots(slotsRes.data || []);
       setLecturers(Array.isArray(lecturersRes) ? lecturersRes : []);
@@ -275,11 +276,10 @@ const Calendar: React.FC = () => {
                 <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                   Ngày áp dụng <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
+                <DatePicker
                   value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  onChange={(value) => setFormData({...formData, date: value})}
+                  placeholder="Chọn ngày áp dụng"
                 />
               </div>
 

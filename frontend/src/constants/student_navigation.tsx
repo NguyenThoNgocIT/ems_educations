@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Calendar,      // Lịch học
   GraduationCap, // Kết quả học tập
-  BookOpen,      // Đăng ký học phần
   Bell,
   CreditCard,
   FileText,
@@ -33,11 +32,6 @@ export const StudentNavGroups = [
         name: "Kết quả học tập",
         path: "/dashboard/student/academic-results",
         icon: <GraduationCap className="w-[18px] h-[18px]" />,
-      },
-      {
-        name: "Đăng ký học phần",
-        path: "/dashboard/student/course-registration",
-        icon: <BookOpen className="w-[18px] h-[18px]" />,
       },
       {
         name: "Học phí",

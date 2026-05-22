@@ -256,20 +256,6 @@ export default function StudentDashboardPage() {
 
       {/* 3. HÀNG 4 NÚT HÀNH ĐỘNG NHANH Ở ĐÁY TRANG */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 w-full">
-        {/* Đăng ký học phần */}
-        <Link href="#" className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 p-4 rounded-2xl flex items-center justify-between group hover:border-emerald-200 transition-all shadow-sm min-w-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
-              <BookOpen size={16} />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Đăng ký học phần</h4>
-              <p className="text-[10px] text-slate-400 truncate mt-0.5">Đăng ký môn học kỳ mới</p>
-            </div>
-          </div>
-          <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0 ml-2" />
-        </Link>
-
         {/* Học phí */}
         <Link href="#" className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 p-4 rounded-2xl flex items-center justify-between group hover:border-emerald-200 transition-all shadow-sm min-w-0">
           <div className="flex items-center gap-3 min-w-0">

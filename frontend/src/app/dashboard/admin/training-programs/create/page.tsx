@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -426,22 +427,22 @@ export default function CreateTrainingProgramPage() {
             {/* Ngày hiệu lực */}
             <div className="space-y-2">
               <Label htmlFor="effectiveDate">Ngày hiệu lực</Label>
-              <Input
+              <DatePicker
                 id="effectiveDate"
-                type="date"
                 value={formData.effectiveDate}
-                onChange={(e) => setFormData({ ...formData, effectiveDate: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, effectiveDate: value })}
+                placeholder="Chọn ngày"
               />
             </div>
 
             {/* Ngày hết hiệu lực */}
             <div className="space-y-2">
               <Label htmlFor="expiryDate">Ngày hết hiệu lực</Label>
-              <Input
+              <DatePicker
                 id="expiryDate"
-                type="date"
                 value={formData.expiryDate}
-                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, expiryDate: value })}
+                placeholder="Chọn ngày"
               />
             </div>
 
