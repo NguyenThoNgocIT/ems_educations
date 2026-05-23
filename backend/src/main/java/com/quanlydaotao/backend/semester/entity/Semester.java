@@ -24,7 +24,7 @@ import java.util.UUID;
 public class Semester extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "SemesterId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "SemesterId", updatable = false, nullable = false)
     private UUID semesterId;
 
     @Column(name = "Code", nullable = false, length = 30)
@@ -33,7 +33,7 @@ public class Semester extends SoftDeleteEntity {
     @Column(name = "Name", nullable = false, length = 150)
     private String name;
 
-    @Column(name = "SchoolYearId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "SchoolYearId", nullable = false)
     private UUID schoolYearId;
 
     @Column(name = "StartDate", nullable = false)

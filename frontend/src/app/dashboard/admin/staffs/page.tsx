@@ -14,8 +14,8 @@ export default function StaffsPage() {
         { key: "staffCode", label: "Mã NVHC" },
         { key: "employeeCode", label: "Mã nhân viên" },
         { key: "fullName", label: "Họ tên" },
-        { key: "divisionId", label: "Phòng ban" },
-        { key: "positionId", label: "Chức vụ" },
+        { key: "divisionId", label: "Phòng ban", render: (row) => row.divisionId ? "Đã liên kết" : "—" },
+        { key: "positionId", label: "Chức vụ", render: (row) => row.positionId ? "Đã liên kết" : "—" },
         { key: "isActive", label: "Trạng thái" },
       ]}
       fields={[

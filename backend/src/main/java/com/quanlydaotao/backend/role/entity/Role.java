@@ -24,7 +24,7 @@ public class Role extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "RoleId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "RoleId", updatable = false, nullable = false)
     private UUID roleId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 50)

@@ -16,8 +16,8 @@ public interface PositionRepository extends JpaRepository<Position, UUID> {
     @Query("""
             SELECT p
             FROM Position p
-            WHERE (:keyword IS NULL OR LOWER(p.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:keyword IS NULL OR LOWER(p.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:divisionId IS NULL OR p.divisionId = :divisionId)
               AND (:isActive IS NULL OR p.isActive = :isActive)
             ORDER BY p.code ASC

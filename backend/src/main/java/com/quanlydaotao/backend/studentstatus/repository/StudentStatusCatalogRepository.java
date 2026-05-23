@@ -16,8 +16,8 @@ public interface StudentStatusCatalogRepository extends JpaRepository<StudentSta
     @Query("""
             SELECT s
             FROM StudentStatusCatalog s
-            WHERE (:keyword IS NULL OR LOWER(s.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:keyword IS NULL OR LOWER(s.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(s.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:statusType IS NULL OR s.statusType = :statusType)
               AND (:isActive IS NULL OR s.isActive = :isActive)
             ORDER BY s.code ASC

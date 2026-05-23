@@ -22,7 +22,7 @@ public class Schedule extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "ScheduleId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "ScheduleId", updatable = false, nullable = false)
     private UUID scheduleId;
 
     @ManyToOne(fetch = FetchType.LAZY)

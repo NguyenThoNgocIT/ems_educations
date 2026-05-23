@@ -27,12 +27,15 @@ request.interceptors.response.use(
   (error) => {
     // CHỈ LOGOUT KHI API TRẢ VỀ 401 VÀ ĐÃ THỬ HẾT CÁCH
     if (error.response?.status === 401) {
-      console.error('⚠️ Phiên đăng nhập hết hạn');
-      // KHÔNG TỰ ĐỘNG LOGOUT - để user tự quyết định
-      // Nếu muốn tự động logout, bỏ comment dòng dưới:
-      // localStorage.removeItem('access_token');
-      // localStorage.removeItem('user');
-      // window.location.href = '/dashboard/admin/signin';
+      const isLoginRequest = error.config?.url?.includes('/api/auth/login');
+      if (!isLoginRequest) {
+        console.error('⚠️ Phiên đăng nhập hết hạn');
+        // KHÔNG TỰ ĐỘNG LOGOUT - để user tự quyết định
+        // Nếu muốn tự động logout, bỏ comment dòng dưới:
+        // localStorage.removeItem('access_token');
+        // localStorage.removeItem('user');
+        // window.location.href = '/dashboard/admin/signin';
+      }
     }
     return Promise.reject(error);
   },

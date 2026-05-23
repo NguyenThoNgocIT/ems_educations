@@ -23,7 +23,7 @@ import java.util.UUID;
 public class Degree extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "DegreeId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "DegreeId", updatable = false, nullable = false)
     private UUID degreeId;
 
     @Column(name = "Code", nullable = false, length = 20)
@@ -47,6 +47,6 @@ public class Degree extends SoftDeleteEntity {
     @Column(name = "GraduationYear")
     private Integer graduationYear;
 
-    @Column(name = "MajorId", columnDefinition = "uniqueidentifier")
+    @Column(name = "MajorId")
     private UUID majorId;
 }

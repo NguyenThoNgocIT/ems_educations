@@ -25,7 +25,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { courseApi, courseClassApi } from '@/api/course';
+import { departmentApi } from '@/api/department';
 import DepartmentCombobox from '@/components/ems/DepartmentCombobox';
+import type { Department } from '@/types/lookup';
+import CourseDialog from '@/components/ems/CourseDialog';
 
 // TypeScript interfaces
 interface Course {
@@ -33,6 +36,7 @@ interface Course {
   code: string;
   name: string;
   departmentId: string;
+  departmentName: string;
   courseType: string;
   credits: number;
   isActive: boolean;
@@ -61,11 +65,24 @@ export default function CoursesPage() {
   // Clipboard copy state
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+
   // Fetch courses from backend
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response: any = await courseApi.getAll();
+      const [response, departments]: [any, Department[]] = await Promise.all([
+        courseApi.getAll(),
+        departmentApi.getAll(),
+      ]);
+      const departmentLabels = new Map(
+        (departments || []).map((department) => [
+          department.departmentId || department.id || '',
+          [department.code, department.name].filter(Boolean).join(' - '),
+        ]),
+      );
       
       let list: Course[] = [];
       // Handle flexible API list wrappers
@@ -85,6 +102,7 @@ export default function CoursesPage() {
         code: item.code || '',
         name: item.name || '',
         departmentId: item.departmentId || '',
+        departmentName: item.departmentName || departmentLabels.get(item.departmentId || '') || '',
         courseType: item.courseType || 'Bắt buộc',
         credits: typeof item.credits === 'number' ? item.credits : parseFloat(item.credits) || 0.0,
         isActive: item.isActive !== undefined ? item.isActive : true,
@@ -286,7 +304,10 @@ export default function CoursesPage() {
           </p>
         </div>
         <Button 
-          onClick={() => router.push('/dashboard/admin/courses/create')} 
+          onClick={() => {
+            setSelectedCourseId(null);
+            setDialogOpen(true);
+          }} 
           className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-sm hover:shadow-md transition-all self-start sm:self-auto rounded-xl px-5 h-11"
         >
           <Plus className="h-5 w-5 mr-2 stroke-[2.5px]" />
@@ -397,7 +418,10 @@ export default function CoursesPage() {
                           Hệ thống hiện tại chưa có môn học nào được nạp từ Spring Boot. Vui lòng nhấn nút <strong>"Tạo môn học mới"</strong> ở góc trên bên phải để bắt đầu thêm và quản lý môn học thực tế của bạn.
                         </p>
                         <Button 
-                          onClick={() => router.push('/dashboard/admin/courses/create')}
+                          onClick={() => {
+                            setSelectedCourseId(null);
+                            setDialogOpen(true);
+                          }}
                           className="mt-2 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl h-10 px-5 text-xs shadow-xs"
                         >
                           Tạo môn học đầu tiên
@@ -439,7 +463,7 @@ export default function CoursesPage() {
 
                       {/* Khoa */}
                       <td className="py-3 px-5 text-sm text-slate-400 font-medium">
-                        {course.departmentId || 'Chưa chọn'}
+                        {course.departmentName || 'Chưa chọn'}
                       </td>
 
                       {/* Tín Chỉ */}
@@ -503,7 +527,8 @@ export default function CoursesPage() {
                             className="h-8 w-8 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-500/5 rounded-lg"
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/dashboard/admin/courses/${course.id}/edit`);
+                              setSelectedCourseId(course.id);
+                              setDialogOpen(true);
                             }}
                           >
                             <Edit className="h-4.5 w-4.5" />
@@ -596,6 +621,13 @@ export default function CoursesPage() {
           </div>
         </CardContent>
       </Card>
+
+      <CourseDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        courseId={selectedCourseId}
+        onSaveSuccess={fetchCourses}
+      />
     </div>
   );
 }

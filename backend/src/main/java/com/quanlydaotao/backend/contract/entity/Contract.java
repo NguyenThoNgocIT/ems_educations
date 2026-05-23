@@ -29,7 +29,7 @@ import java.util.UUID;
 public class Contract extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "ContractId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "ContractId", updatable = false, nullable = false)
     private UUID contractId;
 
     @ManyToOne(fetch = FetchType.LAZY)

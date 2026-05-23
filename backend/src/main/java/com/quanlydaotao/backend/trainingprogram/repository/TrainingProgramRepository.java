@@ -16,8 +16,8 @@ public interface TrainingProgramRepository extends JpaRepository<TrainingProgram
     @Query("""
             SELECT p
             FROM TrainingProgram p
-            WHERE (:keyword IS NULL OR LOWER(p.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:keyword IS NULL OR LOWER(p.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:majorId IS NULL OR p.majorId = :majorId)
               AND (:specializationId IS NULL OR p.specializationId = :specializationId)
               AND (:departmentId IS NULL OR p.departmentId = :departmentId)

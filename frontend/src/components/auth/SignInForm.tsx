@@ -10,6 +10,21 @@ import React, { useEffect, useState } from "react";
 import { authLogin } from "@/api/auth";
 import CherryBlossoms from "../animations/CherryBlossoms";
 
+function getLoginErrorMessage(err: any) {
+  const status = err?.response?.status;
+  const serverMessage = err?.response?.data?.message;
+
+  if (status === 400 || status === 401) {
+    return "Sai tài khoản hoặc mật khẩu.";
+  }
+
+  if (!err?.response) {
+    return "Không thể kết nối đến máy chủ. Vui lòng thử lại.";
+  }
+
+  return serverMessage || "Đăng nhập thất bại. Vui lòng thử lại.";
+}
+
 export default function SignInForm() {
   const router = useRouter();
 
@@ -104,7 +119,7 @@ export default function SignInForm() {
         router.push(roleMap[userRole] || `/dashboard/${userRole}`);
       }
     } catch (err: any) {
-      setError(err?.message || "Đăng nhập thất bại");
+      setError(getLoginErrorMessage(err));
     } finally {
       setIsLoading(false);
     }

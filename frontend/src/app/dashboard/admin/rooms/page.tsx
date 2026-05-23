@@ -7,10 +7,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Loader2, Eye } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Loader2, Eye, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { roomApi } from '@/api/room';
 import { buildingApi } from '@/api/building';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+
+const removeAccents = (str: string) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+};
+
+const roomTypes = [
+  { value: 'Ly thuyet', label: 'Lý thuyết' },
+  { value: 'Thuc hanh', label: 'Thực hành' },
+  { value: 'Hoi thao', label: 'Hội thảo' },
+];
+
+const roomStatuses = [
+  { value: 'San sang', label: 'Sẵn sàng' },
+  { value: 'Dang su dung', label: 'Đang sử dụng' },
+  { value: 'Bao tri', label: 'Bảo trì' },
+];
 
 interface Room {
   roomId: string;
@@ -44,6 +68,23 @@ export default function RoomsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  // Room Dialog State
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    code: '',
+    name: '',
+    buildingId: '',
+    floorNumber: 1,
+    capacity: 50,
+    type: 'Ly thuyet',
+    status: 'San sang',
+    hasProjector: false,
+    hasAirConditioner: false,
+    hasComputer: false,
+    description: ''
+  });
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -61,6 +102,48 @@ export default function RoomsPage() {
       toast.error('Không thể lấy dữ liệu');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.code.trim()) {
+      toast.error('Vui lòng nhập mã phòng');
+      return;
+    }
+    if (!formData.name.trim()) {
+      toast.error('Vui lòng nhập tên phòng');
+      return;
+    }
+    if (!formData.buildingId) {
+      toast.error('Vui lòng chọn tòa nhà');
+      return;
+    }
+
+    setSaveLoading(true);
+    const payload = {
+      code: formData.code.trim(),
+      name: removeAccents(formData.name.trim()),
+      buildingId: formData.buildingId,
+      floorNumber: Number(formData.floorNumber),
+      capacity: Number(formData.capacity),
+      type: removeAccents(formData.type),
+      status: removeAccents(formData.status),
+      hasProjector: formData.hasProjector,
+      hasAirConditioner: formData.hasAirConditioner,
+      hasComputer: formData.hasComputer,
+      description: formData.description ? removeAccents(formData.description.trim()) : ''
+    };
+
+    try {
+      await roomApi.create(payload);
+      toast.success('Thêm phòng học thành công');
+      setCreateDialogOpen(false);
+      await fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Lỗi khi thêm phòng');
+    } finally {
+      setSaveLoading(false);
     }
   };
 
@@ -114,7 +197,25 @@ export default function RoomsPage() {
           <h1 className="text-3xl font-bold mb-2">Quản lý phòng học</h1>
           <p className="text-gray-500">Danh sách và quản lý phòng học</p>
         </div>
-        <Button onClick={() => router.push('/dashboard/admin/rooms/create')} className="bg-green-600 hover:bg-green-700 text-white">
+        <Button 
+          onClick={() => {
+            setFormData({
+              code: '',
+              name: '',
+              buildingId: buildings[0]?.buildingId || '',
+              floorNumber: 1,
+              capacity: 50,
+              type: 'Ly thuyet',
+              status: 'San sang',
+              hasProjector: false,
+              hasAirConditioner: false,
+              hasComputer: false,
+              description: ''
+            });
+            setCreateDialogOpen(true);
+          }} 
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Thêm phòng học
         </Button>
@@ -230,6 +331,189 @@ export default function RoomsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add Room Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Thêm phòng học mới</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4 py-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cột trái */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="roomCode">Mã phòng *</Label>
+                  <Input
+                    id="roomCode"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    className="mt-1.5"
+                    placeholder="A101"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="roomName">Tên phòng *</Label>
+                  <Input
+                    id="roomName"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="mt-1.5"
+                    placeholder="Phòng A101"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="buildingId">Tòa nhà *</Label>
+                  <Select 
+                    value={formData.buildingId} 
+                    onValueChange={(val) => setFormData({ ...formData, buildingId: val || '' })}
+                  >
+                    <SelectTrigger id="buildingId" className="mt-1.5">
+                      <SelectValue placeholder="Chọn tòa nhà" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {buildings.map(building => (
+                        <SelectItem key={building.buildingId} value={building.buildingId}>
+                          {building.code} - {building.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="floorNumber">Tầng</Label>
+                    <Input
+                      id="floorNumber"
+                      type="number"
+                      value={formData.floorNumber}
+                      onChange={(e) => setFormData({ ...formData, floorNumber: parseInt(e.target.value) || 1 })}
+                      className="mt-1.5"
+                      min={1}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="capacity">Sức chứa</Label>
+                    <Input
+                      id="capacity"
+                      type="number"
+                      value={formData.capacity}
+                      onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 0 })}
+                      className="mt-1.5"
+                      min={1}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Cột phải */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="roomType">Loại phòng</Label>
+                  <Select 
+                    value={formData.type} 
+                    onValueChange={(val) => setFormData({ ...formData, type: val || 'Ly thuyet' })}
+                  >
+                    <SelectTrigger id="roomType" className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roomTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="roomStatus">Trạng thái</Label>
+                  <Select 
+                    value={formData.status} 
+                    onValueChange={(val) => setFormData({ ...formData, status: val || 'San sang' })}
+                  >
+                    <SelectTrigger id="roomStatus" className="mt-1.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roomStatuses.map(status => (
+                        <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="mb-2 block">Thiết bị</Label>
+                  <div className="flex flex-col gap-2.5 pt-1">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={formData.hasProjector}
+                        onChange={(e) => setFormData({ ...formData, hasProjector: e.target.checked })}
+                        className="w-4 h-4 rounded-md border-gray-300 text-primary focus:ring-primary"
+                      />
+                      Máy chiếu
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={formData.hasAirConditioner}
+                        onChange={(e) => setFormData({ ...formData, hasAirConditioner: e.target.checked })}
+                        className="w-4 h-4 rounded-md border-gray-300 text-primary focus:ring-primary"
+                      />
+                      Điều hòa
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={formData.hasComputer}
+                        onChange={(e) => setFormData({ ...formData, hasComputer: e.target.checked })}
+                        className="w-4 h-4 rounded-md border-gray-300 text-primary focus:ring-primary"
+                      />
+                      Máy tính
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Mô tả</Label>
+                  <Input
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="mt-1.5"
+                    placeholder="Mô tả thêm về phòng học"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 border-t">
+              <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                Hủy
+              </Button>
+              <Button type="submit" disabled={saveLoading} className="bg-green-600 hover:bg-green-700 text-white">
+                {saveLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Đang lưu...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Save className="h-4 w-4" />
+                    Lưu
+                  </span>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

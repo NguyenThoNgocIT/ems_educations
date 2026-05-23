@@ -1,0 +1,2 @@
+ALTER TABLE IF EXISTS CoursePrerequisites
+    ADD COLUMN IF NOT EXISTS "Type" VARCHAR(50);

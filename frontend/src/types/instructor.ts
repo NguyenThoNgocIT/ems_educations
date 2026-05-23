@@ -45,7 +45,11 @@ export interface InstructorAdminResponse {
   contractType?: string;
   note?: string;
   departmentId?: string;
+  departmentCode?: string;
+  departmentName?: string;
   degreeId?: string;
+  degreeCode?: string;
+  degreeName?: string;
   academicRank?: string;
   majorId?: string;
   specialization?: string;

@@ -24,7 +24,7 @@ public class Course extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "CourseId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "CourseId", updatable = false, nullable = false)
     private UUID courseId;
 
     @Column(name = "DepartmentId")

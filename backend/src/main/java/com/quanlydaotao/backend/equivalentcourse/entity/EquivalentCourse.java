@@ -19,12 +19,12 @@ import java.util.UUID;
 public class EquivalentCourse extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "EquivalentCoursesId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "EquivalentCoursesId", updatable = false, nullable = false)
     private UUID equivalentCoursesId;
 
-    @Column(name = "OriginalCourseId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "OriginalCourseId", nullable = false)
     private UUID originalCourseId;
 
-    @Column(name = "EquivalentCourseId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "EquivalentCourseId", nullable = false)
     private UUID equivalentCourseId;
 }

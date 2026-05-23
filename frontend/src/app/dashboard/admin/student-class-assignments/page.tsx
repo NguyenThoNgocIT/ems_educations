@@ -67,7 +67,7 @@ export default function StudentClassAssignmentsPage() {
       studentCache.set(studentId, info);
       return info;
     } catch {
-      return { studentName: studentId.substring(0, 8), studentCode: '—' };
+      return { studentName: 'Chưa lấy được thông tin sinh viên', studentCode: '—' };
     }
   };
 
@@ -81,7 +81,7 @@ export default function StudentClassAssignmentsPage() {
       classCache.set(classId, info);
       return info;
     } catch {
-      return { className: classId.substring(0, 8), classCode: '—' };
+      return { className: 'Chưa lấy được thông tin lớp', classCode: '—' };
     }
   };
 
@@ -91,11 +91,11 @@ export default function StudentClassAssignmentsPage() {
     try {
       const response = await request.get(`/api/v1/semesters/admin/${semesterId}`);
       const data = unwrapApiResponse<any>(response);
-      const info = { semesterName: data.name, academicYear: data.schoolYearId };
+      const info = { semesterName: data.name, academicYear: data.schoolYearName || data.schoolYearCode || '—' };
       semesterCache.set(semesterId, info);
       return info;
     } catch {
-      return { semesterName: semesterId.substring(0, 8), academicYear: '—' };
+      return { semesterName: 'Chưa lấy được thông tin học kỳ', academicYear: '—' };
     }
   };
 
@@ -294,7 +294,7 @@ export default function StudentClassAssignmentsPage() {
                       <td className="px-4 py-3 text-sm">{item.studentName || '—'}</td>
                       <td className="px-4 py-3 text-sm font-medium">{item.classCode || '—'}</td>
                       <td className="px-4 py-3 text-sm">{item.className || '—'}</td>
-                      <td className="px-4 py-3 text-sm">{item.semesterName || item.semesterId?.substring(0, 8) || '—'}</td>
+                      <td className="px-4 py-3 text-sm">{item.semesterName || '—'}</td>
                       <td className="px-4 py-3 text-sm">
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           item.isActive 
@@ -350,7 +350,7 @@ export default function StudentClassAssignmentsPage() {
 
       {/* Dialog Thêm/Sửa */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Chỉnh sửa phân công' : 'Thêm phân công mới'}</DialogTitle>
           </DialogHeader>

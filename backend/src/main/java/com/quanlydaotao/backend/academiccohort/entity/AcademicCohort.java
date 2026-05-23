@@ -17,7 +17,7 @@ public class AcademicCohort extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "AcademicCohortId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "AcademicCohortId", updatable = false, nullable = false)
     private UUID cohortId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 20)

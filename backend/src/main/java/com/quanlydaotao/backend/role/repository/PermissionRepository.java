@@ -16,9 +16,9 @@ public interface PermissionRepository extends JpaRepository<Permission, UUID> {
     @Query("""
             SELECT p
             FROM Permission p
-            WHERE (:module IS NULL OR LOWER(p.module) = LOWER(:module))
-              AND (:keyword IS NULL OR LOWER(p.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:module IS NULL OR LOWER(p.module) = LOWER(CAST(:module AS String)))
+              AND (:keyword IS NULL OR LOWER(p.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
             ORDER BY p.module ASC, p.code ASC
             """)
     List<Permission> search(String module, String keyword);

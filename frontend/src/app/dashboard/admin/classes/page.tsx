@@ -450,7 +450,7 @@ export default function ClassesPage() {
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingClass ? "Chỉnh sửa lớp" : "Thêm lớp mới"}</DialogTitle>
           </DialogHeader>

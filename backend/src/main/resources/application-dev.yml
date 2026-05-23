@@ -5,10 +5,10 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=UniversityManagement;encrypt=true;trustServerCertificate=true;characterEncoding=UTF-8
-    username: sa
-    password: Nguyenthongoc123@
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=UniversityManagement;encrypt=true;trustServerCertificate=true;characterEncoding=UTF-8}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:Nguyenthongoc123@}
+    driver-class-name: ${DB_DRIVER:com.microsoft.sqlserver.jdbc.SQLServerDriver}
   jpa:
     hibernate:
       ddl-auto: none
@@ -19,7 +19,7 @@ spring:
           characterEncoding: UTF-8
           useUnicode: true
         format_sql: true
-        dialect: org.hibernate.dialect.SQLServerDialect
+        dialect: ${DB_DIALECT:org.hibernate.dialect.SQLServerDialect}
   flyway:
     repair-on-migrate: true
 

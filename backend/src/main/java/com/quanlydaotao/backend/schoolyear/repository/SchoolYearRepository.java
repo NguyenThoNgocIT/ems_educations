@@ -16,8 +16,8 @@ public interface SchoolYearRepository extends JpaRepository<SchoolYear, UUID> {
     @Query("""
             SELECT y
             FROM SchoolYear y
-            WHERE (:keyword IS NULL OR LOWER(y.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(y.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:keyword IS NULL OR LOWER(y.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(y.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:isActive IS NULL OR y.isActive = :isActive)
             ORDER BY y.startDate DESC
             """)

@@ -69,7 +69,7 @@ export const LecturerNavGroups: NavGroup[] = [
     items: [
       {
         name: "Thông tin cá nhân",
-        path: "/profile",
+        path: "/dashboard/lecturer/profile",
         icon: <UserCircle className="w-[18px] h-[18px]" />,
       },
     ],

@@ -16,9 +16,9 @@ public interface DegreeRepository extends JpaRepository<Degree, UUID> {
     @Query("""
             SELECT d
             FROM Degree d
-            WHERE (:keyword IS NULL OR LOWER(d.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(d.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(d.specialization) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:keyword IS NULL OR LOWER(d.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(d.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(d.specialization) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:majorId IS NULL OR d.majorId = :majorId)
               AND (:isActive IS NULL OR d.isActive = :isActive)
             ORDER BY d.level ASC, d.code ASC

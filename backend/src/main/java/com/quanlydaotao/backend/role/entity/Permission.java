@@ -24,7 +24,7 @@ public class Permission extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "PermissionId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "PermissionId", updatable = false, nullable = false)
     private UUID permissionId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 100)

@@ -1,0 +1,31 @@
+server:
+  port: 8081
+spring:
+  config:
+    activate:
+      on-profile: postgresql
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ems_educations}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
+    hikari:
+      # Retire pooled Neon connections before a suspended compute or pooler closes them.
+      max-lifetime: ${DB_MAX_LIFETIME:240000}
+      keepalive-time: ${DB_KEEPALIVE_TIME:60000}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        connection:
+          characterEncoding: UTF-8
+          useUnicode: true
+        format_sql: true
+        dialect: ${DB_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+  flyway:
+    locations: classpath:db/migration-postgresql
+    repair-on-migrate: true
+
+# Chọn profile postgresql khi muốn chạy Neon hoặc một PostgreSQL khác.

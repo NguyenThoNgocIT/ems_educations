@@ -16,7 +16,7 @@ public abstract class SoftDeleteEntity extends BaseEntity {
     @Column(name = "DeletedAt")
     private LocalDateTime deletedAt;
 
-    @Column(name = "DeletedBy", columnDefinition = "uniqueidentifier")
+    @Column(name = "DeletedBy")
     private UUID deletedBy;
 }
 

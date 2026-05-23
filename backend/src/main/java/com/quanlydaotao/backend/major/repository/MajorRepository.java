@@ -16,8 +16,8 @@ public interface MajorRepository extends JpaRepository<Major, UUID> {
     @Query("""
             SELECT m
             FROM Major m
-            WHERE (:keyword IS NULL OR LOWER(m.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(m.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:keyword IS NULL OR LOWER(m.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(m.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:departmentId IS NULL OR m.departmentId = :departmentId)
               AND (:isActive IS NULL OR m.isActive = :isActive)
             ORDER BY m.code ASC

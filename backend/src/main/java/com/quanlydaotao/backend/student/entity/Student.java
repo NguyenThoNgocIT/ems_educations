@@ -17,7 +17,7 @@ public class Student extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "StudentId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "StudentId", updatable = false, nullable = false)
     private UUID studentId;
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PersonId", nullable = false, unique = true)

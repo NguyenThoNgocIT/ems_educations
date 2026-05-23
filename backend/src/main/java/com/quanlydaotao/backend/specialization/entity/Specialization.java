@@ -23,13 +23,13 @@ import java.util.UUID;
 public class Specialization extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "SpecializationId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "SpecializationId", updatable = false, nullable = false)
     private UUID specializationId;
 
-    @Column(name = "DepartmentId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "DepartmentId", nullable = false)
     private UUID departmentId;
 
-    @Column(name = "MajorId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "MajorId", nullable = false)
     private UUID majorId;
 
     @Column(name = "Code", nullable = false, length = 50)

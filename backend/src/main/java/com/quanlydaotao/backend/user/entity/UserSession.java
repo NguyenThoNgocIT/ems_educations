@@ -24,7 +24,7 @@ public class UserSession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "SessionId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "SessionId", updatable = false, nullable = false)
     private UUID sessionId;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -17,10 +17,10 @@ public class Major extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "MajorId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "MajorId", updatable = false, nullable = false)
     private UUID majorId;
 
-    @Column(name = "DepartmentId", columnDefinition = "uniqueidentifier")
+    @Column(name = "DepartmentId")
     private UUID departmentId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 20)
@@ -29,7 +29,7 @@ public class Major extends SoftDeleteEntity {
     @Column(name = "Name", nullable = false, length = 255)
     private String name;
 
-    @Column(name = "Description", columnDefinition = "nvarchar(max)")
+    @Column(name = "Description")
     private String description;
 
     @Column(name = "EffectiveDate")

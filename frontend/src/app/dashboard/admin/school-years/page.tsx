@@ -271,7 +271,7 @@ export default function SchoolYearsPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingSchoolYear ? "Chỉnh sửa năm học" : "Thêm năm học mới"}</DialogTitle>
           </DialogHeader>

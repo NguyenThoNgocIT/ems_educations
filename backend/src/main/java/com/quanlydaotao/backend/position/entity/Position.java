@@ -24,7 +24,7 @@ import java.util.UUID;
 public class Position extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "PositionId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "PositionId", updatable = false, nullable = false)
     private UUID positionId;
 
     @Column(name = "Code", nullable = false, length = 50)
@@ -42,6 +42,6 @@ public class Position extends SoftDeleteEntity {
     @Column(name = "Level", length = 100)
     private String level;
 
-    @Column(name = "DivisionId", columnDefinition = "uniqueidentifier")
+    @Column(name = "DivisionId")
     private UUID divisionId;
 }

@@ -397,10 +397,10 @@ export default function AdminDashboard() {
           <h3 className="font-bold text-gray-800 text-[16px] mb-5">Truy cập nhanh</h3>
           <div className="grid grid-cols-4 gap-4 w-full">
             {[
-              { label: 'Thêm sinh viên', icon: <UserPlus className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/students/create' },
-              { label: 'Thêm GV', icon: <UserPlus className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/lecturers/create' },
-              { label: 'Tạo lớp học', icon: <PlusCircle className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/classes/create' },
-              { label: 'Tạo môn học', icon: <BookOpen className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/courses/create' },
+              { label: 'Thêm sinh viên', icon: <UserPlus className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/students' },
+              { label: 'Thêm GV', icon: <UserPlus className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/lecturers' },
+              { label: 'Tạo lớp học', icon: <PlusCircle className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/classes' },
+              { label: 'Tạo môn học', icon: <BookOpen className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/courses' },
               { label: 'Lịch biểu', icon: <CalendarDays className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/schedules' },
               { label: 'Báo cáo', icon: <BarChart3 className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/reports' },
               { label: 'Cài đặt', icon: <Settings className="h-5 w-5 text-emerald-600" />, href: '/dashboard/admin/settings' },

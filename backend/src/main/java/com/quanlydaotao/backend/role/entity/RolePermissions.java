@@ -48,7 +48,7 @@ public class RolePermissions {
     private LocalDateTime createdAt;
 
     @CreatedBy
-    @Column(name = "CreatedBy", columnDefinition = "uniqueidentifier", updatable = false)
+    @Column(name = "CreatedBy", updatable = false)
     private UUID createdBy;
 }
 

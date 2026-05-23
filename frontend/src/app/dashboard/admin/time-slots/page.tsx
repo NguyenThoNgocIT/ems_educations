@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +14,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Clock } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Plus, Edit, Trash2, Clock, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { timeSlotApi } from '@/api/timeSlot';
 
@@ -35,22 +43,33 @@ const formatTime = (timeString: string) => {
 };
 
 export default function TimeSlotPage() {
-  const router = useRouter();
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [slotToDelete, setSlotToDelete] = useState<TimeSlot | null>(null);
+  
+  // Dialog state
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [editingTimeSlot, setEditingTimeSlot] = useState<TimeSlot | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [formData, setFormData] = useState({
+    slotCode: '',
+    startTime: '',
+    endTime: '',
+    isActive: true
+  });
+
+  const fetchTimeSlots = async () => {
+    try {
+      const response: any = await timeSlotApi.getAll();
+      const listData = response?.data || response || [];
+      setTimeSlots(listData);
+    } catch (error) {
+      console.error(error);
+      toast.error('Không thể lấy danh sách ca học');
+    }
+  };
 
   useEffect(() => {
-    async function fetchTimeSlots() {
-      try {
-        const response: any = await timeSlotApi.getAll();
-        const listData = response?.data || response || [];
-        setTimeSlots(listData);
-      } catch (error) {
-        console.error(error);
-        toast.error('Không thể lấy danh sách ca học');
-      }
-    }
     fetchTimeSlots();
   }, []);
 
@@ -74,12 +93,60 @@ export default function TimeSlotPage() {
     setSlotToDelete(null);
   };
 
-  const handleEdit = (id: string) => {
-    router.push(`/dashboard/admin/time-slots/${id}/edit`);
+  const handleOpenModal = (slot?: TimeSlot) => {
+    if (slot) {
+      setEditingTimeSlot(slot);
+      setFormData({
+        slotCode: slot.slotCode,
+        startTime: formatTime(slot.startTime),
+        endTime: formatTime(slot.endTime),
+        isActive: slot.isActive
+      });
+    } else {
+      setEditingTimeSlot(null);
+      setFormData({
+        slotCode: '',
+        startTime: '',
+        endTime: '',
+        isActive: true
+      });
+    }
+    setModalOpen(true);
   };
 
-  const handleAdd = () => {
-    router.push('/dashboard/admin/time-slots/create');
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.slotCode || !formData.startTime || !formData.endTime) {
+      toast.error('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Backend expects "HH:mm:ss" format
+      const submitData = {
+        slotCode: formData.slotCode,
+        startTime: formData.startTime.length === 5 ? `${formData.startTime}:00` : formData.startTime,
+        endTime: formData.endTime.length === 5 ? `${formData.endTime}:00` : formData.endTime,
+        isActive: formData.isActive
+      };
+
+      if (editingTimeSlot) {
+        await timeSlotApi.update(editingTimeSlot.timeSlotId, submitData);
+        toast.success('Cập nhật ca học thành công');
+      } else {
+        await timeSlotApi.create(submitData);
+        toast.success('Thêm ca học mới thành công');
+      }
+      setModalOpen(false);
+      fetchTimeSlots();
+    } catch (error: any) {
+      console.error(error);
+      const errorMsg = error?.response?.data?.message || 'Thao tác thất bại';
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,7 +160,7 @@ export default function TimeSlotPage() {
           </h1>
           <p className="text-muted-foreground">Danh sách và quản lý thời gian các ca học</p>
         </div>
-        <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90">
+        <Button onClick={() => handleOpenModal()} className="bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4 mr-2" />
           Thêm ca học
         </Button>
@@ -129,7 +196,7 @@ export default function TimeSlotPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => handleEdit(slot.timeSlotId)}  // ← Dùng timeSlotId
+                          onClick={() => handleOpenModal(slot)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -157,6 +224,92 @@ export default function TimeSlotPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add/Edit Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTimeSlot ? 'Chỉnh sửa ca học' : 'Thêm ca học mới'}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="slotCode">Mã ca học *</Label>
+              <Input
+                id="slotCode"
+                value={formData.slotCode}
+                onChange={(e) => setFormData({ ...formData, slotCode: e.target.value })}
+                className="mt-1.5"
+                placeholder="T1"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="startTime">Thời gian bắt đầu *</Label>
+                <Input
+                  id="startTime"
+                  type="time"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  className="mt-1.5"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="endTime">Thời gian kết thúc *</Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  className="mt-1.5"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <Label htmlFor="isActive">Trạng thái hoạt động</Label>
+              <button
+                type="button"
+                id="isActive"
+                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                  formData.isActive ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-800'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    formData.isActive ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
+                Hủy
+              </Button>
+              <Button type="submit" disabled={loading} className="bg-primary hover:bg-primary/90">
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Đang lưu...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Save className="h-4 w-4" />
+                    Lưu
+                  </span>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
