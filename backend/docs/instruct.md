@@ -335,6 +335,6 @@ Học phần phải thuộc TrainingProgramCourses của chương trình đào t
 Kiểm tra môn tiên quyết, môn song hành, môn tương đương.
 
 Migration mới:
-V16__Teaching_Registration_Progress_Workflow.sql
+V17__Teaching_Registration_Progress_Workflow.sql
 Lưu ý phần đăng ký học lại: mình đã để logic nền qua RegistrationType, ReplacedGradeId, prerequisites/equivalent courses, nhưng nghiệp vụ học lại đầy đủ vẫn cần module điểm hoàn chỉnh để xác định rớt/đạt/thay thế điểm. Hiện tại chưa nên mở full retake tự động nếu điểm chưa chuẩn.
 
