@@ -2,6 +2,7 @@ package com.quanlydaotao.backend.infrastructure.security.rbac;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quanlydaotao.backend.common.dto.ApiResponse;
+import com.quanlydaotao.backend.common.exception.ErrorCode;
 import com.quanlydaotao.backend.role.entity.PermissionApis;
 import com.quanlydaotao.backend.role.repository.PermissionApiRepository;
 import jakarta.servlet.FilterChain;
@@ -56,7 +57,7 @@ public class RbacAuthorizationFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
-            objectMapper.writeValue(response.getWriter(), ApiResponse.error("Bạn không có quyền truy cập chức năng này"));
+            objectMapper.writeValue(response.getWriter(), ApiResponse.error("Bạn không có quyền truy cập chức năng này", ErrorCode.FORBIDDEN));
             return;
         }
 

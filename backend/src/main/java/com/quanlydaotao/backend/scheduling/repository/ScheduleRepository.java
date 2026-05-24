@@ -2,9 +2,12 @@ package com.quanlydaotao.backend.scheduling.repository;
 
 import com.quanlydaotao.backend.scheduling.entity.Schedule;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -27,4 +30,50 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
     List<Schedule> findByInstructorEmployeeId(UUID instructorId);
     
     List<Schedule> findByRoomRoomId(UUID roomId);
+
+    @Query("""
+            SELECT s
+            FROM Schedule s
+            WHERE s.courseClass.courseClassId = :courseClassId
+              AND s.date = :date
+              AND s.timeSlot.timeSlotId = :timeSlotId
+              AND s.isActive = true
+              AND (s.scheduleType IS NULL OR s.scheduleType = 'FIXED')
+              AND (s.scheduleStatus IS NULL OR s.scheduleStatus NOT IN ('CANCELLED','ABSENT'))
+            """)
+    Optional<Schedule> findFixedSession(UUID courseClassId, LocalDate date, UUID timeSlotId);
+
+    @Query("""
+            SELECT COUNT(s) > 0
+            FROM Schedule s
+            WHERE s.instructor.employeeId = :instructorId
+              AND s.date = :date
+              AND s.timeSlot.timeSlotId = :timeSlotId
+              AND s.isActive = true
+              AND (s.scheduleStatus IS NULL OR s.scheduleStatus <> 'CANCELLED')
+              AND (:ignoredCourseClassId IS NULL OR s.courseClass.courseClassId <> :ignoredCourseClassId)
+            """)
+    boolean hasInstructorConflict(UUID instructorId, LocalDate date, UUID timeSlotId, UUID ignoredCourseClassId);
+
+    @Query("""
+            SELECT COUNT(s) > 0
+            FROM Schedule s
+            WHERE s.room.roomId = :roomId
+              AND s.date = :date
+              AND s.timeSlot.timeSlotId = :timeSlotId
+              AND s.isActive = true
+              AND (s.scheduleStatus IS NULL OR s.scheduleStatus <> 'CANCELLED')
+            """)
+    boolean hasRoomConflict(UUID roomId, LocalDate date, UUID timeSlotId);
+
+    @Query("""
+            SELECT COUNT(s) > 0
+            FROM Schedule s
+            WHERE s.courseClass.courseClassId = :courseClassId
+              AND s.date = :date
+              AND s.timeSlot.timeSlotId = :timeSlotId
+              AND s.isActive = true
+              AND (s.scheduleStatus IS NULL OR s.scheduleStatus <> 'CANCELLED')
+            """)
+    boolean hasCourseClassConflict(UUID courseClassId, LocalDate date, UUID timeSlotId);
 }

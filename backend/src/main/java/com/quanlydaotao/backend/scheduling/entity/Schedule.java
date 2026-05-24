@@ -71,6 +71,9 @@ public class Schedule extends SoftDeleteEntity {
     @Column(name = "ScheduleStatus", length = 50)
     private String scheduleStatus;
 
+    @Column(name = "ScheduleType", length = 30)
+    private String scheduleType;
+
     @Column(name = "Note", length = 255)
     private String note;
 }

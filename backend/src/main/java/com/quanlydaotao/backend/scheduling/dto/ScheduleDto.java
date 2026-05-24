@@ -34,5 +34,6 @@ public class ScheduleDto {
     private String mode;
     private String status;
     private String scheduleStatus;
+    private String scheduleType;
     private String note;
 }

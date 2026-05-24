@@ -1,78 +1,77 @@
 package com.quanlydaotao.backend.common.exception;
 
-import com.quanlydaotao.backend.common.dto.ErrorResponse;
+import com.quanlydaotao.backend.common.dto.ApiResponse;
 import jakarta.persistence.NonUniqueResultException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.NOT_FOUND.value())
-                .message(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        return buildErrorResponse(ex.getErrorCode(), ex.getMessage());
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.UNAUTHORIZED.value())
-                .message("Tên đăng nhập hoặc mật khẩu không chính xác.")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<ApiResponse<Object>> handleBadCredentialsException(BadCredentialsException ex) {
+        return buildErrorResponse(ErrorCode.UNAUTHORIZED, "Tên đăng nhập hoặc mật khẩu không chính xác.");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        return buildErrorResponse(ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN.getMessage());
     }
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.value())
-                .message(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ApiResponse<Object>> handleBusinessException(BusinessException ex) {
+        return buildErrorResponse(ex.getErrorCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        return buildErrorResponse(ErrorCode.VALIDATION_ERROR, resolveValidationMessage(ex));
     }
 
     @ExceptionHandler({IncorrectResultSizeDataAccessException.class, NonUniqueResultException.class})
-    public ResponseEntity<ErrorResponse> handleNonUniqueResultException(Exception ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.CONFLICT.value())
-                .message("Dữ liệu trong hệ thống đang bị trùng lặp hoặc không nhất quán. Vui lòng kiểm tra lại thông tin đã nhập.")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    public ResponseEntity<ApiResponse<Object>> handleNonUniqueResultException(Exception ex) {
+        return buildErrorResponse(ErrorCode.NON_UNIQUE_RESULT,
+                "Dữ liệu trong hệ thống đang bị trùng lặp hoặc không nhất quán. Vui lòng kiểm tra lại thông tin đã nhập.");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.CONFLICT.value())
-                .message("Dữ liệu không hợp lệ hoặc bị trùng lặp. Vui lòng kiểm tra lại thông tin đã nhập.")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        return buildErrorResponse(ErrorCode.DATA_INTEGRITY_CONFLICT,
+                "Dữ liệu không hợp lệ hoặc bị trùng lặp. Vui lòng kiểm tra lại thông tin đã nhập.");
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<ApiResponse<Object>> handleGlobalException(Exception ex) {
+        return buildErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.");
+    }
+
+    private ResponseEntity<ApiResponse<Object>> buildErrorResponse(ErrorCode errorCode, String message) {
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.error(message, errorCode));
+    }
+
+    private String resolveValidationMessage(MethodArgumentNotValidException ex) {
+        FieldError fieldError = ex.getBindingResult().getFieldError();
+        if (fieldError != null && fieldError.getDefaultMessage() != null) {
+            return fieldError.getDefaultMessage();
+        }
+        ObjectError globalError = ex.getBindingResult().getGlobalError();
+        if (globalError != null && globalError.getDefaultMessage() != null) {
+            return globalError.getDefaultMessage();
+        }
+        return ErrorCode.VALIDATION_ERROR.getMessage();
     }
 }
-
