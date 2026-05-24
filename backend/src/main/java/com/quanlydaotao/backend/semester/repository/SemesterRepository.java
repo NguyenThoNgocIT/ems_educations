@@ -16,8 +16,8 @@ public interface SemesterRepository extends JpaRepository<Semester, UUID> {
     @Query("""
             SELECT s
             FROM Semester s
-            WHERE (:keyword IS NULL OR LOWER(s.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:keyword IS NULL OR LOWER(s.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(s.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:schoolYearId IS NULL OR s.schoolYearId = :schoolYearId)
               AND (:status IS NULL OR s.status = :status)
               AND (:isActive IS NULL OR s.isActive = :isActive)

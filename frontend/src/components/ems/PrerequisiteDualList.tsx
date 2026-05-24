@@ -14,6 +14,7 @@ export interface PrerequisiteItem {
   code: string;
   name: string;
   departmentId: string;
+  departmentName?: string;
   type: 'PREREQUISITE' | 'PARALLEL';
 }
 
@@ -22,6 +23,7 @@ interface Course {
   code: string;
   name: string;
   departmentId: string;
+  departmentName?: string;
   courseType: string;
   credits: number;
 }
@@ -143,7 +145,7 @@ export const PrerequisiteDualList: React.FC<PrerequisiteDualListProps> = ({
                     </span>
                   </div>
                   <div className="flex gap-3 text-[11px] text-slate-450 mt-1 font-medium">
-                    <span>Khoa: {c.departmentId || 'Chưa rõ'}</span>
+                    <span>Khoa: {c.departmentName || 'Chưa rõ'}</span>
                     <span>•</span>
                     <span>Tín chỉ: {c.credits.toFixed(1)}</span>
                   </div>

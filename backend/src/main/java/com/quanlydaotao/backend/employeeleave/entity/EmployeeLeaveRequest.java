@@ -20,10 +20,10 @@ import java.util.UUID;
 public class EmployeeLeaveRequest extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "LeaveRequestId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "LeaveRequestId", updatable = false, nullable = false)
     private UUID leaveRequestId;
 
-    @Column(name = "EmployeeId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "EmployeeId", nullable = false)
     private UUID employeeId;
 
     @Column(name = "FromDate", nullable = false)

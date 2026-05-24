@@ -20,7 +20,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByConfirmationToken(String confirmationToken);
 
     @Query("SELECT u FROM User u WHERE " +
-           "(:keyword IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "(:keyword IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))) AND " +
            "(:isActive IS NULL OR u.isActive = :isActive) AND " +
            "(:isLocked IS NULL OR " +
            "(:isLocked = true AND u.lockoutEndAt IS NOT NULL AND u.lockoutEndAt > CURRENT_TIMESTAMP) OR " +

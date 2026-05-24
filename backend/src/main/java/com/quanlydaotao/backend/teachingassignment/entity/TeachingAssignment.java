@@ -19,19 +19,19 @@ import java.util.UUID;
 public class TeachingAssignment extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "AssignmentId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "AssignmentId", updatable = false, nullable = false)
     private UUID assignmentId;
 
-    @Column(name = "InstructorId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "InstructorId", nullable = false)
     private UUID instructorId;
 
-    @Column(name = "CourseClassId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "CourseClassId", nullable = false)
     private UUID courseClassId;
 
-    @Column(name = "ClassId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "ClassId", nullable = false)
     private UUID classId;
 
-    @Column(name = "SemesterId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "SemesterId", nullable = false)
     private UUID semesterId;
 
     @Column(name = "Note", length = 255)

@@ -14,14 +14,15 @@ import org.springframework.context.annotation.Profile;
 import java.util.List;
 
 @Configuration
-@Profile({"dev", "test"})
+@Profile({"dev", "test", "postgresql"})
 public class OpenApiConfig {
     @Bean
-    public OpenAPI openAPI(@Value("${open.api.title}") String title,
-                           @Value("${open.api.description}") String description,
-                           @Value("${open.api.version}") String version,
-                           @Value("${open.api.serverName}") String serverName,
-                           @Value("${open.api.serverUrl}") String serverUrl) {
+        // Provide defaults so OpenAPI bean can be created even if properties are not set for the active profile
+        public OpenAPI openAPI(@Value("${open.api.title:UEMS API}") String title,
+                                                   @Value("${open.api.description:}") String description,
+                                                   @Value("${open.api.version:v1}") String version,
+                                                   @Value("${open.api.serverName:local}") String serverName,
+                                                   @Value("${open.api.serverUrl:http://localhost:8081}") String serverUrl) {
         return new OpenAPI()
                 .info(new Info().title(title)
                         .description(description)

@@ -19,10 +19,10 @@ import java.util.UUID;
 @EqualsAndHashCode
 public class RolePermissionId implements Serializable {
 
-    @Column(name = "RoleId", columnDefinition = "uniqueidentifier")
+    @Column(name = "RoleId")
     private UUID roleId;
 
-    @Column(name = "PermissionId", columnDefinition = "uniqueidentifier")
+    @Column(name = "PermissionId")
     private UUID permissionId;
 }
 

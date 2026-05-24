@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.UUID;
 
@@ -21,7 +22,10 @@ public class PersonService {
 
     @Transactional(readOnly = true)
     public Page<PersonAdminResponse> getPersonsForAdmin(String keyword, Pageable pageable) {
-        return personRepository.searchPersons(keyword, pageable).map(personMapper::toDto);
+        Page<Person> persons = StringUtils.hasText(keyword)
+                ? personRepository.searchPersons(keyword.trim(), pageable)
+                : personRepository.findAll(pageable);
+        return persons.map(personMapper::toDto);
     }
 
     @Transactional(readOnly = true)

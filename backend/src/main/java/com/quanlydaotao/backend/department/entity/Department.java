@@ -16,7 +16,7 @@ public class Department extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "DepartmentId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "DepartmentId", updatable = false, nullable = false)
     private UUID departmentId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 50)

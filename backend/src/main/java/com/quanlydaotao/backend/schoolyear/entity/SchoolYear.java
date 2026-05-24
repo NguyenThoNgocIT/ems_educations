@@ -24,7 +24,7 @@ import java.util.UUID;
 public class SchoolYear extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "SchoolYearId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "SchoolYearId", updatable = false, nullable = false)
     private UUID schoolYearId;
 
     @Column(name = "Code", nullable = false, length = 50)

@@ -87,6 +87,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- 🐘 POSTGRESQL -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- 🧪 H2 LOCAL DATABASE -->
         <dependency>
             <groupId>com.h2database</groupId>
@@ -144,6 +151,11 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-sqlserver</artifactId>
+            <version>10.11.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
             <version>10.11.0</version>
         </dependency>
 

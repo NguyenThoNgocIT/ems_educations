@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Repository
 public interface PersonRepository extends JpaRepository<Person, UUID> {
-    @Query("SELECT p FROM Person p WHERE (:keyword IS NULL OR LOWER(p.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.contactEmail) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    @Query("SELECT p FROM Person p WHERE LOWER(p.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR LOWER(p.contactEmail) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))")
     Page<Person> searchPersons(@Param("keyword") String keyword, Pageable pageable);
 }
 

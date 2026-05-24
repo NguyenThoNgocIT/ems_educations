@@ -268,7 +268,7 @@ export default function DepartmentsPage() {
 
       {/* Modal Thêm/Sửa */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingDepartment ? 'Chỉnh sửa khoa' : 'Thêm khoa mới'}</DialogTitle>
           </DialogHeader>

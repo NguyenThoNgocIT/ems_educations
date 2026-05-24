@@ -97,6 +97,19 @@ export default function TrainingProgramsPage() {
     fetchMasterData();
   }, [searchTerm]);
 
+  const majorLabels = new Map(
+    majors.map((major) => [
+      major.majorId || major.id,
+      [major.code, major.name].filter(Boolean).join(' - '),
+    ]),
+  );
+  const cohortLabels = new Map(
+    cohorts.map((cohort) => [
+      cohort.academicCohortId || cohort.cohortId || cohort.id,
+      [cohort.code, cohort.name].filter(Boolean).join(' - '),
+    ]),
+  );
+
   // Mở dialog thêm mới
   const handleOpenCreate = () => {
     setEditingProgram(null);
@@ -242,6 +255,7 @@ export default function TrainingProgramsPage() {
                   <th className="text-left py-3 px-4 font-semibold text-sm">Mã chương trình</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Tên chương trình</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Ngành</th>
+                  <th className="text-left py-3 px-4 font-semibold text-sm">Khoa</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Khóa học</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Tín chỉ</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Thao tác</th>
@@ -249,22 +263,22 @@ export default function TrainingProgramsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} className="text-center py-8">Đang tải...</td></tr>
+                  <tr><td colSpan={7} className="text-center py-8">Đang tải...</td></tr>
                 ) : programs.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-8">Chưa có chương trình đào tạo nào</td></tr>
+                  <tr><td colSpan={7} className="text-center py-8">Chưa có chương trình đào tạo nào</td></tr>
                 ) : (
                   programs.map((item) => (
                     <tr key={item.trainingProgramId || item.id} className="border-b hover:bg-muted/50 transition-colors">
 
                       <td className="py-3 px-4 text-sm font-medium">{item.code || item.programCode}</td>
                       <td className="py-3 px-4 text-sm">{item.name || item.programName}</td>
-                      <td className="py-3 px-4 text-sm">{item.majorName || item.majorId || 'N/A'}</td>
-                      <td className="py-3 px-4 text-sm">{item.departmentName || item.departmentId || 'N/A'}</td>
-                      <td className="py-3 px-4 text-sm">{item.academicCohortName || item.academicYear || item.academicCohortId || 'N/A'}</td>
+                      <td className="py-3 px-4 text-sm">{item.majorName || majorLabels.get(item.majorId) || 'Chưa có thông tin'}</td>
+                      <td className="py-3 px-4 text-sm">{item.departmentName || 'Chưa có thông tin'}</td>
+                      <td className="py-3 px-4 text-sm">{item.academicCohortName || item.academicYear || cohortLabels.get(item.academicCohortId) || 'Chưa có thông tin'}</td>
                       <td className="py-3 px-4 text-sm">{item.totalCredits}</td>
                       <td className="py-3 px-4 text-sm">
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/admin/training-programs/${item.trainingProgramId || item.id}/edit`)}>
+                          <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(item)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
@@ -288,7 +302,7 @@ export default function TrainingProgramsPage() {
 
       {/* Dialog Thêm/Sửa */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingProgram ? 'Chỉnh sửa chương trình đào tạo' : 'Thêm chương trình đào tạo mới'}</DialogTitle>
           </DialogHeader>

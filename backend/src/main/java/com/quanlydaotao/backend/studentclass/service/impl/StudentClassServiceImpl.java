@@ -88,8 +88,11 @@ public class StudentClassServiceImpl implements StudentClassService {
         validateReferences(studentId, classId, semesterId);
         validateOneActiveClassPerSemester(studentId, classId, semesterId, null);
 
-        StudentClass studentClass = studentClassRepository.findByStudentIdAndClassIdAndSemesterId(studentId, classId, semesterId)
-                .orElseGet(StudentClass::new);
+        List<StudentClass> studentClasses = studentClassRepository.findByStudentIdAndClassIdAndSemesterId(studentId, classId, semesterId);
+        StudentClass studentClass = studentClasses.isEmpty() ? new StudentClass() : studentClasses.get(0);
+        if (studentClasses.size() > 1) {
+            cleanupDuplicateStudentClasses(studentClasses, studentClass);
+        }
         validateClassCapacity(classId, semesterId, studentClass.getStudentClassId());
         studentClass.setStudentId(studentId);
         studentClass.setClassId(classId);
@@ -98,6 +101,7 @@ public class StudentClassServiceImpl implements StudentClassService {
         studentClass.setStatus(StringUtils.hasText(status) ? status.trim().toUpperCase() : "ACTIVE");
         studentClass.setNote(note);
         studentClass.setIsActive(true);
+        studentClass.setDeletedAt(null);
         return studentClassMapper.toDto(studentClassRepository.save(studentClass));
     }
 
@@ -140,11 +144,31 @@ public class StudentClassServiceImpl implements StudentClassService {
 
     private void validateOneActiveClassPerSemester(UUID studentId, UUID classId, UUID semesterId, UUID currentStudentClassId) {
         studentClassRepository.findByStudentIdAndSemesterIdAndIsActiveTrue(studentId, semesterId)
+                .stream()
                 .filter(existing -> currentStudentClassId == null || !existing.getStudentClassId().equals(currentStudentClassId))
                 .filter(existing -> !existing.getClassId().equals(classId))
+                .findFirst()
                 .ifPresent(existing -> {
                     throw new BusinessException("Sinh viên đã được gán lớp hành chính trong học kỳ này");
                 });
+    }
+
+    private void cleanupDuplicateStudentClasses(List<StudentClass> studentClasses, StudentClass canonicalStudentClass) {
+        if (studentClasses.size() <= 1) {
+            return;
+        }
+
+        canonicalStudentClass.setIsActive(true);
+        canonicalStudentClass.setDeletedAt(null);
+
+        LocalDateTime now = LocalDateTime.now();
+        for (int i = 1; i < studentClasses.size(); i++) {
+            StudentClass duplicate = studentClasses.get(i);
+            duplicate.setIsActive(false);
+            duplicate.setDeletedAt(now);
+        }
+
+        studentClassRepository.saveAll(studentClasses);
     }
 
     private void validateClassCapacity(UUID classId, UUID semesterId, UUID ignoredStudentClassId) {

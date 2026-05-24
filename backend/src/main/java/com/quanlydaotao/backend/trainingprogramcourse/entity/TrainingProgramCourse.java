@@ -19,14 +19,14 @@ import java.util.UUID;
 @Setter
 public class TrainingProgramCourse extends SoftDeleteEntity {
     @Id
-    @Column(name = "TrainingProgramId", columnDefinition = "uniqueidentifier")
+    @Column(name = "TrainingProgramId")
     private UUID trainingProgramId;
 
     @Id
-    @Column(name = "CourseId", columnDefinition = "uniqueidentifier")
+    @Column(name = "CourseId")
     private UUID courseId;
 
-    @Column(name = "SemesterId", columnDefinition = "uniqueidentifier")
+    @Column(name = "SemesterId")
     private UUID semesterId;
 
     @Column(name = "IsRequired")
@@ -38,7 +38,7 @@ public class TrainingProgramCourse extends SoftDeleteEntity {
     @Column(name = "Credits", precision = 5, scale = 1)
     private BigDecimal credits;
 
-    @Column(name = "PrerequisiteCourseId", columnDefinition = "uniqueidentifier")
+    @Column(name = "PrerequisiteCourseId")
     private UUID prerequisiteCourseId;
 
     @Column(name = "IsPrerequisiteRequired")

@@ -23,7 +23,7 @@ import java.util.UUID;
 public class Division extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "DivisionId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "DivisionId", updatable = false, nullable = false)
     private UUID divisionId;
 
     @Column(name = "Code", nullable = false, length = 50)

@@ -33,6 +33,7 @@ export interface StudentAdminResponse {
   studentId: string;
   personId: string;
   studentCode?: string;
+  departmentId?: string;
   majorId?: string;
   trainingProgramId?: string;
   academicCohortId?: string;

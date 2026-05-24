@@ -16,8 +16,8 @@ public interface ContractRepository extends JpaRepository<Contract, UUID> {
     @Query("""
             SELECT c
             FROM Contract c
-            WHERE (:keyword IS NULL OR LOWER(c.contractNo) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(c.contractType) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:keyword IS NULL OR LOWER(c.contractNo) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(c.contractType) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:employeeId IS NULL OR c.employee.employeeId = :employeeId)
               AND (:status IS NULL OR c.status = :status)
               AND (:isActive IS NULL OR c.isActive = :isActive)

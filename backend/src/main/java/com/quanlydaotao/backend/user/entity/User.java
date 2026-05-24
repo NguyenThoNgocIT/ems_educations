@@ -29,7 +29,7 @@ public class User extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "UserId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "UserId", updatable = false, nullable = false)
     private UUID userId;
 
     @OneToOne(fetch = FetchType.LAZY)

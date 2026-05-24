@@ -6,16 +6,34 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface StudentClassRepository extends JpaRepository<StudentClass, UUID> {
-    Optional<StudentClass> findByStudentIdAndClassIdAndSemesterId(UUID studentId, UUID classId, UUID semesterId);
+    @Query("""
+            SELECT sc
+            FROM StudentClass sc
+            WHERE sc.studentId = :studentId
+              AND sc.classId = :classId
+              AND sc.semesterId = :semesterId
+            ORDER BY CASE WHEN sc.isActive = true THEN 1 ELSE 0 END DESC,
+                     sc.createdAt DESC,
+                     sc.studentClassId DESC
+            """)
+    List<StudentClass> findByStudentIdAndClassIdAndSemesterId(UUID studentId, UUID classId, UUID semesterId);
 
     List<StudentClass> findByStudentIdAndIsActiveTrue(UUID studentId);
 
-    Optional<StudentClass> findByStudentIdAndSemesterIdAndIsActiveTrue(UUID studentId, UUID semesterId);
+    @Query("""
+            SELECT sc
+            FROM StudentClass sc
+            WHERE sc.studentId = :studentId
+              AND sc.semesterId = :semesterId
+              AND sc.isActive = true
+            ORDER BY sc.createdAt DESC,
+                     sc.studentClassId DESC
+            """)
+    List<StudentClass> findByStudentIdAndSemesterIdAndIsActiveTrue(UUID studentId, UUID semesterId);
 
     @Query("""
             SELECT sc

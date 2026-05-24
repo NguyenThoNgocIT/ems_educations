@@ -25,10 +25,10 @@ public class Menus extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "MenuId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "MenuId", updatable = false, nullable = false)
     private UUID menuId;
 
-    @Column(name = "ParentId", columnDefinition = "uniqueidentifier")
+    @Column(name = "ParentId")
     private UUID parentId;
 
     @Column(name = "MenuTitle", length = 100)

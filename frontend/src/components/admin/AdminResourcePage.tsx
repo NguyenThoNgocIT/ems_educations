@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ComboInput from "@/components/ui/ComboInput";
 import { Label } from "@/components/ui/label";
 
 type Api<T> = {
@@ -27,6 +29,7 @@ export type ResourceField<T> = {
   type?: FieldType;
   required?: boolean;
   placeholder?: string;
+  options?: { value: string; label: string }[];
 };
 
 export type ResourceColumn<T> = {
@@ -45,6 +48,7 @@ type AdminResourcePageProps<T extends Record<string, any>> = {
   fields?: ResourceField<T>[];
   initialForm?: Partial<T>;
   readOnly?: boolean;
+  fieldOptions?: Record<string, { value: string; label: string }[]>;
 };
 
 function normalizeRows<T>(result: T[] | { rows: T[]; total?: number }) {
@@ -68,6 +72,7 @@ export function AdminResourcePage<T extends Record<string, any>>({
   fields = [],
   initialForm = {},
   readOnly = false,
+  fieldOptions,
 }: AdminResourcePageProps<T>) {
   const [rows, setRows] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +81,32 @@ export function AdminResourcePage<T extends Record<string, any>>({
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<T | null>(null);
   const [form, setForm] = useState<Partial<T>>(initialForm);
+
+  const setFieldValue = (key: string, value: any) => {
+    setForm((current) => {
+      const next: any = { ...current, [key]: value };
+      // If editing positions: when code is set and name empty, generate a name
+      if (key === 'code') {
+        // if fieldOptions contains a mapping for code, use its label as name
+        const opts: { value: string; label: string }[] | undefined = (fieldOptions && (fieldOptions as any)['code']) || undefined;
+        if (opts) {
+          const found = opts.find((o) => o.value === String(value));
+          if (found) {
+            // prefer label (may include code prefix), extract human name after ' - ' if present
+            const parts = found.label.split(' - ');
+            next['name'] = parts.length > 1 ? parts.slice(1).join(' - ') : found.label;
+          }
+        } else if (!String(current['name'] ?? '').trim()) {
+          // fallback: generate from code string
+          const gen = String(value ?? '')
+            .replace(/[_-]/g, ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+          if (gen) next['name'] = gen;
+        }
+      }
+      return next;
+    });
+  };
 
   const load = async () => {
     setLoading(true);
@@ -254,7 +285,7 @@ export function AdminResourcePage<T extends Record<string, any>>({
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] sm:max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? `Chỉnh sửa ${title.toLowerCase()}` : `Thêm ${title.toLowerCase()}`}</DialogTitle>
           </DialogHeader>
@@ -268,7 +299,7 @@ export function AdminResourcePage<T extends Record<string, any>>({
                       id={field.key}
                       type="checkbox"
                       checked={Boolean(form[field.key])}
-                      onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.checked }))}
+                      onChange={(event) => setFieldValue(field.key, event.target.checked)}
                     />
                     Đang hoạt động
                   </label>
@@ -276,7 +307,7 @@ export function AdminResourcePage<T extends Record<string, any>>({
                   <textarea
                     id={field.key}
                     value={String(form[field.key] ?? "")}
-                    onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}
+                    onChange={(event) => setFieldValue(field.key, event.target.value)}
                     placeholder={field.placeholder}
                     className="mt-1.5 min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
@@ -284,9 +315,18 @@ export function AdminResourcePage<T extends Record<string, any>>({
                   <DatePicker
                     id={field.key}
                     value={String(form[field.key] ?? "")}
-                    onChange={(value) => setForm((current) => ({ ...current, [field.key]: value }))}
-                    placeholder={field.placeholder || `Chá»n ${field.label.toLowerCase()}`}
+                    onChange={(value) => setFieldValue(field.key, value)}
+                    placeholder={field.placeholder || `Chọn ${field.label.toLowerCase()}`}
                     className="mt-1.5"
+                  />
+                ) : field.options || (fieldOptions && fieldOptions[field.key]) ? (
+                  <ComboInput
+                    id={field.key}
+                    value={String(form[field.key] ?? "")}
+                    options={(field.options || (fieldOptions && fieldOptions[field.key]) || []) as { value: string; label: string }[]}
+                    onChange={(v) => setFieldValue(field.key, v)}
+                    placeholder={field.placeholder || "Chọn..."}
+                    className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   />
                 ) : (
                   <Input
@@ -295,7 +335,7 @@ export function AdminResourcePage<T extends Record<string, any>>({
                     value={String(form[field.key] ?? "")}
                     onChange={(event) => {
                       const value = field.type === "number" ? Number(event.target.value) : event.target.value;
-                      setForm((current) => ({ ...current, [field.key]: value }));
+                      setFieldValue(field.key, value);
                     }}
                     placeholder={field.placeholder}
                     className="mt-1.5"

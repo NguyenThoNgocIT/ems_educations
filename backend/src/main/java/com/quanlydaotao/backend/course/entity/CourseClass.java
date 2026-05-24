@@ -22,7 +22,7 @@ public class CourseClass extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "CourseClassId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "CourseClassId", updatable = false, nullable = false)
     private UUID courseClassId;
 
     @Column(name = "ClassCode", nullable = false, length = 50)

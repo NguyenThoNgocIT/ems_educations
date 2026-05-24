@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import FullCalendar from "@fullcalendar/react";
 import { Draggable, EventReceiveArg } from "@fullcalendar/interaction";
 import { DateSelectArg, EventClickArg } from "@fullcalendar/core";
@@ -10,6 +11,10 @@ import { roomApi } from "@/api/room";
 import { timeSlotApi } from "@/api/timeSlot";
 import { lecturerApi } from "@/api/lecturer";
 import { toast } from "sonner";
+import { Filter } from "lucide-react";
+
+// UI Components
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import TimetableSidebar from "./timetable/TimetableSidebar";
 import TimetableCalendar from "./timetable/TimetableCalendar";
@@ -21,7 +26,11 @@ export default function TimetableBuilder() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [timeSlots, setTimeSlots] = useState<any[]>([]);
   const [lecturers, setLecturers] = useState<any[]>([]);
+  
+  // State phục vụ tìm kiếm & lọc
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState("ALL"); // ALL | LECTURER | COURSE_CLASS
+  const [filterId, setFilterId] = useState("ALL");
   
   const [formData, setFormData] = useState({
     courseClassId: "",
@@ -58,8 +67,10 @@ export default function TimetableBuilder() {
         extendedProps: {
           calendar: s.mode === 'TH' ? 'Warning' : 'Primary',
           instructorName: s.instructorName,
+          instructorId: s.instructorId,
           roomCode: s.roomCode,
-          courseClassName: s.courseClassName
+          courseClassName: s.courseClassName,
+          courseClassId: s.courseClassId, 
         }
       }));
       setEvents(scheduleEvents);
@@ -77,6 +88,7 @@ export default function TimetableBuilder() {
     fetchInitialData();
   }, []);
 
+  // Khởi tạo tính năng kéo thả
   useEffect(() => {
     if (externalEventsRef.current) {
       let draggable = new Draggable(externalEventsRef.current, {
@@ -97,6 +109,21 @@ export default function TimetableBuilder() {
       };
     }
   }, [courseClasses]);
+
+  // LOGIC LỌC SỰ KIỆN THEO CHẾ ĐỘ XEM
+  const filteredEvents = useMemo(() => {
+    if (viewMode === "ALL" || filterId === "ALL") return events;
+    
+    return events.filter(event => {
+      if (viewMode === "LECTURER") {
+        return event.extendedProps.instructorId === filterId;
+      }
+      if (viewMode === "COURSE_CLASS") {
+        return event.extendedProps.courseClassId === filterId;
+      }
+      return true;
+    });
+  }, [events, viewMode, filterId]);
 
   const resetModalFields = () => {
     setFormData({
@@ -166,32 +193,91 @@ export default function TimetableBuilder() {
     }
   };
 
+  const handleViewModeChange = (val: string) => {
+    setViewMode(val);
+    setFilterId("ALL");
+  };
+
   return (
-    <div className="flex h-[calc(100vh-130px)] gap-6 overflow-hidden">
-      <TimetableSidebar 
-        courseClasses={courseClasses}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        externalEventsRef={externalEventsRef}
-      />
-      <TimetableCalendar 
-        events={events}
-        calendarRef={calendarRef}
-        onDateSelect={handleDateSelect}
-        onEventClick={handleEventClick}
-        onEventReceive={handleEventReceive}
-      />
-      <TimetableModal 
-        isOpen={isOpen}
-        onClose={closeModal}
-        formData={formData}
-        setFormData={setFormData}
-        courseClasses={courseClasses}
-        rooms={rooms}
-        timeSlots={timeSlots}
-        lecturers={lecturers}
-        onSubmit={handleAddSchedule}
-      />
+    <div className="flex flex-col h-[calc(100vh-140px)] min-h-[700px] gap-5">
+      {/* TOOLBAR */}
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-4 p-3.5 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl shadow-sm transition-all">
+        <div className="flex items-center gap-2 px-2 text-sm font-semibold text-brand-600 dark:text-brand-400">
+          <Filter className="w-4 h-4" />
+          <span>Bộ lọc hiển thị:</span>
+        </div>
+        
+        <Select value={viewMode} onValueChange={handleViewModeChange}>
+          <SelectTrigger className="w-[200px] h-10 bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
+            <SelectValue placeholder="Chọn chế độ xem" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="ALL">Toàn trường</SelectItem>
+            <SelectItem value="LECTURER">Theo Giảng viên</SelectItem>
+            <SelectItem value="COURSE_CLASS">Theo Lớp học phần</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {viewMode === "LECTURER" && (
+          <Select value={filterId} onValueChange={setFilterId}>
+            <SelectTrigger className="w-[300px] h-10 bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
+              <SelectValue placeholder="-- Chọn giảng viên --" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="ALL">Tất cả giảng viên</SelectItem>
+              {lecturers.map(l => (
+                <SelectItem key={l.id || l.employeeId} value={l.id || l.employeeId}>
+                  {l.fullName} ({l.instructorCode || l.employeeCode})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {viewMode === "COURSE_CLASS" && (
+          <Select value={filterId} onValueChange={setFilterId}>
+            <SelectTrigger className="w-[300px] h-10 bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
+              <SelectValue placeholder="-- Chọn lớp học phần --" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="ALL">Tất cả lớp học phần</SelectItem>
+              {courseClasses.map(c => (
+                <SelectItem key={c.id || c.courseClassId} value={c.id || c.courseClassId}>
+                  {c.courseClassName || c.classCode}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
+      {/* MAIN CONTENT */}
+      <div className="flex flex-1 gap-6 overflow-hidden">
+        <TimetableSidebar 
+          courseClasses={courseClasses}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          externalEventsRef={externalEventsRef}
+        />
+        <TimetableCalendar 
+          events={filteredEvents}
+          calendarRef={calendarRef}
+          onDateSelect={handleDateSelect}
+          onEventClick={handleEventClick}
+          onEventReceive={handleEventReceive}
+        />
+        <TimetableModal 
+          isOpen={isOpen}
+          onClose={closeModal}
+          formData={formData}
+          setFormData={setFormData}
+          courseClasses={courseClasses}
+          rooms={rooms}
+          timeSlots={timeSlots}
+          lecturers={lecturers}
+          onSubmit={handleAddSchedule}
+        />
+      </div>
     </div>
   );
 }

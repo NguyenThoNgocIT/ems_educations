@@ -30,7 +30,7 @@ public abstract class BaseEntity {
     private LocalDateTime createdAt;
 
     @CreatedBy
-    @Column(name = "CreatedBy", columnDefinition = "uniqueidentifier", updatable = false)
+    @Column(name = "CreatedBy", updatable = false)
     private UUID createdBy;
 
     @LastModifiedDate
@@ -38,7 +38,7 @@ public abstract class BaseEntity {
     private LocalDateTime updatedAt;
 
     @LastModifiedBy
-    @Column(name = "UpdatedBy", columnDefinition = "uniqueidentifier")
+    @Column(name = "UpdatedBy")
     private UUID updatedBy;
 }
 

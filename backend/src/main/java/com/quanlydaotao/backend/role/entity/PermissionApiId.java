@@ -19,7 +19,7 @@ import java.util.UUID;
 @EqualsAndHashCode
 public class PermissionApiId implements Serializable {
 
-    @Column(name = "PermissionId", columnDefinition = "uniqueidentifier")
+    @Column(name = "PermissionId")
     private UUID permissionId;
 
     @Column(name = "ApiPath", length = 255)

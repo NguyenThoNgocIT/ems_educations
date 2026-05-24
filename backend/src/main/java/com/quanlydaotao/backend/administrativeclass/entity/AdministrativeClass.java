@@ -23,7 +23,7 @@ import java.util.UUID;
 public class AdministrativeClass extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "ClassId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "ClassId", updatable = false, nullable = false)
     private UUID classId;
 
     @Column(name = "ClassCode", nullable = false, length = 50)
@@ -32,19 +32,19 @@ public class AdministrativeClass extends SoftDeleteEntity {
     @Column(name = "ClassName", nullable = false, length = 100)
     private String className;
 
-    @Column(name = "DepartmentId", columnDefinition = "uniqueidentifier")
+    @Column(name = "DepartmentId")
     private UUID departmentId;
 
-    @Column(name = "MajorId", columnDefinition = "uniqueidentifier")
+    @Column(name = "MajorId")
     private UUID majorId;
 
-    @Column(name = "SpecializationId", columnDefinition = "uniqueidentifier")
+    @Column(name = "SpecializationId")
     private UUID specializationId;
 
-    @Column(name = "AdvisorId", columnDefinition = "uniqueidentifier")
+    @Column(name = "AdvisorId")
     private UUID advisorId;
 
-    @Column(name = "AcademicCohortId", columnDefinition = "uniqueidentifier")
+    @Column(name = "AcademicCohortId")
     private UUID academicCohortId;
 
     @Column(name = "MaxSize")

@@ -17,7 +17,7 @@ public class Floor extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "FloorId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "FloorId", updatable = false, nullable = false)
     private UUID floorId;
 
     @Column(name = "Code", nullable = false, length = 100)

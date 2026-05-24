@@ -9,16 +9,29 @@ import {
 } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Fallback if no real user (for testing UI)
-  const displayUser = user || {
-    fullName: "Nguyễn Văn Admin",
-    email: "admin@donga.edu.vn",
-    role: "admin",
-    username: "admin"
-  };
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+        Đang tải thông tin hồ sơ...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-6xl mx-auto py-12 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Chưa đăng nhập</h1>
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          Vui lòng đăng nhập lại để xem hồ sơ cá nhân.
+        </p>
+      </div>
+    );
+  }
+
+  const displayUser = user;
 
   // MOCK DATA Động dựa theo Role
   const isStudent = displayUser.role === "student";

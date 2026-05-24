@@ -165,7 +165,7 @@ export default function MajorsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="mb-2 text-3xl font-bold">Quan ly nganh hoc</h1>
+          <h1 className="mb-2 text-3xl font-bold">Quản lý ngành học</h1>
           <p className="text-muted-foreground">Nganh dao tao duoc lien ket truc tiep voi khoa</p>
         </div>
         <Button onClick={() => handleOpenModal()} className="bg-primary">
@@ -214,7 +214,6 @@ export default function MajorsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="px-4 py-3 text-left text-sm font-semibold">ID</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Ma nganh</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Ten nganh</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Khoa</th>
@@ -230,15 +229,9 @@ export default function MajorsPage() {
                 ) : (
                   paginatedMajors.map((major) => {
                     const id = getMajorId(major);
-                    const departmentLabel = major.departmentName || departmentNameById.get(major.departmentId || "") || major.departmentId || "Chua lien ket";
+                    const departmentLabel = major.departmentName || departmentNameById.get(major.departmentId || "") || "Chua lien ket";
                     return (
                       <tr key={id} className="border-b hover:bg-muted/50">
-                        <td className="px-4 py-3 text-sm">
-                          <button className="flex items-center gap-2 font-mono text-xs text-blue-600" onClick={() => copyToClipboard(id)}>
-                            {id.substring(0, 8)}...
-                            <Copy className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
                         <td className="px-4 py-3 text-sm font-medium">{major.code}</td>
                         <td className="px-4 py-3 text-sm">{major.name}</td>
                         <td className="px-4 py-3 text-sm">{departmentLabel}</td>
@@ -285,7 +278,7 @@ export default function MajorsPage() {
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingMajor ? "Chinh sua nganh hoc" : "Them nganh hoc moi"}</DialogTitle>
           </DialogHeader>

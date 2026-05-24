@@ -25,7 +25,7 @@ public class Person extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "PersonId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "PersonId", updatable = false, nullable = false)
     private UUID personId;
 
     @Column(name = "FullName", nullable = false, length = 150)

@@ -29,7 +29,7 @@ public class PasswordResetRequest extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "PasswordResetRequestId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "PasswordResetRequestId", updatable = false, nullable = false)
     private UUID passwordResetRequestId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -57,6 +57,6 @@ public class PasswordResetRequest extends SoftDeleteEntity {
     @Column(name = "ProcessedAt")
     private LocalDateTime processedAt;
 
-    @Column(name = "ProcessedBy", columnDefinition = "uniqueidentifier")
+    @Column(name = "ProcessedBy")
     private UUID processedBy;
 }

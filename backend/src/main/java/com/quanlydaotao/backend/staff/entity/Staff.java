@@ -15,7 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Staff extends SoftDeleteEntity {
     @Id
-    @Column(name = "EmployeeId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "EmployeeId", updatable = false, nullable = false)
     private UUID employeeId;
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId

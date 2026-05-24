@@ -21,7 +21,7 @@ public class TrainingProgram extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "TrainingProgramId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "TrainingProgramId", updatable = false, nullable = false)
     private UUID trainingProgramId;
 
     @Column(name = "Code", length = 50)
@@ -83,14 +83,14 @@ public class TrainingProgram extends SoftDeleteEntity {
     @Column(name = "ExpiryDate")
     private LocalDate expiryDate;
 
-    @Column(name = "Description", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "Description")
     private String description;
 
-    @Column(name = "Objectives", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "Objectives")
     private String objectives;
 
 
-    @Column(name = "LearningOutcomes", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "LearningOutcomes")
     private String learningOutcomes;
 
     @Column(name = "Version", length = 20)

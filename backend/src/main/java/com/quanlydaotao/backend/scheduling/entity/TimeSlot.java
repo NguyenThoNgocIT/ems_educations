@@ -18,7 +18,7 @@ public class TimeSlot extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "TimeSlotId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "TimeSlotId", updatable = false, nullable = false)
     private UUID timeSlotId;
 
     @Column(name = "SlotCode", nullable = false, unique = true, length = 50)

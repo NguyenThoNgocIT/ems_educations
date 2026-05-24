@@ -45,13 +45,13 @@ export const adminNavItems: NavItem[] = [
   { name: "Ngành học", icon: <GraduationCap className={iconClassName} />, path: "/dashboard/admin/majors" },
   { name: "Khóa đào tạo", icon: <Network className={iconClassName} />, path: "/dashboard/admin/academic-cohorts" },
   { name: "Chương trình đào tạo", icon: <Target className={iconClassName} />, path: "/dashboard/admin/training-programs" },
-  { name: "Năm học", icon: <Calendar className={iconClassName} />, path: "/dashboard/admin/school-years", badge: "BE" },
-  { name: "Học kỳ", icon: <CalendarDays className={iconClassName} />, path: "/dashboard/admin/semesters", badge: "BE" },
-  { name: "Lớp hành chính", icon: <Users className={iconClassName} />, path: "/dashboard/admin/classes", badge: "BE" },
+  { name: "Năm học", icon: <Calendar className={iconClassName} />, path: "/dashboard/admin/school-years" },
+  { name: "Học kỳ", icon: <CalendarDays className={iconClassName} />, path: "/dashboard/admin/semesters" },
+  { name: "Lớp hành chính", icon: <Users className={iconClassName} />, path: "/dashboard/admin/classes" },
   { name: "Môn học", icon: <BookOpen className={iconClassName} />, path: "/dashboard/admin/courses" },
   { name: "Lớp học phần", icon: <Layers className={iconClassName} />, path: "/dashboard/admin/course-classes" },
   { name: "Thời khóa biểu", icon: <CalendarDays className={iconClassName} />, path: "/dashboard/admin/schedules" },
-  { name: "Tài khoản người dùng", icon: <User className={iconClassName} />, path: "/dashboard/admin/users", badge: "BE" },
+  { name: "Tài khoản người dùng", icon: <User className={iconClassName} />, path: "/dashboard/admin/users" },
   { name: "Phân quyền (RBAC)", icon: <ShieldCheck className={iconClassName} />, path: "/dashboard/admin/rbac" },
 ];
 
@@ -77,9 +77,9 @@ export const adminNavGroups: NavGroup[] = [
     icon: <Landmark className={iconClassName} />,
     items: [
       { name: "Khoa / đơn vị", icon: <Landmark className={iconClassName} />, path: "/dashboard/admin/departments" },
-      { name: "Bộ phận chuyên môn", icon: <Building className={iconClassName} />, path: "/dashboard/admin/divisions", badge: "BE" },
-      { name: "Chức vụ", icon: <Award className={iconClassName} />, path: "/dashboard/admin/positions", badge: "BE" },
-      { name: "Bằng cấp", icon: <Award className={iconClassName} />, path: "/dashboard/admin/degrees", badge: "BE" },
+      { name: "Bộ phận chuyên môn", icon: <Building className={iconClassName} />, path: "/dashboard/admin/divisions" },
+      { name: "Chức vụ", icon: <Award className={iconClassName} />, path: "/dashboard/admin/positions" },
+      { name: "Bằng cấp", icon: <Award className={iconClassName} />, path: "/dashboard/admin/degrees" },
       { name: "Ngành học", icon: <GraduationCap className={iconClassName} />, path: "/dashboard/admin/majors" },
       { name: "Khóa đào tạo", icon: <Network className={iconClassName} />, path: "/dashboard/admin/academic-cohorts" },
       { name: "Chương trình đào tạo", icon: <Target className={iconClassName} />, path: "/dashboard/admin/training-programs" },
@@ -90,9 +90,9 @@ export const adminNavGroups: NavGroup[] = [
     groupName: "Niên khóa & lớp",
     icon: <CalendarDays className={iconClassName} />,
     items: [
-      { name: "Năm học", icon: <Calendar className={iconClassName} />, path: "/dashboard/admin/school-years", badge: "BE" },
-      { name: "Học kỳ", icon: <CalendarDays className={iconClassName} />, path: "/dashboard/admin/semesters", badge: "BE" },
-      { name: "Lớp hành chính", icon: <Users className={iconClassName} />, path: "/dashboard/admin/classes", badge: "BE" },
+      { name: "Năm học", icon: <Calendar className={iconClassName} />, path: "/dashboard/admin/school-years" },
+      { name: "Học kỳ", icon: <CalendarDays className={iconClassName} />, path: "/dashboard/admin/semesters" },
+      { name: "Lớp hành chính", icon: <Users className={iconClassName} />, path: "/dashboard/admin/classes" },
     ],
   },
   {
@@ -100,7 +100,7 @@ export const adminNavGroups: NavGroup[] = [
     icon: <BookOpen className={iconClassName} />,
     items: [
       { name: "Môn học", icon: <BookOpen className={iconClassName} />, path: "/dashboard/admin/courses" },
-      { name: "Môn tiên quyết", icon: <CheckSquare className={iconClassName} />, path: "/dashboard/admin/course-prerequisites", badge: "BE" },
+      // { name: "Môn tiên quyết", icon: <CheckSquare className={iconClassName} />, path: "/dashboard/admin/course-prerequisites" },
       { name: "Lớp học phần", icon: <Layers className={iconClassName} />, path: "/dashboard/admin/course-classes" },
       { name: "Lịch học", icon: <CalendarDays className={iconClassName} />, path: "/dashboard/admin/schedules" },
     ],
@@ -118,7 +118,7 @@ export const adminNavGroups: NavGroup[] = [
     groupName: "Hệ thống",
     icon: <ShieldCheck className={iconClassName} />,
     items: [
-      { name: "Tài khoản người dùng", icon: <User className={iconClassName} />, path: "/dashboard/admin/users", badge: "BE" },
+      { name: "Tài khoản người dùng", icon: <User className={iconClassName} />, path: "/dashboard/admin/users" },
       { name: "Phân quyền (RBAC)", icon: <ShieldCheck className={iconClassName} />, path: "/dashboard/admin/rbac" },
       {
         name: "Reset mật khẩu",

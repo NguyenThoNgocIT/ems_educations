@@ -26,7 +26,7 @@ import java.util.UUID;
 public class InstructorProfile extends SoftDeleteEntity {
 
     @Id
-    @Column(name = "EmployeeId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "EmployeeId", updatable = false, nullable = false)
     private UUID employeeId;
 
     @OneToOne(fetch = FetchType.LAZY)

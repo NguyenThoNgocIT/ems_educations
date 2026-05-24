@@ -20,16 +20,16 @@ import java.util.UUID;
 public class TeachingProgressLog extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "TeachingProgressLogId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "TeachingProgressLogId", updatable = false, nullable = false)
     private UUID teachingProgressLogId;
 
-    @Column(name = "CourseClassId", nullable = false, columnDefinition = "uniqueidentifier")
+    @Column(name = "CourseClassId", nullable = false)
     private UUID courseClassId;
 
-    @Column(name = "ScheduleId", columnDefinition = "uniqueidentifier")
+    @Column(name = "ScheduleId")
     private UUID scheduleId;
 
-    @Column(name = "InstructorId", columnDefinition = "uniqueidentifier")
+    @Column(name = "InstructorId")
     private UUID instructorId;
 
     @Column(name = "TeachingDate", nullable = false)

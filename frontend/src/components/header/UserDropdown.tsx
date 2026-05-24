@@ -37,6 +37,12 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
     router.refresh();
   };
 
+  const profileHref = role === "lecturer"
+    ? "/dashboard/lecturer/profile"
+    : role === "student"
+      ? "/dashboard/student/profile"
+      : "/profile";
+
   return (
     <div className="relative">
       <button
@@ -67,7 +73,7 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
         <DropdownItem
           onItemClick={() => setIsOpen(false)}
           tag="a"
-          href="/profile"
+          href={profileHref}
           className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-300 dark:hover:bg-emerald-950/30"
         >
           <UserRound size={18} className="text-slate-400 group-hover:text-emerald-600" />

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { studentApi } from '@/api/student';
 import { trainingProgramApi } from '@/api/training-program';
 import type { StudentListItem } from '@/types/student';
+import StudentDialog from '@/components/ems/StudentDialog';
 
 // Hàm tính năm đào tạo dựa trên ngày tạo
 const getTrainingYear = (createdAt?: string): string => {
@@ -59,6 +60,10 @@ export default function StudentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [programs, setPrograms] = useState<any[]>([]);
+
+  // Dialog State
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -108,6 +113,7 @@ export default function StudentsPage() {
   );
 
   const handleDelete = async (student: StudentListItem) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa sinh viên ${student.fullName}?`)) return;
     try {
       await studentApi.delete(student.id);
       toast.success(`Đã xóa sinh viên ${student.fullName}`);
@@ -117,13 +123,15 @@ export default function StudentsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  const handleOpenCreate = () => {
+    setSelectedStudentId(null);
+    setDialogOpen(true);
+  };
+
+  const handleOpenEdit = (id: string) => {
+    setSelectedStudentId(id);
+    setDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -135,10 +143,16 @@ export default function StudentsPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Quản lý sinh viên</h1>
           <p className="mt-1 text-sm text-muted-foreground">Danh sách sinh viên và trạng thái đào tạo</p>
         </div>
-        <Button onClick={() => router.push('/dashboard/admin/students/create')} className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Plus className="h-4 w-4 mr-2" />
-          Thêm sinh viên
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Tải lại
+          </Button>
+          <Button onClick={handleOpenCreate} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm sinh viên
+          </Button>
+        </div>
       </div>
 
       <Card className="border-primary/10 shadow-sm">
@@ -168,7 +182,11 @@ export default function StudentsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {paginatedStudents.length === 0 ? (
+          {loading ? (
+            <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
+              Đang tải danh sách sinh viên...
+            </div>
+          ) : paginatedStudents.length === 0 ? (
             <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
               Chưa có dữ liệu sinh viên. Hãy thêm sinh viên mới.
             </div>
@@ -216,7 +234,7 @@ export default function StudentsPage() {
                             <Button 
                               variant="ghost" 
                               size="icon-sm"
-                              onClick={() => router.push(`/dashboard/admin/students/${student.id}/edit`)}
+                              onClick={() => handleOpenEdit(student.id)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -277,6 +295,13 @@ export default function StudentsPage() {
           )}
         </CardContent>
       </Card>
+
+      <StudentDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        studentId={selectedStudentId}
+        onSaveSuccess={fetchData}
+      />
     </div>
   );
 }

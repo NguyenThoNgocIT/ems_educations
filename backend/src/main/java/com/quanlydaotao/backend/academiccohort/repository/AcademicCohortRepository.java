@@ -16,8 +16,8 @@ public interface AcademicCohortRepository extends JpaRepository<AcademicCohort, 
     @Query("""
             SELECT c
             FROM AcademicCohort c
-            WHERE (:keyword IS NULL OR LOWER(c.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            WHERE (:keyword IS NULL OR LOWER(c.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                   OR LOWER(c.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:isActive IS NULL OR c.isActive = :isActive)
             ORDER BY c.startYear DESC, c.code ASC
             """)

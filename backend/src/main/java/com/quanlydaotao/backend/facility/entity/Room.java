@@ -17,7 +17,7 @@ public class Room extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "RoomId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "RoomId", updatable = false, nullable = false)
     private UUID roomId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 100)

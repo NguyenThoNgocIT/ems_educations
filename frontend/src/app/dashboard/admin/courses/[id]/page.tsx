@@ -24,7 +24,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { courseApi, courseClassApi, coursePrerequisiteApi } from '@/api/course';
+import { departmentApi } from '@/api/department';
 import PrerequisiteDualList, { PrerequisiteItem } from '@/components/ems/PrerequisiteDualList';
+import type { Department } from '@/types/lookup';
+import CourseDialog from '@/components/ems/CourseDialog';
+
+const getDepartmentId = (department: Department) => department.departmentId || department.id || '';
+const getDepartmentLabel = (department: Department) => [department.code, department.name].filter(Boolean).join(' - ');
 
 interface Course {
   id: string;
@@ -32,6 +38,7 @@ interface Course {
   name: string;
   nameEn: string;
   departmentId: string;
+  departmentName: string;
   courseType: string;
   credits: number;
   theoryHours: number;
@@ -48,6 +55,8 @@ interface CourseClass {
   currentStudent: number;
   status: string;
   roomId?: string;
+  roomCode?: string;
+  roomName?: string;
   semesterId?: string;
 }
 
@@ -69,43 +78,50 @@ export default function CourseDetailPage() {
   const [prereqs, setPrereqs] = useState<PrerequisiteItem[]>([]);
   const [prereqsLoading, setPrereqsLoading] = useState<boolean>(false);
 
+  // Dialog State
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+
+  const fetchDetails = async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const [response, departments]: [any, Department[]] = await Promise.all([
+        courseApi.getById(id),
+        departmentApi.getAll(),
+      ]);
+      if (!response) throw new Error('Không tìm thấy thông tin môn học');
+
+      const item = response.data ? response.data : response;
+      const department = (departments || []).find((entry) => getDepartmentId(entry) === item.departmentId);
+      
+      setCourse({
+        id: item.courseId || item.id || id,
+        code: item.code || '',
+        name: item.name || '',
+        nameEn: item.nameEn || '',
+        departmentId: item.departmentId || '',
+        departmentName: item.departmentName || (department ? getDepartmentLabel(department) : ''),
+        courseType: item.courseType || 'Bắt buộc',
+        credits: typeof item.credits === 'number' ? item.credits : parseFloat(item.credits) || 0.0,
+        theoryHours: typeof item.theoryHours === 'number' ? item.theoryHours : parseInt(item.theoryHours) || 0,
+        practiceHours: typeof item.practiceHours === 'number' ? item.practiceHours : parseInt(item.practiceHours) || 0,
+        selfStudyHours: typeof item.selfStudyHours === 'number' ? item.selfStudyHours : parseFloat(item.selfStudyHours) || 0.0,
+        description: item.description || '',
+        isActive: item.isActive !== undefined ? item.isActive : true,
+      });
+    } catch (error) {
+      console.error('Error fetching course:', error);
+      toast.error('Không tìm thấy môn học yêu cầu');
+      router.push('/dashboard/admin/courses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch course details on mount
   useEffect(() => {
-    if (!id) return;
-
-    async function fetchDetails() {
-      try {
-        setLoading(true);
-        const response: any = await courseApi.getById(id);
-        if (!response) throw new Error('Không tìm thấy thông tin môn học');
-
-        const item = response.data ? response.data : response;
-        
-        setCourse({
-          id: item.courseId || item.id || id,
-          code: item.code || '',
-          name: item.name || '',
-          nameEn: item.nameEn || '',
-          departmentId: item.departmentId || '',
-          courseType: item.courseType || 'Bắt buộc',
-          credits: typeof item.credits === 'number' ? item.credits : parseFloat(item.credits) || 0.0,
-          theoryHours: typeof item.theoryHours === 'number' ? item.theoryHours : parseInt(item.theoryHours) || 0,
-          practiceHours: typeof item.practiceHours === 'number' ? item.practiceHours : parseInt(item.practiceHours) || 0,
-          selfStudyHours: typeof item.selfStudyHours === 'number' ? item.selfStudyHours : parseFloat(item.selfStudyHours) || 0.0,
-          description: item.description || '',
-          isActive: item.isActive !== undefined ? item.isActive : true,
-        });
-      } catch (error) {
-        console.error('Error fetching course:', error);
-        toast.error('Không tìm thấy môn học yêu cầu');
-        router.push('/dashboard/admin/courses');
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchDetails();
-  }, [id, router]);
+  }, [id]);
 
   // Load Tab 2: Course Classes
   const loadClasses = async () => {
@@ -134,7 +150,13 @@ export default function CourseDetailPage() {
       setPrereqsLoading(true);
       
       // 1. Load all courses to resolve codes/names
-      const allRes: any = await courseApi.getAll();
+      const [allRes, departments]: [any, Department[]] = await Promise.all([
+        courseApi.getAll(),
+        departmentApi.getAll(),
+      ]);
+      const departmentLabels = new Map(
+        (departments || []).map((department) => [getDepartmentId(department), getDepartmentLabel(department)]),
+      );
       let coursesList = [];
       if (allRes && Array.isArray(allRes)) {
         coursesList = allRes;
@@ -151,6 +173,7 @@ export default function CourseDetailPage() {
         code: c.code || '',
         name: c.name || '',
         departmentId: c.departmentId || '',
+        departmentName: c.departmentName || departmentLabels.get(c.departmentId || '') || '',
         courseType: c.courseType || '',
         credits: c.credits || 0,
       }));
@@ -176,6 +199,7 @@ export default function CourseDetailPage() {
           code: courseInfo ? courseInfo.code : '—',
           name: courseInfo ? courseInfo.name : 'Môn học liên kết',
           departmentId: courseInfo ? courseInfo.departmentId : '—',
+          departmentName: courseInfo ? courseInfo.departmentName : '',
           type: p.type === 'PARALLEL' ? 'PARALLEL' : 'PREREQUISITE',
         };
       });
@@ -276,7 +300,7 @@ export default function CourseDetailPage() {
         </div>
 
         <Button 
-          onClick={() => router.push(`/dashboard/admin/courses/${course.id}/edit`)}
+          onClick={() => setDialogOpen(true)}
           className="bg-primary hover:bg-primary/95 text-white font-semibold rounded-xl h-11 px-5 flex items-center gap-2 shrink-0 self-start sm:self-auto"
         >
           <Edit className="h-4 w-4" />
@@ -349,7 +373,7 @@ export default function CourseDetailPage() {
                     <div className="space-y-1">
                       <span className="text-xs text-slate-400 font-medium">Khoa phụ trách</span>
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {course.departmentId || 'Chưa liên kết'}
+                        {course.departmentName || 'Chưa liên kết'}
                       </p>
                     </div>
                     <div className="space-y-1">
@@ -509,7 +533,7 @@ export default function CourseDetailPage() {
                             {cls.classCode}
                           </td>
                           <td className="py-3 px-6 text-center text-sm font-semibold text-slate-700 dark:text-slate-350">
-                            {cls.roomId || '—'}
+                            {cls.roomName || cls.roomCode || 'Chưa xếp phòng'}
                           </td>
                           <td className="py-3 px-6 text-center text-sm font-bold text-slate-900 dark:text-slate-100">
                             {cls.maxStudent || '50'}
@@ -555,6 +579,13 @@ export default function CourseDetailPage() {
         )}
 
       </div>
+
+      <CourseDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        courseId={course.id}
+        onSaveSuccess={fetchDetails}
+      />
     </div>
   );
 }

@@ -341,7 +341,7 @@ export default function SemestersPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingSemester ? "Chỉnh sửa học kỳ" : "Thêm học kỳ mới"}</DialogTitle>
           </DialogHeader>

@@ -19,7 +19,7 @@ public class CourseRegistration extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "CourseRegistrationId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "CourseRegistrationId", updatable = false, nullable = false)
     private UUID courseRegistrationId;
 
     @ManyToOne(fetch = FetchType.LAZY)

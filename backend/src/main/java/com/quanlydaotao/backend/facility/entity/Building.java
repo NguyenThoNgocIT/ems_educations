@@ -17,7 +17,7 @@ public class Building extends SoftDeleteEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "BuildingId", columnDefinition = "uniqueidentifier", updatable = false, nullable = false)
+    @Column(name = "BuildingId", updatable = false, nullable = false)
     private UUID buildingId;
 
     @Column(name = "Code", nullable = false, unique = true, length = 100)
