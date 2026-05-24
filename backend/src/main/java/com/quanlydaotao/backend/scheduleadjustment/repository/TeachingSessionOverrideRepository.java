@@ -6,10 +6,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
 public interface TeachingSessionOverrideRepository extends JpaRepository<TeachingSessionOverride, UUID> {
+    List<TeachingSessionOverride> findByCourseClassIdInAndIsActiveTrue(List<UUID> courseClassIds);
     @Query("""
             SELECT COUNT(o) > 0
             FROM TeachingSessionOverride o

@@ -25,6 +25,8 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
     boolean existsByInstructorEmployeeIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
             UUID instructorId, UUID semesterId, Integer dayOfWeek, UUID timeSlotId, UUID scheduleId);
 
+    boolean existsByCourseClassCourseClassId(UUID courseClassId);
+
     List<Schedule> findByCourseClassCourseClassId(UUID courseClassId);
     
     List<Schedule> findByInstructorEmployeeId(UUID instructorId);

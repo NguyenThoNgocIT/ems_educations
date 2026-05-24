@@ -1,5 +1,7 @@
 package com.quanlydaotao.backend.scheduling.entity;
 
+import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
+import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
 import com.quanlydaotao.backend.course.entity.CourseClass;
 import com.quanlydaotao.backend.facility.entity.Room;
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
@@ -11,6 +13,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import ai.timefold.solver.core.api.domain.lookup.PlanningId;
+
+@PlanningEntity
 @Entity
 @Table(name = "Schedules")
 @Getter
@@ -20,6 +25,7 @@ import java.util.UUID;
 @Builder
 public class Schedule extends SoftDeleteEntity {
 
+    @PlanningId
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "ScheduleId", updatable = false, nullable = false)
@@ -36,10 +42,12 @@ public class Schedule extends SoftDeleteEntity {
     @Column(name = "SemesterId", nullable = false)
     private UUID semesterId;
 
+    @PlanningVariable(valueRangeProviderRefs = "roomList")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "RoomId", nullable = false)
     private Room room;
 
+    @PlanningVariable(valueRangeProviderRefs = "dayOfWeekList")
     @Column(name = "DayOfWeek", nullable = false)
     private Integer dayOfWeek;
 
@@ -49,6 +57,7 @@ public class Schedule extends SoftDeleteEntity {
     @Column(name = "Shift", length = 50)
     private String shift;
 
+    @PlanningVariable(valueRangeProviderRefs = "timeSlotList")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "TimeSlotId", nullable = false)
     private TimeSlot timeSlot;

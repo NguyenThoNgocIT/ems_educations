@@ -8,9 +8,11 @@ import { EventContentArg } from "@fullcalendar/core";
 import { scheduleApi } from "@/api/schedule";
 import { MapPin, Users, BookOpen } from 'lucide-react';
 import { toast } from "sonner";
+import AdjustmentModal from './AdjustmentModal';
 
 export default function LecturerSchedule() {
   const [events, setEvents] = useState<any[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const calendarRef = useRef<FullCalendar>(null);
 
   const fetchInitialData = async () => {
@@ -38,7 +40,10 @@ export default function LecturerSchedule() {
             calendar: s.type === 'TH' ? 'Warning' : 'Primary',
             roomCode: s.roomCode,
             courseClassName: s.courseClassName,
+            courseClassId: s.courseClassId,
             courseName: s.courseName,
+            timeSlotId: s.timeSlotId,
+            periods: (s.endPeriod || 3) - (s.startPeriod || 1),
             mode: s.type || s.mode
           }
         };
@@ -104,10 +109,25 @@ export default function LecturerSchedule() {
           day: 'Ngày'
         }}
         eventClick={(info) => {
-           toast.info(`Lớp: ${info.event.extendedProps.courseClassName} - Phòng: ${info.event.extendedProps.roomCode}`);
+          const props = info.event.extendedProps;
+          setSelectedEvent({
+            originalScheduleId: info.event.id,
+            courseClassId: props.courseClassId,
+            courseClassName: props.courseClassName,
+            date: info.event.startStr.split('T')[0],
+            timeSlotId: props.timeSlotId,
+            periods: props.periods || 3,
+            roomCode: props.roomCode
+          });
         }}
       />
       </div>
+      <AdjustmentModal 
+        isOpen={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        eventData={selectedEvent}
+        onSuccess={fetchInitialData}
+      />
     </div>
   );
 }

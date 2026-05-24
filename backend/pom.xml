@@ -186,6 +186,14 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- 🧩 TIMEFOLD SOLVER (AUTO SCHEDULING) -->
+        <dependency>
+            <groupId>ai.timefold.solver</groupId>
+            <artifactId>timefold-solver-spring-boot-starter</artifactId>
+            <!-- Lấy bản mới nhất hỗ trợ Java 17 / Spring Boot 3 -->
+            <version>1.14.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>

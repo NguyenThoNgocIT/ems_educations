@@ -11,7 +11,7 @@ import { roomApi } from "@/api/room";
 import { timeSlotApi } from "@/api/timeSlot";
 import { lecturerApi } from "@/api/lecturer";
 import { toast } from "sonner";
-import { Filter } from "lucide-react";
+import { Filter, Bot, Loader2 } from "lucide-react";
 
 // UI Components
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +31,9 @@ export default function TimetableBuilder() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("ALL"); // ALL | LECTURER | COURSE_CLASS
   const [filterId, setFilterId] = useState("ALL");
+  
+  const [isAutoScheduling, setIsAutoScheduling] = useState(false);
+  const [autoScheduleStatus, setAutoScheduleStatus] = useState("");
   
   const [formData, setFormData] = useState({
     courseClassId: "",
@@ -198,6 +201,36 @@ export default function TimetableBuilder() {
     setFilterId("ALL");
   };
 
+  const handleAutoSchedule = async () => {
+    try {
+      setIsAutoScheduling(true);
+      setAutoScheduleStatus("Đang khởi tạo thuật toán...");
+      await scheduleApi.generateAutoSchedule("77730894-3cf6-4f71-9c60-84ce2289c099"); // TODO: Use dynamic semester ID
+
+      const interval = setInterval(async () => {
+        try {
+          const res = await scheduleApi.getAutoScheduleStatus("77730894-3cf6-4f71-9c60-84ce2289c099");
+          const statusName = res.data?.data;
+          setAutoScheduleStatus("Trạng thái: " + statusName);
+          
+          if (statusName === "NOT_SOLVING") {
+            clearInterval(interval);
+            setIsAutoScheduling(false);
+            toast.success("Đã hoàn tất tự động xếp lịch!");
+            fetchInitialData();
+          }
+        } catch (e) {
+          clearInterval(interval);
+          setIsAutoScheduling(false);
+        }
+      }, 3000);
+
+    } catch (error: any) {
+      setIsAutoScheduling(false);
+      toast.error("Không thể chạy tự động xếp lịch");
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] min-h-[700px] gap-5">
       {/* TOOLBAR */}
@@ -249,6 +282,26 @@ export default function TimetableBuilder() {
             </SelectContent>
           </Select>
         )}
+
+        <div className="ml-auto">
+          <button
+            onClick={handleAutoSchedule}
+            disabled={isAutoScheduling}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-medium shadow-md shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isAutoScheduling ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>{autoScheduleStatus}</span>
+              </>
+            ) : (
+              <>
+                <Bot className="w-5 h-5" />
+                <span>AI Xếp Lịch Tự Động</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* MAIN CONTENT */}
