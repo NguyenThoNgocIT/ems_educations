@@ -1,33 +1,49 @@
-﻿import { request } from '@/utils/request';
+import { request } from '@/utils/request';
+import { withCache, clearCache } from '@/utils/cache';
+
+const CACHE_PREFIX = 'timeSlots';
 
 export const timeSlotApi = {
   // Lấy danh sách ca học
-  getAll: (params?: { keyword?: string; isActive?: boolean }) =>
-    request.get('/api/v1/time-slots', { params }),
+  getAll: (params?: { keyword?: string; isActive?: boolean }) => {
+    const cacheKey = `${CACHE_PREFIX}_${JSON.stringify(params || {})}`;
+    return withCache(cacheKey, async () => {
+      return request.get('/api/v1/time-slots', { params });
+    });
+  },
   
   // Lấy chi tiết ca học theo ID
   getById: (id: string) =>
     request.get(`/api/v1/time-slots/${id}`),
   
   // Tạo mới ca học
-  create: (data: {
+  create: async (data: {
     slotCode: string;      // ← sửa: code → slotCode
     startTime: string;     // ← giữ nguyên
     endTime: string;       // ← giữ nguyên
     isActive?: boolean;
-  }) =>
-    request.post('/api/v1/time-slots', data),
+  }) => {
+    const response = await request.post('/api/v1/time-slots', data);
+    clearCache(CACHE_PREFIX);
+    return response;
+  },
   
   // Cập nhật ca học
-  update: (id: string, data: {
+  update: async (id: string, data: {
     slotCode: string;      // ← sửa: code → slotCode
     startTime: string;     // ← giữ nguyên
     endTime: string;       // ← giữ nguyên
     isActive?: boolean;
-  }) =>
-    request.put(`/api/v1/time-slots/${id}`, data),
+  }) => {
+    const response = await request.put(`/api/v1/time-slots/${id}`, data);
+    clearCache(CACHE_PREFIX);
+    return response;
+  },
   
   // Xóa ca học
-  delete: (id: string) =>
-    request.delete(`/api/v1/time-slots/${id}`),
+  delete: async (id: string) => {
+    const response = await request.delete(`/api/v1/time-slots/${id}`);
+    clearCache(CACHE_PREFIX);
+    return response;
+  },
 };

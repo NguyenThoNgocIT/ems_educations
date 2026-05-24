@@ -1,18 +1,34 @@
 import { request } from '@/utils/request';
+import { withCache, clearCache } from '@/utils/cache';
+
+const CACHE_PREFIX = 'schoolYears';
 
 export const schoolYearApi = {
-  getAll: (params?: { keyword?: string; isActive?: boolean }) =>
-    request.get('/api/v1/school-years/admin', { params }),
+  getAll: (params?: { keyword?: string; isActive?: boolean }) => {
+    const cacheKey = `${CACHE_PREFIX}_${JSON.stringify(params || {})}`;
+    return withCache(cacheKey, async () => {
+      return request.get('/api/v1/school-years/admin', { params });
+    });
+  },
   
   getById: (id: string) =>
     request.get(`/api/v1/school-years/admin/${id}`),
   
-  create: (data: any) =>
-    request.post('/api/v1/school-years/admin', data),
+  create: async (data: any) => {
+    const response = await request.post('/api/v1/school-years/admin', data);
+    clearCache(CACHE_PREFIX);
+    return response;
+  },
   
-  update: (id: string, data: any) =>
-    request.put(`/api/v1/school-years/admin/${id}`, data),
+  update: async (id: string, data: any) => {
+    const response = await request.put(`/api/v1/school-years/admin/${id}`, data);
+    clearCache(CACHE_PREFIX);
+    return response;
+  },
   
-  delete: (id: string) =>
-    request.delete(`/api/v1/school-years/admin/${id}`),
+  delete: async (id: string) => {
+    const response = await request.delete(`/api/v1/school-years/admin/${id}`);
+    clearCache(CACHE_PREFIX);
+    return response;
+  },
 };
