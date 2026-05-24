@@ -1,26 +1,62 @@
 import { request } from '@/utils/request';
 import { unwrapApiResponse } from '@/api/response';
+import { withCache, clearCache } from '@/utils/cache';
+
+const COURSE_CACHE_PREFIX = 'courses';
+const COURSE_CLASS_CACHE_PREFIX = 'course_classes';
 
 export const courseApi = {
-  getAll: () => request.get('/api/v1/courses'),
+  getAll: async () => {
+    return withCache(COURSE_CACHE_PREFIX, async () => {
+      return request.get('/api/v1/courses');
+    });
+  },
   getById: (id: string) => request.get(`/api/v1/courses/${id}`),
   getByCode: (code: string) => request.get(`/api/v1/courses/code/${code}`),
   getByDepartment: (deptId: string) => request.get(`/api/v1/courses/department/${deptId}`),
-  create: (data: any) => request.post('/api/v1/courses', data),
-  update: (id: string, data: any) => request.put(`/api/v1/courses/${id}`, data),
-  delete: (id: string) => request.delete(`/api/v1/courses/${id}`),
+  create: async (data: any) => {
+    const response = await request.post('/api/v1/courses', data);
+    clearCache(COURSE_CACHE_PREFIX);
+    return response;
+  },
+  update: async (id: string, data: any) => {
+    const response = await request.put(`/api/v1/courses/${id}`, data);
+    clearCache(COURSE_CACHE_PREFIX);
+    return response;
+  },
+  delete: async (id: string) => {
+    const response = await request.delete(`/api/v1/courses/${id}`);
+    clearCache(COURSE_CACHE_PREFIX);
+    return response;
+  },
   
   getTrainingPrograms: () => request.get('/api/v1/training-programs/admin'),
 };
 
 export const courseClassApi = {
-  getAll: async () => unwrapApiResponse<any[]>(await request.get('/api/v1/courses/classes')),
+  getAll: async () => {
+    return withCache(COURSE_CLASS_CACHE_PREFIX, async () => {
+      return unwrapApiResponse<any[]>(await request.get('/api/v1/courses/classes'));
+    });
+  },
   getById: async (id: string) => unwrapApiResponse<any>(await request.get(`/api/v1/courses/classes/${id}`)),
   getByCourse: async (courseId: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/${courseId}/classes`)),
   getBySemester: async (semesterId: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/classes/semester/${semesterId}`)),
-  create: async (data: any) => unwrapApiResponse<any>(await request.post('/api/v1/courses/classes', data)),
-  update: async (id: string, data: any) => unwrapApiResponse<any>(await request.put(`/api/v1/courses/classes/${id}`, data)),
-  delete: (id: string) => request.delete(`/api/v1/courses/classes/${id}`),
+  create: async (data: any) => {
+    const response = unwrapApiResponse<any>(await request.post('/api/v1/courses/classes', data));
+    clearCache(COURSE_CLASS_CACHE_PREFIX);
+    return response;
+  },
+  update: async (id: string, data: any) => {
+    const response = unwrapApiResponse<any>(await request.put(`/api/v1/courses/classes/${id}`, data));
+    clearCache(COURSE_CLASS_CACHE_PREFIX);
+    return response;
+  },
+  delete: async (id: string) => {
+    const response = await request.delete(`/api/v1/courses/classes/${id}`);
+    clearCache(COURSE_CLASS_CACHE_PREFIX);
+    return response;
+  },
 };
 
 export const coursePrerequisiteApi = {
