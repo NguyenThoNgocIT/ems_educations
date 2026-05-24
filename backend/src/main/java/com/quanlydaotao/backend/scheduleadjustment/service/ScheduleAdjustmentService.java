@@ -1,6 +1,8 @@
 package com.quanlydaotao.backend.scheduleadjustment.service;
 
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentResponse;
+import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentBatchApproveRequest;
+import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentBatchApproveResponse;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentReviewRequest;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentSubmitRequest;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentValidateRequest;
@@ -24,9 +26,19 @@ public interface ScheduleAdjustmentService {
 
     List<ScheduleAdjustmentResponse> getCurrentInstructorRequests(String username);
 
+    List<ScheduleAdjustmentResponse> getCurrentInstructorRequests(String username, String status, UUID courseClassId);
+
+    ScheduleAdjustmentResponse getCurrentInstructorRequest(String username, UUID requestId);
+
+    ScheduleAdjustmentResponse updateCurrentInstructorRequest(String username, UUID requestId, ScheduleAdjustmentSubmitRequest request);
+
+    void cancelCurrentInstructorRequest(String username, UUID requestId);
+
     ScheduleAdjustmentResponse approve(UUID requestId, ScheduleAdjustmentReviewRequest request);
 
     ScheduleAdjustmentResponse reject(UUID requestId, ScheduleAdjustmentReviewRequest request);
 
     ScheduleAdjustmentResponse returnToInstructor(UUID requestId, ScheduleAdjustmentReviewRequest request);
+
+    ScheduleAdjustmentBatchApproveResponse batchApprove(ScheduleAdjustmentBatchApproveRequest request);
 }

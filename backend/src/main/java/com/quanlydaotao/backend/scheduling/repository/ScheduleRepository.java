@@ -31,6 +31,36 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
     
     List<Schedule> findByRoomRoomId(UUID roomId);
 
+    List<Schedule> findByInstructorEmployeeIdAndDateBetweenAndIsActiveTrueOrderByDateAsc(UUID instructorId, LocalDate fromDate, LocalDate toDate);
+
+    List<Schedule> findByCourseClassCourseClassIdAndDateBetweenAndIsActiveTrueOrderByDateAsc(UUID courseClassId, LocalDate fromDate, LocalDate toDate);
+
+    List<Schedule> findBySemesterIdAndIsActiveTrue(UUID semesterId);
+
+    @Query("""
+            SELECT s
+            FROM Schedule s
+            WHERE s.courseClass.courseClassId = :courseClassId
+              AND s.isActive = true
+              AND (s.scheduleType IS NULL OR s.scheduleType = 'FIXED')
+              AND (:fromDate IS NULL OR s.date >= :fromDate)
+              AND (:toDate IS NULL OR s.date <= :toDate)
+              AND (s.scheduleStatus IS NULL OR s.scheduleStatus NOT IN ('CANCELLED','ABSENT'))
+            ORDER BY s.date ASC, s.dayOfWeek ASC
+            """)
+    List<Schedule> findFixedSessions(UUID courseClassId, LocalDate fromDate, LocalDate toDate);
+
+    @Query("""
+            SELECT s
+            FROM Schedule s
+            WHERE s.instructor.employeeId = :instructorId
+              AND s.semesterId = :semesterId
+              AND s.isActive = true
+              AND (s.scheduleType IS NULL OR s.scheduleType = 'FIXED')
+            ORDER BY s.courseClass.classCode ASC, s.date ASC, s.dayOfWeek ASC
+            """)
+    List<Schedule> findFixedByInstructorAndSemester(UUID instructorId, UUID semesterId);
+
     @Query("""
             SELECT s
             FROM Schedule s

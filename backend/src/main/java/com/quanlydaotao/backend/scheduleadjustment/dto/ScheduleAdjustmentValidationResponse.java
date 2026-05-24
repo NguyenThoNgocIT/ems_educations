@@ -10,4 +10,6 @@ import java.util.List;
 public class ScheduleAdjustmentValidationResponse {
     private Boolean valid;
     private List<ValidationResultDto> results;
+    private List<ProposedSlotStatusDto> proposedSlots;
+    private List<ProposedRoomStatusDto> proposedRooms;
 }

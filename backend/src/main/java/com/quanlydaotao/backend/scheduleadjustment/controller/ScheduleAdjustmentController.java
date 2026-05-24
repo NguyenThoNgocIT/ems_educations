@@ -1,6 +1,8 @@
 package com.quanlydaotao.backend.scheduleadjustment.controller;
 
 import com.quanlydaotao.backend.common.dto.ApiResponse;
+import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentBatchApproveRequest;
+import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentBatchApproveResponse;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentResponse;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentReviewRequest;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentSubmitRequest;
@@ -14,9 +16,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -55,9 +59,54 @@ public class ScheduleAdjustmentController {
     @GetMapping("/me")
     @PreAuthorize("hasRole('LECTURER')")
     @Operation(summary = "Giảng viên xem danh sách yêu cầu điều chỉnh lịch của mình")
-    public ResponseEntity<ApiResponse<List<ScheduleAdjustmentResponse>>> getMine(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<ScheduleAdjustmentResponse>>> getMine(
+            Authentication authentication,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID courseClassId) {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách yêu cầu điều chỉnh lịch thành công",
-                service.getCurrentInstructorRequests(authentication.getName())));
+                service.getCurrentInstructorRequests(authentication.getName(), status, courseClassId)));
+    }
+
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('LECTURER')")
+    @Operation(summary = "Giảng viên xem danh sách yêu cầu điều chỉnh lịch của mình theo chuẩn FE")
+    public ResponseEntity<ApiResponse<List<ScheduleAdjustmentResponse>>> getMyRequests(
+            Authentication authentication,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID courseClassId) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách yêu cầu điều chỉnh lịch thành công",
+                service.getCurrentInstructorRequests(authentication.getName(), status, courseClassId)));
+    }
+
+    @GetMapping("/{requestId}")
+    @PreAuthorize("hasRole('LECTURER')")
+    @Operation(summary = "Giảng viên xem chi tiết yêu cầu điều chỉnh lịch của mình")
+    public ResponseEntity<ApiResponse<ScheduleAdjustmentResponse>> getDetail(
+            Authentication authentication,
+            @PathVariable UUID requestId) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết yêu cầu điều chỉnh lịch thành công",
+                service.getCurrentInstructorRequest(authentication.getName(), requestId)));
+    }
+
+    @PutMapping("/{requestId}")
+    @PreAuthorize("hasRole('LECTURER')")
+    @Operation(summary = "Giảng viên cập nhật yêu cầu điều chỉnh lịch đang chờ duyệt hoặc được trả về")
+    public ResponseEntity<ApiResponse<ScheduleAdjustmentResponse>> update(
+            Authentication authentication,
+            @PathVariable UUID requestId,
+            @Valid @RequestBody ScheduleAdjustmentSubmitRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật yêu cầu điều chỉnh lịch thành công",
+                service.updateCurrentInstructorRequest(authentication.getName(), requestId, request)));
+    }
+
+    @DeleteMapping("/{requestId}")
+    @PreAuthorize("hasRole('LECTURER')")
+    @Operation(summary = "Giảng viên hủy yêu cầu điều chỉnh lịch đang chờ duyệt")
+    public ResponseEntity<ApiResponse<Void>> cancel(
+            Authentication authentication,
+            @PathVariable UUID requestId) {
+        service.cancelCurrentInstructorRequest(authentication.getName(), requestId);
+        return ResponseEntity.ok(ApiResponse.success("Hủy yêu cầu điều chỉnh lịch thành công", null));
     }
 
     @GetMapping("/admin/instructor/{instructorId}")
@@ -104,5 +153,14 @@ public class ScheduleAdjustmentController {
             @PathVariable UUID requestId,
             @Valid @RequestBody ScheduleAdjustmentReviewRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Trả yêu cầu điều chỉnh lịch thành công", service.returnToInstructor(requestId, request)));
+    }
+
+    @PostMapping("/admin/batch-approve")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "Admin duyệt hàng loạt yêu cầu điều chỉnh lịch")
+    public ResponseEntity<ApiResponse<ScheduleAdjustmentBatchApproveResponse>> batchApprove(
+            @Valid @RequestBody ScheduleAdjustmentBatchApproveRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Duyệt hàng loạt yêu cầu điều chỉnh lịch hoàn tất",
+                service.batchApprove(request)));
     }
 }
