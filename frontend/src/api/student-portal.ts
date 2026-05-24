@@ -273,6 +273,8 @@ function normalizeSchedule(item: StudentPortalScheduleApiItem): StudentScheduleI
     room: item.roomCode || 'Chưa xếp phòng',
     lecturer: item.instructorName || 'Chưa phân công',
     mode: normalizeScheduleMode(item.mode),
+    overrideType: item.overrideType || undefined,
+    isCancelled: item.isCancelled ?? undefined,
   };
 }
 

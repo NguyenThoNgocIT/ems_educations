@@ -232,8 +232,10 @@ public class StudentServiceImpl implements StudentService {
         courseClasses.forEach(courseClass -> scheduleRepository.findByCourseClassCourseClassId(courseClass.getCourseClassId())
                 .stream()
                 .filter(schedule -> Boolean.TRUE.equals(schedule.getIsActive()))
-                .filter(schedule -> !cancelledScheduleIds.contains(schedule.getScheduleId()))
-                .forEach(schedule -> schedules.putIfAbsent(schedule.getScheduleId(), toScheduleResponse(schedule))));
+                .forEach(schedule -> {
+                    boolean isCancelled = cancelledScheduleIds.contains(schedule.getScheduleId());
+                    schedules.putIfAbsent(schedule.getScheduleId(), toScheduleResponse(schedule, isCancelled));
+                }));
                 
         overrides.stream()
                 .filter(o -> Boolean.TRUE.equals(o.getIsVisible()))
@@ -393,7 +395,7 @@ public class StudentServiceImpl implements StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Tài khoản hiện tại không phải sinh viên"));
     }
 
-    private StudentPortalScheduleResponse toScheduleResponse(Schedule schedule) {
+    private StudentPortalScheduleResponse toScheduleResponse(Schedule schedule, boolean isCancelled) {
         CourseClass courseClass = schedule.getCourseClass();
         Course course = courseClass == null ? null : courseClass.getCourse();
         return StudentPortalScheduleResponse.builder()
@@ -409,6 +411,7 @@ public class StudentServiceImpl implements StudentService {
                 .instructorName(schedule.getInstructor() == null || schedule.getInstructor().getPerson() == null
                         ? null : schedule.getInstructor().getPerson().getFullName())
                 .mode(schedule.getMode())
+                .isCancelled(isCancelled)
                 .build();
     }
 
@@ -433,6 +436,8 @@ public class StudentServiceImpl implements StudentService {
                 .roomCode(room == null ? null : room.getCode())
                 .instructorName(employee == null || employee.getPerson() == null ? null : employee.getPerson().getFullName())
                 .mode(courseClass == null ? null : "LT")
+                .overrideType(override.getOverrideType())
+                .isCancelled(false)
                 .build();
     }
 
