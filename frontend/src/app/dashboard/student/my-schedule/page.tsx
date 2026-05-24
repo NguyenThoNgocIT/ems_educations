@@ -80,19 +80,23 @@ export default function StudentMySchedulePage() {
               </thead>
               <tbody>
                 {filteredSchedules.map((item) => (
-                  <tr key={item.id} className="border-t border-slate-100 align-top transition hover:bg-emerald-50/40 dark:border-slate-800 dark:hover:bg-emerald-950/10">
+                  <tr key={item.id} className={`border-t border-slate-100 align-top transition hover:bg-emerald-50/40 dark:border-slate-800 dark:hover:bg-emerald-950/10 ${item.isCancelled ? 'opacity-50' : ''}`}>
                     <td className="px-4 py-4">
-                      <p className="font-semibold text-slate-950 dark:text-white">{item.dayLabel}</p>
-                      <p className="mt-1 text-xs text-slate-500">{item.dateLabel}</p>
+                      {item.isCancelled && <Badge variant="destructive" className="mb-1">Đã hủy</Badge>}
+                      {item.overrideType === 'MAKEUP' && <Badge variant="default" className="mb-1 bg-blue-500 hover:bg-blue-600">Học bù</Badge>}
+                      {item.overrideType === 'ROOM_CHANGE' && <Badge variant="outline" className="mb-1 border-orange-500 text-orange-600">Đổi phòng</Badge>}
+                      {item.overrideType === 'EXTRA' && <Badge variant="default" className="mb-1 bg-purple-500 hover:bg-purple-600">Tăng tiết</Badge>}
+                      <p className={`font-semibold text-slate-950 dark:text-white ${item.isCancelled ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>{item.dayLabel}</p>
+                      <p className={`mt-1 text-xs text-slate-500 ${item.isCancelled ? 'line-through' : ''}`}>{item.dateLabel}</p>
                     </td>
-                    <td className="px-4 py-4 font-medium text-slate-700 dark:text-slate-200">{item.time}</td>
+                    <td className={`px-4 py-4 font-medium text-slate-700 dark:text-slate-200 ${item.isCancelled ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>{item.time}</td>
                     <td className="px-4 py-4">
-                      <p className="font-semibold text-slate-950 dark:text-white">{item.courseName}</p>
-                      <p className="mt-1 text-xs font-semibold uppercase text-emerald-600">{item.courseCode}</p>
+                      <p className={`font-semibold text-slate-950 dark:text-white ${item.isCancelled ? 'text-slate-400 dark:text-slate-500' : ''}`}>{item.courseName}</p>
+                      <p className={`mt-1 text-xs font-semibold uppercase ${item.isCancelled ? 'text-slate-400' : 'text-emerald-600'}`}>{item.courseCode}</p>
                     </td>
-                    <td className="px-4 py-4 text-slate-700 dark:text-slate-200">{item.classCode}</td>
-                    <td className="px-4 py-4 text-slate-700 dark:text-slate-200">{item.room}</td>
-                    <td className="px-4 py-4 text-slate-700 dark:text-slate-200">{item.lecturer}</td>
+                    <td className={`px-4 py-4 text-slate-700 dark:text-slate-200 ${item.isCancelled ? 'text-slate-400 dark:text-slate-500' : ''}`}>{item.classCode}</td>
+                    <td className={`px-4 py-4 text-slate-700 dark:text-slate-200 ${item.isCancelled ? 'text-slate-400 dark:text-slate-500' : (item.overrideType === 'ROOM_CHANGE' ? 'font-bold text-orange-600 dark:text-orange-400' : '')}`}>{item.room}</td>
+                    <td className={`px-4 py-4 text-slate-700 dark:text-slate-200 ${item.isCancelled ? 'text-slate-400 dark:text-slate-500' : ''}`}>{item.lecturer}</td>
                     <td className="px-4 py-4"><Badge variant="outline">{item.mode}</Badge></td>
                   </tr>
                 ))}

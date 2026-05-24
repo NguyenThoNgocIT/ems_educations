@@ -20,9 +20,18 @@ import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.person.repository.PersonRepository;
 import com.quanlydaotao.backend.registrationperiod.entity.RegistrationPeriod;
 import com.quanlydaotao.backend.registrationperiod.repository.RegistrationPeriodRepository;
+import com.quanlydaotao.backend.scheduleadjustment.entity.TeachingSessionOverride;
+import com.quanlydaotao.backend.scheduleadjustment.repository.TeachingSessionOverrideRepository;
 import com.quanlydaotao.backend.scheduling.entity.Schedule;
+import com.quanlydaotao.backend.scheduling.entity.TimeSlot;
 import com.quanlydaotao.backend.scheduling.repository.ScheduleRepository;
+import com.quanlydaotao.backend.scheduling.repository.TimeSlotRepository;
 import com.quanlydaotao.backend.semester.entity.Semester;
+import com.quanlydaotao.backend.facility.repository.RoomRepository;
+import com.quanlydaotao.backend.facility.entity.Room;
+import com.quanlydaotao.backend.employee.entity.Employee;
+import com.quanlydaotao.backend.employee.repository.EmployeeRepository;
+import com.quanlydaotao.backend.course.repository.CourseClassRepository;
 import com.quanlydaotao.backend.semester.repository.SemesterRepository;
 import com.quanlydaotao.backend.student.dto.StudentAdminResponse;
 import com.quanlydaotao.backend.student.dto.StudentAdminCreateRequest;
@@ -90,6 +99,11 @@ public class StudentServiceImpl implements StudentService {
     private final StudentMapper studentMapper;
     private final StudentClassService studentClassService;
     private final StudentStatusHistoryService studentStatusHistoryService;
+    private final TeachingSessionOverrideRepository overrideRepository;
+    private final RoomRepository roomRepository;
+    private final TimeSlotRepository timeSlotRepository;
+    private final EmployeeRepository employeeRepository;
+    private final CourseClassRepository courseClassRepository;
 
     @Override
     @Transactional
@@ -200,13 +214,32 @@ public class StudentServiceImpl implements StudentService {
         Student student = findCurrentStudent(username);
         Map<UUID, StudentPortalScheduleResponse> schedules = new LinkedHashMap<>();
 
-        courseRegistrationRepository.findByStudentIdAndIsActiveTrue(student.getStudentId()).stream()
+        List<CourseClass> courseClasses = courseRegistrationRepository.findByStudentIdAndIsActiveTrue(student.getStudentId()).stream()
                 .map(CourseRegistration::getCourseClass)
                 .filter(Objects::nonNull)
-                .forEach(courseClass -> scheduleRepository.findByCourseClassCourseClassId(courseClass.getCourseClassId())
-                        .stream()
-                        .filter(schedule -> Boolean.TRUE.equals(schedule.getIsActive()))
-                        .forEach(schedule -> schedules.putIfAbsent(schedule.getScheduleId(), toScheduleResponse(schedule))));
+                .toList();
+                
+        List<UUID> courseClassIds = courseClasses.stream().map(CourseClass::getCourseClassId).toList();
+        
+        List<TeachingSessionOverride> overrides = courseClassIds.isEmpty() ? List.of() : 
+            overrideRepository.findByCourseClassIdInAndIsActiveTrue(courseClassIds);
+            
+        Set<UUID> cancelledScheduleIds = overrides.stream()
+                .filter(o -> "CANCELLED".equals(o.getOverrideType()) && o.getOriginalScheduleId() != null)
+                .map(TeachingSessionOverride::getOriginalScheduleId)
+                .collect(Collectors.toSet());
+
+        courseClasses.forEach(courseClass -> scheduleRepository.findByCourseClassCourseClassId(courseClass.getCourseClassId())
+                .stream()
+                .filter(schedule -> Boolean.TRUE.equals(schedule.getIsActive()))
+                .forEach(schedule -> {
+                    boolean isCancelled = cancelledScheduleIds.contains(schedule.getScheduleId());
+                    schedules.putIfAbsent(schedule.getScheduleId(), toScheduleResponse(schedule, isCancelled));
+                }));
+                
+        overrides.stream()
+                .filter(o -> Boolean.TRUE.equals(o.getIsVisible()))
+                .forEach(o -> schedules.putIfAbsent(o.getOverrideId(), toScheduleResponse(o)));
 
         return schedules.values().stream()
                 .sorted(Comparator
@@ -362,7 +395,7 @@ public class StudentServiceImpl implements StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Tài khoản hiện tại không phải sinh viên"));
     }
 
-    private StudentPortalScheduleResponse toScheduleResponse(Schedule schedule) {
+    private StudentPortalScheduleResponse toScheduleResponse(Schedule schedule, boolean isCancelled) {
         CourseClass courseClass = schedule.getCourseClass();
         Course course = courseClass == null ? null : courseClass.getCourse();
         return StudentPortalScheduleResponse.builder()
@@ -378,6 +411,33 @@ public class StudentServiceImpl implements StudentService {
                 .instructorName(schedule.getInstructor() == null || schedule.getInstructor().getPerson() == null
                         ? null : schedule.getInstructor().getPerson().getFullName())
                 .mode(schedule.getMode())
+                .isCancelled(isCancelled)
+                .build();
+    }
+
+    private StudentPortalScheduleResponse toScheduleResponse(TeachingSessionOverride override) {
+        CourseClass courseClass = courseClassRepository.findById(override.getCourseClassId()).orElse(null); 
+        Course course = courseClass == null ? null : courseClass.getCourse();
+        TimeSlot timeSlot = override.getTimeSlotId() != null ? timeSlotRepository.findById(override.getTimeSlotId()).orElse(null) : null;
+        Room room = override.getRoomId() != null ? roomRepository.findById(override.getRoomId()).orElse(null) : null;
+        Employee employee = override.getInstructorId() != null ? employeeRepository.findById(override.getInstructorId()).orElse(null) : null;
+        
+        Integer dayOfWeek = override.getTeachingDate() != null ? override.getTeachingDate().getDayOfWeek().getValue() : null;
+
+        return StudentPortalScheduleResponse.builder()
+                .scheduleId(override.getOverrideId())
+                .dayOfWeek(dayOfWeek)
+                .date(override.getTeachingDate())
+                .startTime(timeSlot == null ? null : timeSlot.getStartTime())
+                .endTime(timeSlot == null ? null : timeSlot.getEndTime())
+                .courseCode(course == null ? null : course.getCode())
+                .courseName(course == null ? null : course.getName())
+                .classCode(courseClass == null ? null : courseClass.getClassCode())
+                .roomCode(room == null ? null : room.getCode())
+                .instructorName(employee == null || employee.getPerson() == null ? null : employee.getPerson().getFullName())
+                .mode(courseClass == null ? null : "LT")
+                .overrideType(override.getOverrideType())
+                .isCancelled(false)
                 .build();
     }
 

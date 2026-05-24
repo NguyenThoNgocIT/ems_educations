@@ -16,6 +16,8 @@ export type StudentScheduleItem = {
   room: string;
   lecturer: string;
   mode: 'LT' | 'TH' | 'Online';
+  overrideType?: string;
+  isCancelled?: boolean;
 };
 
 export type StudentGradeItem = {
@@ -45,6 +47,8 @@ export type StudentPortalScheduleApiItem = {
   roomCode: string | null;
   instructorName: string | null;
   mode: string | null;
+  overrideType: string | null;
+  isCancelled: boolean | null;
 };
 
 export type StudentPortalAcademicResultApi = {

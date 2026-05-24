@@ -21,4 +21,6 @@ public class StudentPortalScheduleResponse {
     private String roomCode;
     private String instructorName;
     private String mode;
+    private String overrideType;
+    private Boolean isCancelled;
 }
