@@ -8,6 +8,9 @@ import com.quanlydaotao.backend.instructor.dto.InstructorAdminUpdateRequest;
 import com.quanlydaotao.backend.instructor.dto.InstructorSelfResponse;
 import com.quanlydaotao.backend.instructor.dto.InstructorSelfUpdateRequest;
 import com.quanlydaotao.backend.instructor.service.InstructorService;
+import com.quanlydaotao.backend.scheduling.dto.InstructorAvailabilityResponse;
+import com.quanlydaotao.backend.scheduling.dto.InstructorCourseClassSummaryResponse;
+import com.quanlydaotao.backend.scheduling.service.ScheduleQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,8 +25,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +38,7 @@ import java.util.UUID;
 @Tag(name = "Quản lý giảng viên", description = "API quản trị và tự quản lý thông tin giảng viên")
 public class InstructorController {
     private final InstructorService instructorService;
+    private final ScheduleQueryService scheduleQueryService;
 
     @PostMapping("/admin")
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
@@ -78,6 +84,27 @@ public class InstructorController {
     @Operation(summary = "Giảng viên xem thông tin của chính mình")
     public ResponseEntity<ApiResponse<InstructorSelfResponse>> getCurrentInstructor(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin giảng viên thành công", instructorService.getCurrentInstructor(authentication.getName())));
+    }
+
+    @GetMapping("/me/course-classes")
+    @PreAuthorize("hasRole('LECTURER')")
+    @Operation(summary = "Giảng viên xem danh sách lớp học phần đang phụ trách trong học kỳ")
+    public ResponseEntity<ApiResponse<List<InstructorCourseClassSummaryResponse>>> getCurrentInstructorCourseClasses(
+            Authentication authentication,
+            @RequestParam(required = false) UUID semesterId) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lớp học phần đang phụ trách thành công",
+                scheduleQueryService.getCurrentInstructorCourseClasses(authentication.getName(), semesterId)));
+    }
+
+    @GetMapping("/{id}/availability")
+    @PreAuthorize("hasAnyRole('LECTURER','ADMIN','SUPER_ADMIN')")
+    @Operation(summary = "Xem lịch rảnh/bận của giảng viên theo ngày")
+    public ResponseEntity<ApiResponse<InstructorAvailabilityResponse>> getInstructorAvailability(
+            @PathVariable UUID id,
+            @RequestParam LocalDate date,
+            @RequestParam(required = false) UUID semesterId) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy lịch rảnh/bận của giảng viên thành công",
+                scheduleQueryService.getInstructorAvailability(id, date, semesterId)));
     }
 
     @PutMapping("/me")
