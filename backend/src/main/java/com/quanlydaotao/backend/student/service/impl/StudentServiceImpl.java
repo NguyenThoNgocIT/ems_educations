@@ -7,9 +7,7 @@ import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.course.entity.Course;
 import com.quanlydaotao.backend.course.entity.CourseClass;
 import com.quanlydaotao.backend.course.entity.CourseRegistration;
-import com.quanlydaotao.backend.course.entity.StudentGrade;
 import com.quanlydaotao.backend.course.repository.CourseRegistrationRepository;
-import com.quanlydaotao.backend.course.repository.StudentGradeRepository;
 import com.quanlydaotao.backend.department.repository.DepartmentRepository;
 import com.quanlydaotao.backend.major.entity.Major;
 import com.quanlydaotao.backend.trainingprogram.entity.TrainingProgram;
@@ -29,6 +27,8 @@ import com.quanlydaotao.backend.scheduling.repository.TimeSlotRepository;
 import com.quanlydaotao.backend.semester.entity.Semester;
 import com.quanlydaotao.backend.facility.repository.RoomRepository;
 import com.quanlydaotao.backend.facility.entity.Room;
+import com.quanlydaotao.backend.grade.entity.StudentSummary;
+import com.quanlydaotao.backend.grade.repository.StudentSummaryRepository;
 import com.quanlydaotao.backend.employee.entity.Employee;
 import com.quanlydaotao.backend.employee.repository.EmployeeRepository;
 import com.quanlydaotao.backend.course.repository.CourseClassRepository;
@@ -92,7 +92,7 @@ public class StudentServiceImpl implements StudentService {
     private final AcademicCohortRepository academicCohortRepository;
     private final SpecializationRepository specializationRepository;
     private final CourseRegistrationRepository courseRegistrationRepository;
-    private final StudentGradeRepository studentGradeRepository;
+    private final StudentSummaryRepository studentSummaryRepository;
     private final ScheduleRepository scheduleRepository;
     private final SemesterRepository semesterRepository;
     private final RegistrationPeriodRepository registrationPeriodRepository;
@@ -256,13 +256,12 @@ public class StudentServiceImpl implements StudentService {
         List<CourseRegistration> registrations = courseRegistrationRepository.findByStudentId(student.getStudentId()).stream()
                 .filter(registration -> registration.getCourseClass() != null)
                 .toList();
-        List<StudentGrade> studentGrades = studentGradeRepository.findByStudentId(student.getStudentId());
         Map<UUID, Semester> semestersById = loadSemesters(registrations);
-        Map<UUID, CourseRegistration> latestRegistrationByCourse = latestRegistrationByCourse(registrations, semestersById);
+        List<StudentSummary> summaries = studentSummaryRepository.findFinalizedByStudent(student.getStudentId());
 
-        List<StudentPortalGradeResponse> grades = studentGrades.stream()
-                .filter(grade -> grade.getCourse() != null)
-                .map(grade -> toGradeResponse(grade, latestRegistrationByCourse.get(grade.getCourseId()), semestersById))
+        List<StudentPortalGradeResponse> grades = summaries.stream()
+                .filter(summary -> summary.getCourseRegistration() != null && summary.getCourseRegistration().getCourseClass() != null)
+                .map(summary -> toGradeResponse(summary, semestersById))
                 .sorted(Comparator
                         .comparing((StudentPortalGradeResponse grade) -> semesterStartDate(grade.getSemesterId(), semestersById), Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(StudentPortalGradeResponse::getCourseCode, Comparator.nullsLast(String::compareToIgnoreCase)))
@@ -505,23 +504,23 @@ public class StudentServiceImpl implements StudentService {
     }
 
     private StudentPortalGradeResponse toGradeResponse(
-            StudentGrade grade,
-            CourseRegistration registration,
+            StudentSummary summary,
             Map<UUID, Semester> semestersById) {
-        Course course = grade.getCourse();
-        UUID semesterId = registration == null ? null : registration.getCourseClass().getSemesterId();
+        CourseRegistration registration = summary.getCourseRegistration();
+        Course course = registration.getCourseClass().getCourse();
+        UUID semesterId = registration.getCourseClass().getSemesterId();
         Semester semester = semesterId == null ? null : semestersById.get(semesterId);
         return StudentPortalGradeResponse.builder()
-                .gradeId(grade.getGradeId())
+                .gradeId(summary.getCourseRegistrationId())
                 .semesterId(semesterId)
                 .semesterLabel(semester == null ? "Chưa xác định học kỳ" : semester.getName())
                 .courseCode(course.getCode())
                 .courseName(course.getName())
                 .credits(course.getCredits())
-                .finalScore(grade.getGrade())
-                .gradePoint(toGradePoint(grade.getGrade()))
-                .letterGrade(toLetterGrade(grade.getGrade()))
-                .status(normalizeGradeStatus(grade))
+                .finalScore(summary.getTotalScore() == null ? null : summary.getTotalScore().doubleValue())
+                .gradePoint(summary.getGpaValue() == null ? null : summary.getGpaValue().doubleValue())
+                .letterGrade(summary.getLetterGrade())
+                .status(summary.getResult())
                 .build();
     }
 
@@ -546,38 +545,6 @@ public class StudentServiceImpl implements StudentService {
         return trainingProgramRepository.findById(student.getTrainingProgramId())
                 .map(TrainingProgram::getTotalCredits)
                 .orElse(0);
-    }
-
-    private String normalizeGradeStatus(StudentGrade grade) {
-        if (StringUtils.hasText(grade.getStatus())) {
-            return grade.getStatus().trim().toUpperCase();
-        }
-        if (grade.getGrade() == null) {
-            return "IN_PROGRESS";
-        }
-        return grade.getGrade() >= 4D ? "PASSED" : "FAILED";
-    }
-
-    private Double toGradePoint(Double score) {
-        if (score == null) {
-            return null;
-        }
-        if (score >= 8.5D) return 4D;
-        if (score >= 7D) return 3D;
-        if (score >= 5.5D) return 2D;
-        if (score >= 4D) return 1D;
-        return 0D;
-    }
-
-    private String toLetterGrade(Double score) {
-        if (score == null) {
-            return "--";
-        }
-        if (score >= 8.5D) return "A";
-        if (score >= 7D) return "B";
-        if (score >= 5.5D) return "C";
-        if (score >= 4D) return "D";
-        return "F";
     }
 
     private void updatePersonForAdmin(Person person, StudentAdminUpdateRequest request) {

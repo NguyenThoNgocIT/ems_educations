@@ -15,4 +15,6 @@ public interface CourseRegistrationRepository extends JpaRepository<CourseRegist
     boolean existsByStudentIdAndCourseClassIdAndIsActiveTrue(UUID studentId, UUID courseClassId);
 
     List<CourseRegistration> findByStudentIdAndIsActiveTrue(UUID studentId);
+
+    List<CourseRegistration> findByCourseClassIdAndIsActiveTrue(UUID courseClassId);
 }
