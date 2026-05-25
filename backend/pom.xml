@@ -62,6 +62,14 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- 🔄 DEVTOOLS (HOT RELOAD) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- 📧 MAIL -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
