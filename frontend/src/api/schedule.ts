@@ -10,4 +10,6 @@ export const scheduleApi = {
   delete: (id: string) => apiClient.delete(`/api/v1/schedules/${id}`),
   generateAutoSchedule: (semesterId: string) => apiClient.post(`/api/v1/auto-schedules/generate/${semesterId}`),
   getAutoScheduleStatus: (semesterId: string) => apiClient.get(`/api/v1/auto-schedules/status/${semesterId}`),
+  getTeachingProgress: (params?: { semesterId?: string; instructorId?: string; courseClassId?: string }) => 
+    apiClient.get('/api/v1/schedules/teaching-progress', { params }),
 };

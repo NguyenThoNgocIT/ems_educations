@@ -18,6 +18,8 @@ public class CourseClassDto {
     private LocalDate endDate;
     private UUID semesterId;
     private UUID courseId;
+    private String courseName;
+    private Double credits;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

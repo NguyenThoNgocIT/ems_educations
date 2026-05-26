@@ -37,6 +37,7 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
     }
   }, [isOpen]);
 
+  const type = requestType;
   const setType = setRequestType; // alias for backwards compat in rendering
   const newDate = proposedDate;
   const setNewDate = setProposedDate;
@@ -120,8 +121,6 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
       setIsSubmitting(false);
     }
   };
-
-  const needsNewSchedule = type !== 'ABSENT';
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

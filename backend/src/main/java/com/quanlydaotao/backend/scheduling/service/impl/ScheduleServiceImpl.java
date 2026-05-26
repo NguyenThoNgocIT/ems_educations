@@ -13,6 +13,10 @@ import com.quanlydaotao.backend.scheduling.repository.TimeSlotRepository;
 import com.quanlydaotao.backend.scheduling.service.ScheduleService;
 import com.quanlydaotao.backend.employee.repository.EmployeeRepository;
 import com.quanlydaotao.backend.teachingassignment.repository.TeachingAssignmentRepository;
+import com.quanlydaotao.backend.administrativeclass.entity.AdministrativeClass;
+import com.quanlydaotao.backend.administrativeclass.repository.AdministrativeClassRepository;
+import com.quanlydaotao.backend.teachingassignment.entity.TeachingAssignment;
+import com.quanlydaotao.backend.course.entity.CourseClass;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +36,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final EmployeeLeaveRequestRepository employeeLeaveRequestRepository;
     private final ScheduleMapper scheduleMapper;
+    private final AdministrativeClassRepository administrativeClassRepository;
 
     @Override
     public List<ScheduleDto> getAll() {
@@ -137,14 +142,37 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     private void validateInstructorAssignmentAndLeave(ScheduleDto dto) {
-        if (dto.getInstructorId() != null
-                && !teachingAssignmentRepository.existsByInstructorIdAndCourseClassIdAndSemesterIdAndIsActiveTrue(
-                dto.getInstructorId(), dto.getCourseClassId(), dto.getSemesterId())) {
-            throw new BusinessException("Giảng viên chưa được phân công dạy lớp học phần này");
-        }
-        if (dto.getInstructorId() != null && dto.getDate() != null
-                && employeeLeaveRequestRepository.hasApprovedLeaveOnDate(dto.getInstructorId(), dto.getDate())) {
-            throw new BusinessException("Giảng viên đã có lịch nghỉ được duyệt trong ngày này");
+        if (dto.getInstructorId() != null) {
+            boolean assigned = teachingAssignmentRepository.existsByInstructorIdAndCourseClassIdAndSemesterIdAndIsActiveTrue(
+                    dto.getInstructorId(), dto.getCourseClassId(), dto.getSemesterId());
+            if (!assigned) {
+                CourseClass courseClass = courseClassRepository.findById(dto.getCourseClassId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Lớp học phần không tồn tại"));
+                
+                UUID classId = administrativeClassRepository.findByClassCode(courseClass.getClassCode())
+                        .map(AdministrativeClass::getClassId)
+                        .orElseGet(() -> {
+                            List<AdministrativeClass> allClasses = administrativeClassRepository.findAll();
+                            if (allClasses.isEmpty()) {
+                                throw new BusinessException("Không có lớp hành chính nào trong hệ thống để thực hiện phân công");
+                            }
+                            return allClasses.get(0).getClassId();
+                        });
+
+                TeachingAssignment teachingAssignment = new TeachingAssignment();
+                teachingAssignment.setInstructorId(dto.getInstructorId());
+                teachingAssignment.setCourseClassId(dto.getCourseClassId());
+                teachingAssignment.setClassId(classId);
+                teachingAssignment.setSemesterId(dto.getSemesterId());
+                teachingAssignment.setIsActive(true);
+                
+                teachingAssignmentRepository.save(teachingAssignment);
+            }
+
+            if (dto.getDate() != null
+                    && employeeLeaveRequestRepository.hasApprovedLeaveOnDate(dto.getInstructorId(), dto.getDate())) {
+                throw new BusinessException("Giảng viên đã có lịch nghỉ được duyệt trong ngày này");
+            }
         }
     }
 }

@@ -99,7 +99,7 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         entity.setReason(request.getReason().trim());
         entity.setStatus("PENDING");
         entity.setIsActive(true);
-        return mapper.toDto(requestRepository.save(entity));
+        return enrichResponse(mapper.toDto(requestRepository.save(entity)));
     }
 
     @Override
@@ -112,13 +112,13 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
     @Override
     @Transactional(readOnly = true)
     public List<ScheduleAdjustmentResponse> searchAdmin(String status, UUID courseClassId, UUID instructorId) {
-        return mapper.toDtoList(requestRepository.search(normalizeBlank(status), courseClassId, instructorId));
+        return enrichResponses(mapper.toDtoList(requestRepository.search(normalizeBlank(status), courseClassId, instructorId)));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ScheduleAdjustmentResponse> getByInstructor(UUID instructorId) {
-        return mapper.toDtoList(requestRepository.findByRequestedByInstructorIdAndIsActiveTrue(instructorId));
+        return enrichResponses(mapper.toDtoList(requestRepository.findByRequestedByInstructorIdAndIsActiveTrue(instructorId)));
     }
 
     @Override
@@ -131,13 +131,13 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
     @Transactional(readOnly = true)
     public List<ScheduleAdjustmentResponse> getCurrentInstructorRequests(String username, String status, UUID courseClassId) {
         UUID instructorId = resolveCurrentInstructorId(username);
-        return mapper.toDtoList(requestRepository.searchMine(instructorId, normalizeBlank(status), courseClassId));
+        return enrichResponses(mapper.toDtoList(requestRepository.searchMine(instructorId, normalizeBlank(status), courseClassId)));
     }
 
     @Override
     @Transactional(readOnly = true)
     public ScheduleAdjustmentResponse getCurrentInstructorRequest(String username, UUID requestId) {
-        return mapper.toDto(findOwnedRequest(username, requestId));
+        return enrichResponse(mapper.toDto(findOwnedRequest(username, requestId)));
     }
 
     @Override
@@ -158,7 +158,7 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         entity.setAdminNote(null);
         entity.setReviewedAt(null);
         entity.setReviewedBy(null);
-        return mapper.toDto(requestRepository.save(entity));
+        return enrichResponse(mapper.toDto(requestRepository.save(entity)));
     }
 
     @Override
@@ -193,7 +193,7 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         entity.setAdminNote(request.getNote());
         entity.setReviewedBy(request.getReviewedBy());
         entity.setReviewedAt(LocalDateTime.now());
-        return mapper.toDto(requestRepository.save(entity));
+        return enrichResponse(mapper.toDto(requestRepository.save(entity)));
     }
 
     @Override
@@ -206,7 +206,7 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         entity.setAdminNote(request.getNote().trim());
         entity.setReviewedBy(request.getReviewedBy());
         entity.setReviewedAt(LocalDateTime.now());
-        return mapper.toDto(requestRepository.save(entity));
+        return enrichResponse(mapper.toDto(requestRepository.save(entity)));
     }
 
     @Override
@@ -219,7 +219,7 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         entity.setAdminNote(request.getNote().trim());
         entity.setReviewedBy(request.getReviewedBy());
         entity.setReviewedAt(LocalDateTime.now());
-        return mapper.toDto(requestRepository.save(entity));
+        return enrichResponse(mapper.toDto(requestRepository.save(entity)));
     }
 
     @Override
@@ -724,6 +724,48 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
 
     private String normalizeBlank(String value) {
         return StringUtils.hasText(value) ? value.trim().toUpperCase(Locale.ROOT) : null;
+    }
+
+    private ScheduleAdjustmentResponse enrichResponse(ScheduleAdjustmentResponse dto) {
+        if (dto == null) return null;
+        if (dto.getCourseClassId() != null) {
+            courseClassRepository.findById(dto.getCourseClassId()).ifPresent(cc -> {
+                dto.setClassCode(cc.getClassCode());
+                if (cc.getCourse() != null) {
+                    dto.setCourseClassName(cc.getCourse().getName());
+                }
+            });
+        }
+        if (dto.getRequestedByInstructorId() != null) {
+            employeeRepository.findById(dto.getRequestedByInstructorId()).ifPresent(emp -> {
+                dto.setInstructorCode(emp.getEmployeeCode());
+                if (emp.getPerson() != null) {
+                    dto.setInstructorName(emp.getPerson().getFullName());
+                }
+            });
+        }
+        if (dto.getProposedRoomId() != null) {
+            roomRepository.findById(dto.getProposedRoomId()).ifPresent(r -> {
+                dto.setProposedRoomCode(r.getCode());
+            });
+        }
+        if (dto.getAbsentTimeSlotId() != null) {
+            timeSlotRepository.findById(dto.getAbsentTimeSlotId()).ifPresent(ts -> {
+                dto.setAbsentSlotCode(ts.getSlotCode());
+            });
+        }
+        if (dto.getProposedTimeSlotId() != null) {
+            timeSlotRepository.findById(dto.getProposedTimeSlotId()).ifPresent(ts -> {
+                dto.setProposedSlotCode(ts.getSlotCode());
+            });
+        }
+        return dto;
+    }
+
+    private List<ScheduleAdjustmentResponse> enrichResponses(List<ScheduleAdjustmentResponse> list) {
+        if (list == null) return List.of();
+        list.forEach(this::enrichResponse);
+        return list;
     }
 
     private record WorkflowContext(String requestType, CourseClass courseClass, Schedule originalSchedule) {

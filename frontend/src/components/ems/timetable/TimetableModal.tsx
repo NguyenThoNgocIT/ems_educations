@@ -23,9 +23,11 @@ interface Props {
   timeSlots: any[];
   lecturers: any[];
   onSubmit: () => Promise<void>;
+  isEditing?: boolean;
+  onDelete?: () => Promise<void>;
 }
 
-export default function TimetableModal({ isOpen, onClose, formData, setFormData, courseClasses, rooms, timeSlots, lecturers, onSubmit }: Props) {
+export default function TimetableModal({ isOpen, onClose, formData, setFormData, courseClasses, rooms, timeSlots, lecturers, onSubmit, isEditing = false, onDelete }: Props) {
   return (
     <Modal
       isOpen={isOpen}
@@ -36,10 +38,10 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
         <div className="mb-6">
           <h5 className="font-bold text-gray-900 dark:text-white text-xl flex items-center gap-2">
             <CalendarDays className="text-brand-500 h-6 w-6" />
-            Chi tiết Lịch Học
+            {isEditing ? "Chi Tiết & Chỉnh Sửa Lịch Học" : "Sắp Lịch Học Mới"}
           </h5>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">
-            Phân công thời gian, phòng học và giảng viên cho lớp học phần.
+            {isEditing ? "Cập nhật hoặc xóa buổi học phần đã xếp." : "Phân công thời gian, phòng học và giảng viên cho lớp học phần."}
           </p>
         </div>
         
@@ -207,18 +209,32 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mt-8 sm:justify-end pt-5 border-t border-border">
-          <Button variant="outline" onClick={onClose} type="button" className="px-6 h-11">
-            Hủy bỏ
-          </Button>
-          <Button 
-            onClick={onSubmit} 
-            type="button" 
-            className="px-6 h-11 bg-brand-500 hover:bg-brand-600 text-white shadow-md shadow-brand-500/20"
-          >
-            <CheckCircle2 className="w-4 h-4 mr-2" />
-            Xác nhận Lịch
-          </Button>
+        <div className="flex items-center justify-between gap-3 mt-8 pt-5 border-t border-border">
+          <div>
+            {isEditing && onDelete && (
+              <Button
+                variant="destructive"
+                onClick={onDelete}
+                type="button"
+                className="px-6 h-11"
+              >
+                Xóa Lịch học
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={onClose} type="button" className="px-6 h-11">
+              Hủy bỏ
+            </Button>
+            <Button 
+              onClick={onSubmit} 
+              type="button" 
+              className="px-6 h-11 bg-brand-500 hover:bg-brand-600 text-white shadow-md shadow-brand-500/20"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              {isEditing ? "Cập Nhật Lịch" : "Xác nhận Lịch"}
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>
