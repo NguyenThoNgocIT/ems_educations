@@ -24,15 +24,15 @@ import java.util.List;
 public class SchedulePlan {
 
     @ProblemFactCollectionProperty
-    @ValueRangeProvider
+    @ValueRangeProvider(id = "roomList")
     private List<Room> roomList;
 
     @ProblemFactCollectionProperty
-    @ValueRangeProvider
+    @ValueRangeProvider(id = "timeSlotList")
     private List<TimeSlot> timeSlotList;
 
     @ProblemFactCollectionProperty
-    @ValueRangeProvider
+    @ValueRangeProvider(id = "dayOfWeekList")
     private List<Integer> dayOfWeekList;
 
     @PlanningEntityCollectionProperty

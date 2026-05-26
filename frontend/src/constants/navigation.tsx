@@ -51,6 +51,7 @@ export const adminNavItems: NavItem[] = [
   { name: "Môn học", icon: <BookOpen className={iconClassName} />, path: "/dashboard/admin/courses" },
   { name: "Lớp học phần", icon: <Layers className={iconClassName} />, path: "/dashboard/admin/course-classes" },
   { name: "Thời khóa biểu", icon: <CalendarDays className={iconClassName} />, path: "/dashboard/admin/schedules" },
+  { name: "Duyệt điều chỉnh lịch", icon: <CheckSquare className={iconClassName} />, path: "/dashboard/admin/schedule-adjustments" },
   { name: "Tài khoản người dùng", icon: <User className={iconClassName} />, path: "/dashboard/admin/users" },
   { name: "Phân quyền (RBAC)", icon: <ShieldCheck className={iconClassName} />, path: "/dashboard/admin/rbac" },
 ];
@@ -103,6 +104,7 @@ export const adminNavGroups: NavGroup[] = [
       // { name: "Môn tiên quyết", icon: <CheckSquare className={iconClassName} />, path: "/dashboard/admin/course-prerequisites" },
       { name: "Lớp học phần", icon: <Layers className={iconClassName} />, path: "/dashboard/admin/course-classes" },
       { name: "Lịch học", icon: <CalendarDays className={iconClassName} />, path: "/dashboard/admin/schedules" },
+      { name: "Duyệt điều chỉnh lịch", icon: <CheckSquare className={iconClassName} />, path: "/dashboard/admin/schedule-adjustments", badge: "NEW" },
     ],
   },
   {
