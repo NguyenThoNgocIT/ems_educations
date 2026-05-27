@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, FileSpreadsheet, X, RefreshCw, AlertCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
-import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
 interface ExcelImportModalProps {
@@ -35,8 +34,9 @@ export function ExcelImportModal({ isOpen, onClose, onImport, title, expectedCol
     }
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     if (!sampleData || sampleData.length === 0) return;
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(sampleData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -50,6 +50,7 @@ export function ExcelImportModal({ isOpen, onClose, onImport, title, expectedCol
     }
     setLoading(true);
     try {
+      const XLSX = await import('xlsx');
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];

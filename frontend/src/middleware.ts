@@ -1,11 +1,10 @@
-// src/proxy.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Các route công khai (không cần đăng nhập)
 const publicRoutes = ['/dashboard/admin/signin', '/forgot-password'];
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Check xem có phải route admin không
@@ -29,5 +28,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
+  runtime: 'experimental-edge',
   matcher: '/dashboard/admin/:path*',
 };
