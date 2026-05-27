@@ -1,12 +1,10 @@
 # stage 1: Build
 FROM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /app
-COPY . .
-RUN if [ -f backend/mvnw ]; then \
-        cd backend; \
-    fi && \
-    chmod +x ./mvnw && \
-    ./mvnw clean package -DskipTests && \
+COPY backend/pom.xml backend/pom.xml
+COPY backend/src backend/src
+WORKDIR /app/backend
+RUN mvn clean package -DskipTests && \
     cp target/*.jar /app/app.jar
 
 # stage 2: Run
