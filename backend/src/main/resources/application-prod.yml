@@ -1,5 +1,9 @@
 server:
   port: ${PORT:8081}
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 5
 spring:
   config:
     activate:
