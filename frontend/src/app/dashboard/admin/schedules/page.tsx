@@ -1,7 +1,10 @@
 'use client';
 
-import React from 'react';
-import TimetableBuilder from '@/components/ems/TimetableBuilder';
+import dynamic from 'next/dynamic';
+
+const TimetableBuilder = dynamic(() => import('@/components/ems/TimetableBuilder'), {
+  ssr: false,
+});
 
 export default function AdminSchedulesPage() {
   return (

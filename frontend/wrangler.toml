@@ -1,4 +1,4 @@
-name = "education_mona"
+name = "education_ems"
 main = ".open-next/worker.js" 
 compatibility_date = "2026-01-04"
 compatibility_flags = ["nodejs_compat"]
