@@ -1,5 +1,7 @@
 package com.quanlydaotao.backend.workflow;
 
+import com.quanlydaotao.backend.administrativeclass.entity.AdministrativeClass;
+import com.quanlydaotao.backend.administrativeclass.repository.AdministrativeClassRepository;
 import com.quanlydaotao.backend.course.entity.Course;
 import com.quanlydaotao.backend.course.entity.CourseClass;
 import com.quanlydaotao.backend.course.repository.CourseClassRepository;
@@ -12,6 +14,8 @@ import com.quanlydaotao.backend.facility.entity.Building;
 import com.quanlydaotao.backend.facility.entity.Room;
 import com.quanlydaotao.backend.facility.repository.BuildingRepository;
 import com.quanlydaotao.backend.facility.repository.RoomRepository;
+import com.quanlydaotao.backend.instructor.entity.InstructorProfile;
+import com.quanlydaotao.backend.instructor.repository.InstructorProfileRepository;
 import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.person.repository.PersonRepository;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentResponse;
@@ -67,6 +71,8 @@ class ScheduleAdjustmentWorkflowTest extends AbstractPostgresIntegrationTest {
     @Autowired TimeSlotRepository timeSlotRepository;
     @Autowired ScheduleRepository scheduleRepository;
     @Autowired TeachingAssignmentRepository teachingAssignmentRepository;
+    @Autowired InstructorProfileRepository instructorProfileRepository;
+    @Autowired AdministrativeClassRepository administrativeClassRepository;
 
     @Test
     void instructorRequestsMakeupSession_adminApproves_overridesAndMergedWeekScheduleAreCorrect() {
@@ -107,8 +113,11 @@ class ScheduleAdjustmentWorkflowTest extends AbstractPostgresIntegrationTest {
 
         List<ScheduleWeekItemResponse> week = scheduleQueryService.getInstructorWeek(
                 data.instructor().getEmployeeId(), data.absentDate(), data.semester().getSemesterId());
-        assertThat(week).noneMatch(item -> data.absentDate().equals(item.getDate())
-                && data.courseClass().getCourseClassId().equals(item.getCourseClassId()));
+        assertThat(week).anySatisfy(item -> {
+            assertThat(item.getDate()).isEqualTo(data.absentDate());
+            assertThat(item.getCourseClassId()).isEqualTo(data.courseClass().getCourseClassId());
+            assertThat(item.getStatus()).isEqualTo("ABSENT");
+        });
         assertThat(week).anySatisfy(item -> {
             assertThat(item.getDate()).isEqualTo(data.makeupDate());
             assertThat(item.getCourseClassId()).isEqualTo(data.courseClass().getCourseClassId());
@@ -182,6 +191,22 @@ class ScheduleAdjustmentWorkflowTest extends AbstractPostgresIntegrationTest {
         instructor.setIsActive(true);
         instructor = employeeRepository.save(instructor);
 
+        InstructorProfile instructorProfile = new InstructorProfile();
+        instructorProfile.setEmployee(instructor);
+        instructorProfile.setInstructorCode("GV-" + suffix);
+        instructorProfile.setDepartmentId(department.getDepartmentId());
+        instructorProfile.setIsActive(true);
+        instructorProfileRepository.save(instructorProfile);
+
+        AdministrativeClass administrativeClass = new AdministrativeClass();
+        administrativeClass.setClassCode("HC-" + suffix);
+        administrativeClass.setClassName("Lớp hành chính " + suffix);
+        administrativeClass.setDepartmentId(department.getDepartmentId());
+        administrativeClass.setMaxSize(60);
+        administrativeClass.setStatus(1);
+        administrativeClass.setIsActive(true);
+        administrativeClass = administrativeClassRepository.save(administrativeClass);
+
         Building building = new Building();
         building.setCode("A-" + suffix);
         building.setName("Tòa A " + suffix);
@@ -214,7 +239,7 @@ class ScheduleAdjustmentWorkflowTest extends AbstractPostgresIntegrationTest {
         TeachingAssignment assignment = new TeachingAssignment();
         assignment.setInstructorId(instructor.getEmployeeId());
         assignment.setCourseClassId(courseClass.getCourseClassId());
-        assignment.setClassId(UUID.randomUUID());
+        assignment.setClassId(administrativeClass.getClassId());
         assignment.setSemesterId(semester.getSemesterId());
         assignment.setIsActive(true);
         teachingAssignmentRepository.save(assignment);

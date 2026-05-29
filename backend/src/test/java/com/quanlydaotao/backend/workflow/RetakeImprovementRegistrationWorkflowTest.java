@@ -193,8 +193,8 @@ class RetakeImprovementRegistrationWorkflowTest extends AbstractPostgresIntegrat
         user.setIsActive(true);
         userRepository.save(user);
 
-        CourseRegistration failedPrevious = createRegistration(student.getStudentId(), failedOldClass.getCourseClassId(), oldPeriod.getRegistrationPeriodId());
-        CourseRegistration passedPrevious = createRegistration(student.getStudentId(), passedOldClass.getCourseClassId(), oldPeriod.getRegistrationPeriodId());
+        CourseRegistration failedPrevious = createRegistration(student.getStudentId(), failedOldClass, oldPeriod.getRegistrationPeriodId());
+        CourseRegistration passedPrevious = createRegistration(student.getStudentId(), passedOldClass, oldPeriod.getRegistrationPeriodId());
         createSummary(failedPrevious, BigDecimal.valueOf(3.5D), "F", "FAILED");
         createSummary(passedPrevious, BigDecimal.valueOf(7.5D), "B", "PASSED");
 
@@ -271,10 +271,11 @@ class RetakeImprovementRegistrationWorkflowTest extends AbstractPostgresIntegrat
         return courseClassRepository.save(courseClass);
     }
 
-    private CourseRegistration createRegistration(UUID studentId, UUID courseClassId, UUID periodId) {
+    private CourseRegistration createRegistration(UUID studentId, CourseClass courseClass, UUID periodId) {
         CourseRegistration registration = CourseRegistration.builder()
                 .studentId(studentId)
-                .courseClassId(courseClassId)
+                .courseClassId(courseClass.getCourseClassId())
+                .courseClass(courseClass)
                 .registrationPeriodId(periodId)
                 .registeredAt(LocalDateTime.now().minusMonths(3))
                 .status(1)
