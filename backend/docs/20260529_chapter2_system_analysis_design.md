@@ -13,12 +13,14 @@ Do đó, hệ thống được thiết kế theo hướng chia module nghiệp v
 ```mermaid
 flowchart TD
     A["Cấu hình tài khoản, vai trò, quyền"] --> B["Tạo hồ sơ người dùng"]
+    B --> HR["Cấu hình phòng ban, chức vụ, học vị, hợp đồng, lịch nghỉ"]
     B --> C["Tạo khoa, ngành, chuyên ngành, niên khóa"]
     C --> D["Tạo năm học, học kỳ"]
     D --> E["Tạo môn học và chương trình đào tạo"]
     E --> F["Tạo lớp hành chính và lớp học phần"]
     F --> G["Gán sinh viên vào lớp"]
     F --> H["Phân công giảng viên"]
+    HR --> H
     H --> I["Xếp lịch học, phòng học"]
     I --> J["Theo dõi giảng dạy, nghỉ/bù/tăng tiết"]
     G --> K["Nhập điểm, tổng kết học phần"]
@@ -43,6 +45,7 @@ flowchart TD
 |---|---|---|
 | Account/RBAC | Đăng nhập, đổi mật khẩu, vai trò, quyền, menu | Person/User, Student, Instructor, Staff |
 | Person/User | Hồ sơ cá nhân, tài khoản, tạo sinh viên/giảng viên/staff | Account/RBAC, Academic, HR |
+| Tổ chức nhân sự | Phòng ban, chức vụ, học vị, hợp đồng, lịch nghỉ | Person/User, Instructor, Staff, Schedule |
 | Academic Setup | Khoa, ngành, chuyên ngành, niên khóa, năm học, học kỳ | Student, Curriculum, Class |
 | Curriculum/Course | Môn học, chương trình đào tạo, môn tiên quyết, môn tương đương | Academic, CourseClass, Registration |
 | Class/Registration/Grade | Lớp hành chính, lớp học phần, đăng ký học phần, điểm | Student, Curriculum, Schedule |
@@ -185,6 +188,18 @@ classDiagram
         LocalDateTime revokedAt
     }
 
+    class PasswordResetRequest {
+        UUID passwordResetRequestId
+        UUID userId
+        String requesterCode
+        String emailEdu
+        String phoneNumber
+        String fullName
+        String status
+        String adminNote
+        UUID processedBy
+    }
+
     User "1" --> "0..*" UserRole
     Role "1" --> "0..*" UserRole
     Role "1" --> "0..*" RolePermission
@@ -193,6 +208,7 @@ classDiagram
     Permission "0..1" --> "0..*" Menu
     Menu "0..1" --> "0..*" Menu : parent
     User "1" --> "0..*" UserSession
+    User "1" --> "0..*" PasswordResetRequest
 ```
 
 ### 2.3.5. Thiết kế cơ sở dữ liệu
@@ -268,6 +284,21 @@ Table UserSessions {
   RevokedAt timestamp
 }
 
+Table PasswordResetRequests {
+  PasswordResetRequestId uuid [pk]
+  UserId uuid [not null]
+  RequesterCode varchar
+  EmailEdu varchar
+  PhoneNumber varchar
+  FullName varchar
+  Status varchar
+  AdminNote varchar
+  ProcessedAt timestamp
+  ProcessedBy uuid
+  CreatedAt timestamp
+  IsActive boolean
+}
+
 Ref: UserRoles.UserId > Users.UserId
 Ref: UserRoles.RoleId > Roles.RoleId
 Ref: RolePermissions.RoleId > Roles.RoleId
@@ -276,6 +307,7 @@ Ref: PermissionApis.PermissionId > Permissions.PermissionId
 Ref: Menus.PermissionId > Permissions.PermissionId
 Ref: Menus.ParentId > Menus.MenuId
 Ref: UserSessions.UserId > Users.UserId
+Ref: PasswordResetRequests.UserId > Users.UserId
 ```
 
 ## 2.4. Module Person/User và tạo đối tượng Student - Instructor - Staff
@@ -519,11 +551,288 @@ Ref: Instructors.EmployeeId > Employees.EmployeeId
 Ref: Staffs.EmployeeId > Employees.EmployeeId
 ```
 
-## 2.5. Module Academic Setup
+## 2.5. Module tổ chức nhân sự
 
-Module Academic Setup quản lý dữ liệu nền của đào tạo, bao gồm khoa, ngành, chuyên ngành, niên khóa, năm học, học kỳ và lớp hành chính. Đây là cơ sở để tạo sinh viên, thiết kế chương trình đào tạo và mở lớp học phần.
+Module tổ chức nhân sự quản lý các dữ liệu phục vụ cho giảng viên và nhân viên như phòng ban, chức vụ, học vị, hợp đồng lao động và lịch nghỉ. Module này liên kết trực tiếp với `Employees`, `Instructors` và `Staffs`. Trong đó, giảng viên thường được gắn với khoa/bộ môn và học vị, còn nhân viên hành chính được gắn với phòng ban và chức vụ.
 
 ### 2.5.1. Use Case Diagram
+
+```mermaid
+flowchart LR
+    Admin((Admin))
+    Employee((Nhân sự))
+    Instructor((Giảng viên))
+    Staff((Nhân viên))
+
+    UC1["Quản lý phòng ban"]
+    UC2["Quản lý chức vụ"]
+    UC3["Quản lý học vị/trình độ"]
+    UC4["Quản lý hợp đồng"]
+    UC5["Tạo hồ sơ nhân sự"]
+    UC6["Gửi yêu cầu nghỉ"]
+    UC7["Duyệt/từ chối lịch nghỉ"]
+    UC8["Xem lịch nghỉ cá nhân"]
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
+    Admin --> UC5
+    Admin --> UC7
+    Employee --> UC6
+    Employee --> UC8
+    Instructor --> UC6
+    Staff --> UC6
+```
+
+### 2.5.2. Sơ đồ hoạt động
+
+```mermaid
+flowchart TD
+    Start([Bắt đầu]) --> Org["Admin tạo phòng ban"]
+    Org --> Position["Tạo chức vụ thuộc phòng ban"]
+    Position --> Degree["Tạo học vị/trình độ nếu dùng cho giảng viên"]
+    Degree --> Employee["Tạo hồ sơ nhân sự"]
+    Employee --> Type{"Loại nhân sự"}
+    Type -- Giảng viên --> InstructorProfile["Gán khoa, học vị, ngành chuyên môn"]
+    Type -- Nhân viên --> StaffProfile["Gán phòng ban, chức vụ"]
+    InstructorProfile --> Contract["Tạo hợp đồng nếu có"]
+    StaffProfile --> Contract
+    Contract --> Leave["Nhân sự gửi yêu cầu nghỉ"]
+    Leave --> Review["Admin xem xét yêu cầu"]
+    Review --> Decision{"Duyệt?"}
+    Decision -- Không --> Reject["Cập nhật trạng thái từ chối"]
+    Decision -- Có --> Approve["Cập nhật trạng thái đã duyệt"]
+    Approve --> End([Kết thúc])
+    Reject --> End
+```
+
+### 2.5.3. Sơ đồ tuần tự
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    actor Employee
+    participant FE as Frontend
+    participant C as HR Controller
+    participant S as HR Service
+    participant DB as Database
+
+    Admin->>FE: Tạo phòng ban/chức vụ/học vị
+    FE->>C: POST /api/v1/divisions/admin hoặc /positions/admin hoặc /degrees/admin
+    C->>S: create(request)
+    S->>DB: Validate mã không trùng, quan hệ hợp lệ
+    S->>DB: Insert Divisions/Positions/Degrees
+    S-->>FE: ApiResponse
+
+    Employee->>FE: Gửi yêu cầu nghỉ
+    FE->>C: POST API tạo yêu cầu nghỉ
+    C->>S: createLeaveRequest(request)
+    S->>DB: Kiểm tra Employee tồn tại và ngày nghỉ hợp lệ
+    S->>DB: Insert EmployeeLeaveRequests
+    S-->>FE: Yêu cầu chờ duyệt
+
+    Admin->>FE: Duyệt yêu cầu nghỉ
+    FE->>C: PUT API duyệt yêu cầu nghỉ
+    C->>S: approve(id)
+    S->>DB: Update status, approvedBy, approvedAt
+    S-->>FE: Kết quả duyệt
+```
+
+### 2.5.4. Sơ đồ Class diagram
+
+```mermaid
+classDiagram
+    class Employee {
+        UUID employeeId
+        UUID personId
+        String employeeCode
+        String employeeType
+        LocalDate startWorkDate
+        LocalDate endWorkDate
+        String contractType
+        String status
+    }
+
+    class Division {
+        UUID divisionId
+        String code
+        String name
+        String description
+    }
+
+    class Position {
+        UUID positionId
+        UUID divisionId
+        String code
+        String name
+        String level
+        BigDecimal allowance
+    }
+
+    class Degree {
+        UUID degreeId
+        UUID majorId
+        String code
+        String name
+        Integer level
+        String academicRank
+    }
+
+    class Contract {
+        UUID contractId
+        UUID employeeId
+        String contractNo
+        String contractType
+        LocalDate signedDate
+        LocalDate effectiveDate
+        LocalDate expiredDate
+        BigDecimal baseSalary
+        Integer status
+    }
+
+    class EmployeeLeaveRequest {
+        UUID leaveRequestId
+        UUID employeeId
+        LocalDate fromDate
+        LocalDate toDate
+        String leaveType
+        String reason
+        Integer status
+        UUID approvedBy
+    }
+
+    class InstructorProfile
+    class Staff
+
+    Employee "1" --> "0..*" Contract
+    Employee "1" --> "0..*" EmployeeLeaveRequest
+    Employee "1" --> "0..1" InstructorProfile
+    Employee "1" --> "0..1" Staff
+    Division "1" --> "0..*" Position
+    Division "1" --> "0..*" Staff
+    Position "1" --> "0..*" Staff
+    Degree "1" --> "0..*" InstructorProfile
+```
+
+### 2.5.5. Thiết kế cơ sở dữ liệu
+
+```dbml
+Table Divisions {
+  DivisionId uuid [pk]
+  Code varchar [not null, unique]
+  Name varchar [not null]
+  Description varchar
+  IsActive boolean
+  CreatedAt timestamp
+  UpdatedAt timestamp
+  DeletedAt timestamp
+}
+
+Table Positions {
+  PositionId uuid [pk]
+  DivisionId uuid
+  Code varchar [not null]
+  Name varchar [not null]
+  Description varchar
+  Level varchar
+  Allowance decimal
+  IsActive boolean
+  CreatedAt timestamp
+  UpdatedAt timestamp
+  DeletedAt timestamp
+}
+
+Table Degrees {
+  DegreeId uuid [pk]
+  MajorId uuid
+  Code varchar
+  Name varchar [not null]
+  Level int
+  AcademicRank varchar
+  Specialization varchar
+  Institution varchar
+  GraduationYear int
+  IsActive boolean
+}
+
+Table Employees {
+  EmployeeId uuid [pk]
+  PersonId uuid [not null, unique]
+  EmployeeCode varchar [not null, unique]
+  EmployeeType varchar
+  StartWorkDate date
+  EndWorkDate date
+  ContractType varchar
+  Status varchar
+  IsActive boolean
+}
+
+Table Staffs {
+  EmployeeId uuid [pk]
+  StaffCode varchar [not null, unique]
+  DivisionId uuid
+  PositionId uuid
+  IsActive boolean
+}
+
+Table Instructors {
+  EmployeeId uuid [pk]
+  InstructorCode varchar [not null, unique]
+  DepartmentId uuid
+  DegreeId uuid
+  MajorId uuid
+  AcademicRank varchar
+  IsActive boolean
+}
+
+Table Contracts {
+  ContractId uuid [pk]
+  EmployeeId uuid [not null]
+  ContractNo varchar
+  ContractType varchar [not null]
+  SignedDate date
+  EffectiveDate date
+  ExpiredDate date
+  BaseSalary decimal
+  Allowance decimal
+  SignedBy varchar
+  AnnualLeave int
+  Status int
+  IsActive boolean
+}
+
+Table EmployeeLeaveRequests {
+  LeaveRequestId uuid [pk]
+  EmployeeId uuid [not null]
+  FromDate date [not null]
+  ToDate date [not null]
+  LeaveType varchar
+  TotalDays int
+  Reason varchar
+  Status int
+  ApprovedBy uuid
+  ApprovedAt timestamp
+  RejectReason varchar
+  IsActive boolean
+}
+
+Ref: Positions.DivisionId > Divisions.DivisionId
+Ref: Staffs.EmployeeId > Employees.EmployeeId
+Ref: Staffs.DivisionId > Divisions.DivisionId
+Ref: Staffs.PositionId > Positions.PositionId
+Ref: Instructors.EmployeeId > Employees.EmployeeId
+Ref: Instructors.DegreeId > Degrees.DegreeId
+Ref: Contracts.EmployeeId > Employees.EmployeeId
+Ref: EmployeeLeaveRequests.EmployeeId > Employees.EmployeeId
+Ref: EmployeeLeaveRequests.ApprovedBy > Employees.EmployeeId
+```
+
+## 2.6. Module Academic Setup
+
+Module Academic Setup quản lý dữ liệu nền của đào tạo, bao gồm khoa, ngành, chuyên ngành, niên khóa, năm học, học kỳ và lớp hành chính. Ngoài ra module này còn ghi nhận sinh viên thuộc lớp hành chính theo từng học kỳ, danh mục trạng thái sinh viên, lịch sử thay đổi trạng thái và lịch sử chọn chuyên ngành. Đây là cơ sở để tạo sinh viên, thiết kế chương trình đào tạo và mở lớp học phần.
+
+### 2.6.1. Use Case Diagram
 
 ```mermaid
 flowchart LR
@@ -537,6 +846,9 @@ flowchart LR
     UC7["Quản lý lớp hành chính"]
     UC8["Gán cố vấn học tập"]
     UC9["Gán sinh viên vào lớp hành chính"]
+    UC10["Quản lý danh mục trạng thái sinh viên"]
+    UC11["Ghi nhận lịch sử trạng thái sinh viên"]
+    UC12["Ghi nhận lịch sử chọn chuyên ngành"]
 
     Admin --> UC1
     Admin --> UC2
@@ -547,9 +859,12 @@ flowchart LR
     Admin --> UC7
     UC7 --> UC8
     UC7 --> UC9
+    Admin --> UC10
+    Admin --> UC11
+    Admin --> UC12
 ```
 
-### 2.5.2. Sơ đồ hoạt động
+### 2.6.2. Sơ đồ hoạt động
 
 ```mermaid
 flowchart TD
@@ -566,10 +881,13 @@ flowchart TD
     Advisor --> Validate{"Cố vấn đã có lớp active?"}
     Validate -- Có --> Error["Không cho gán"]
     Validate -- Không --> Save["Lưu lớp hành chính"]
-    Save --> End([Kết thúc])
+    Save --> Status["Tạo danh mục trạng thái sinh viên nếu cần"]
+    Status --> StudentClass["Gán sinh viên vào lớp theo học kỳ"]
+    StudentClass --> Specialization["Cập nhật lịch sử chuyên ngành khi sinh viên phân ngành"]
+    Specialization --> End([Kết thúc])
 ```
 
-### 2.5.3. Sơ đồ tuần tự
+### 2.6.3. Sơ đồ tuần tự
 
 ```mermaid
 sequenceDiagram
@@ -590,7 +908,7 @@ sequenceDiagram
     C-->>FE: ApiResponse<ClassResponse>
 ```
 
-### 2.5.4. Sơ đồ Class diagram
+### 2.6.4. Sơ đồ Class diagram
 
 ```mermaid
 classDiagram
@@ -643,6 +961,51 @@ classDiagram
         Integer currentSize
     }
 
+    class Student {
+        UUID studentId
+        UUID departmentId
+        UUID majorId
+        UUID specializationId
+        UUID academicCohortId
+    }
+
+    class StudentClass {
+        UUID studentClassId
+        UUID studentId
+        UUID classId
+        UUID semesterId
+        Boolean isActive
+    }
+
+    class StudentStatusCatalog {
+        UUID studentStatusId
+        String code
+        String name
+        String statusType
+        Boolean allowRegister
+        Boolean allowExam
+    }
+
+    class StudentStatusHistory {
+        UUID studentStatusHistoryId
+        UUID studentId
+        UUID studentStatusId
+        LocalDate startDate
+        LocalDate endDate
+        Boolean isCurrent
+        String reason
+    }
+
+    class StudentSpecializationHistory {
+        UUID studentSpecializationHistoryId
+        UUID studentId
+        UUID majorId
+        UUID specializationId
+        UUID trainingProgramId
+        UUID effectiveSemesterId
+        Boolean isCurrent
+    }
+
     Department "1" --> "0..*" Major
     Department "1" --> "0..*" Specialization
     Major "1" --> "0..*" Specialization
@@ -651,9 +1014,18 @@ classDiagram
     AcademicCohort "1" --> "0..*" AdministrativeClass
     Major "0..1" --> "0..*" AdministrativeClass
     Specialization "0..1" --> "0..*" AdministrativeClass
+    AdministrativeClass "1" --> "0..*" StudentClass
+    Student "1" --> "0..*" StudentClass
+    Semester "1" --> "0..*" StudentClass
+    Student "1" --> "0..*" StudentStatusHistory
+    StudentStatusCatalog "1" --> "0..*" StudentStatusHistory
+    Student "1" --> "0..*" StudentSpecializationHistory
+    Major "1" --> "0..*" StudentSpecializationHistory
+    Specialization "1" --> "0..*" StudentSpecializationHistory
+    Semester "1" --> "0..*" StudentSpecializationHistory
 ```
 
-### 2.5.5. Thiết kế cơ sở dữ liệu
+### 2.6.5. Thiết kế cơ sở dữ liệu
 
 ```dbml
 Table Departments {
@@ -730,6 +1102,67 @@ Table Classes {
   IsActive boolean
 }
 
+Table Students {
+  StudentId uuid [pk]
+  DepartmentId uuid
+  MajorId uuid
+  SpecializationId uuid
+  AcademicCohortId uuid
+  TrainingProgramId uuid
+  StudentCode varchar [not null, unique]
+  IsActive boolean
+}
+
+Table StudentClasses {
+  StudentClassId uuid [pk]
+  StudentId uuid [not null]
+  ClassId uuid [not null]
+  SemesterId uuid [not null]
+  IsActive boolean
+  CreatedAt timestamp
+  UpdatedAt timestamp
+  DeletedAt timestamp
+}
+
+Table StudentStatusCatalog {
+  StudentStatusId uuid [pk]
+  Code varchar [not null, unique]
+  Name varchar [not null]
+  Description varchar
+  StatusType varchar
+  AllowRegister boolean
+  AllowExam boolean
+  IsActive boolean
+}
+
+Table StudentStatusHistories {
+  StudentStatusHistoryId uuid [pk]
+  StudentId uuid [not null]
+  StudentStatusId uuid [not null]
+  StartDate date [not null]
+  EndDate date
+  IsCurrent boolean
+  Reason varchar
+  DecisionNo varchar
+  DecisionDate date
+  WarningLevel int
+  AllowRegister boolean
+  AllowExam boolean
+  IsActive boolean
+}
+
+Table StudentSpecializationHistories {
+  StudentSpecializationHistoryId uuid [pk]
+  StudentId uuid [not null]
+  MajorId uuid [not null]
+  SpecializationId uuid [not null]
+  TrainingProgramId uuid
+  EffectiveSemesterId uuid
+  Reason varchar
+  IsCurrent boolean
+  IsActive boolean
+}
+
 Ref: Majors.DepartmentId > Departments.DepartmentId
 Ref: Specializations.DepartmentId > Departments.DepartmentId
 Ref: Specializations.MajorId > Majors.MajorId
@@ -738,13 +1171,26 @@ Ref: Classes.DepartmentId > Departments.DepartmentId
 Ref: Classes.MajorId > Majors.MajorId
 Ref: Classes.SpecializationId > Specializations.SpecializationId
 Ref: Classes.AcademicCohortId > AcademicCohorts.AcademicCohortId
+Ref: Students.DepartmentId > Departments.DepartmentId
+Ref: Students.MajorId > Majors.MajorId
+Ref: Students.SpecializationId > Specializations.SpecializationId
+Ref: Students.AcademicCohortId > AcademicCohorts.AcademicCohortId
+Ref: StudentClasses.StudentId > Students.StudentId
+Ref: StudentClasses.ClassId > Classes.ClassId
+Ref: StudentClasses.SemesterId > Semesters.SemesterId
+Ref: StudentStatusHistories.StudentId > Students.StudentId
+Ref: StudentStatusHistories.StudentStatusId > StudentStatusCatalog.StudentStatusId
+Ref: StudentSpecializationHistories.StudentId > Students.StudentId
+Ref: StudentSpecializationHistories.MajorId > Majors.MajorId
+Ref: StudentSpecializationHistories.SpecializationId > Specializations.SpecializationId
+Ref: StudentSpecializationHistories.EffectiveSemesterId > Semesters.SemesterId
 ```
 
-## 2.6. Module Curriculum/Course
+## 2.7. Module Curriculum/Course
 
 Module Curriculum/Course quản lý môn học, chương trình đào tạo, môn thuộc chương trình đào tạo, môn tiên quyết, môn học song hành và môn tương đương. Module này quyết định sinh viên phải học những học phần nào theo từng giai đoạn: cơ sở chung hoặc chuyên sâu.
 
-### 2.6.1. Use Case Diagram
+### 2.7.1. Use Case Diagram
 
 ```mermaid
 flowchart LR
@@ -766,7 +1212,7 @@ flowchart LR
     UC2 --> UC7
 ```
 
-### 2.6.2. Sơ đồ hoạt động
+### 2.7.2. Sơ đồ hoạt động
 
 ```mermaid
 flowchart TD
@@ -785,7 +1231,7 @@ flowchart TD
     Equivalent --> End([Kết thúc])
 ```
 
-### 2.6.3. Sơ đồ tuần tự
+### 2.7.3. Sơ đồ tuần tự
 
 ```mermaid
 sequenceDiagram
@@ -805,7 +1251,7 @@ sequenceDiagram
     C-->>FE: ApiResponse<TrainingProgramResponse>
 ```
 
-### 2.6.4. Sơ đồ Class diagram
+### 2.7.4. Sơ đồ Class diagram
 
 ```mermaid
 classDiagram
@@ -858,7 +1304,7 @@ classDiagram
     Course "1" --> "0..*" EquivalentCourse
 ```
 
-### 2.6.5. Thiết kế cơ sở dữ liệu
+### 2.7.5. Thiết kế cơ sở dữ liệu
 
 ```dbml
 Table TrainingPrograms {
@@ -929,11 +1375,11 @@ Ref: EquivalentCourses.OriginalCourseId > Courses.CourseId
 Ref: EquivalentCourses.EquivalentCourseId > Courses.CourseId
 ```
 
-## 2.7. Module Class/Registration/Grade
+## 2.8. Module Class/Registration/Grade
 
 Module này quản lý lớp học phần, danh sách sinh viên trong lớp học phần, đợt đăng ký, đăng ký học lại/học cải thiện và kết quả học tập. Đây là module nối giữa chương trình đào tạo, sinh viên, lịch học và điểm.
 
-### 2.7.1. Use Case Diagram
+### 2.8.1. Use Case Diagram
 
 ```mermaid
 flowchart LR
@@ -961,7 +1407,7 @@ flowchart LR
     UC7 --> UC4
 ```
 
-### 2.7.2. Sơ đồ hoạt động
+### 2.8.2. Sơ đồ hoạt động
 
 ```mermaid
 flowchart TD
@@ -981,7 +1427,7 @@ flowchart TD
     Register --> End([Kết thúc])
 ```
 
-### 2.7.3. Sơ đồ tuần tự
+### 2.8.3. Sơ đồ tuần tự
 
 ```mermaid
 sequenceDiagram
@@ -1006,7 +1452,7 @@ sequenceDiagram
     S-->>FE: Đăng ký thành công
 ```
 
-### 2.7.4. Sơ đồ Class diagram
+### 2.8.4. Sơ đồ Class diagram
 
 ```mermaid
 classDiagram
@@ -1068,7 +1514,7 @@ classDiagram
     CourseRegistration "1" --> "0..1" StudentSummary
 ```
 
-### 2.7.5. Thiết kế cơ sở dữ liệu
+### 2.8.5. Thiết kế cơ sở dữ liệu
 
 ```dbml
 Table CourseClasses {
@@ -1147,11 +1593,11 @@ Ref: StudentComponentGrades.CourseRegistrationId > CourseRegistrations.CourseReg
 Ref: StudentSummaries.CourseRegistrationId > CourseRegistrations.CourseRegistrationId
 ```
 
-## 2.8. Module Teaching/Schedule
+## 2.9. Module Teaching/Schedule
 
 Module Teaching/Schedule quản lý phân công giảng dạy, lịch học cố định, phòng học, tiết học, theo dõi tiến độ giảng dạy và xử lý yêu cầu nghỉ/bù/tăng tiết. Thiết kế hiện tại giữ `Schedules` là lịch gốc, còn các thay đổi phát sinh được lưu bằng `ScheduleAdjustmentRequests` và `TeachingSessionOverrides`.
 
-### 2.8.1. Use Case Diagram
+### 2.9.1. Use Case Diagram
 
 ```mermaid
 flowchart LR
@@ -1180,7 +1626,7 @@ flowchart LR
     UC7 --> UC8
 ```
 
-### 2.8.2. Sơ đồ hoạt động
+### 2.9.2. Sơ đồ hoạt động
 
 ```mermaid
 flowchart TD
@@ -1202,7 +1648,7 @@ flowchart TD
     Progress --> End([Kết thúc])
 ```
 
-### 2.8.3. Sơ đồ tuần tự
+### 2.9.3. Sơ đồ tuần tự
 
 ```mermaid
 sequenceDiagram
@@ -1232,7 +1678,7 @@ sequenceDiagram
     S->>DB: Update request status APPROVED
 ```
 
-### 2.8.4. Sơ đồ Class diagram
+### 2.9.4. Sơ đồ Class diagram
 
 ```mermaid
 classDiagram
@@ -1259,8 +1705,25 @@ classDiagram
     class Room {
         UUID roomId
         UUID buildingId
+        Integer floorNumber
         String code
         Integer capacity
+    }
+
+    class Building {
+        UUID buildingId
+        String code
+        String name
+        String address
+        Integer totalFloors
+    }
+
+    class Floor {
+        UUID floorId
+        UUID buildingId
+        String code
+        String name
+        Integer floorNumber
     }
 
     class TimeSlot {
@@ -1296,6 +1759,9 @@ classDiagram
     }
 
     TeachingAssignment --> Schedule
+    Building "1" --> "0..*" Floor
+    Building "1" --> "0..*" Room
+    Floor ..> Room : floorNumber
     Schedule --> Room
     Schedule --> TimeSlot
     Schedule "1" --> "0..*" ScheduleAdjustmentRequest
@@ -1303,7 +1769,7 @@ classDiagram
     Schedule "1" --> "0..*" TeachingProgressLog
 ```
 
-### 2.8.5. Thiết kế cơ sở dữ liệu
+### 2.9.5. Thiết kế cơ sở dữ liệu
 
 ```dbml
 Table TeachingAssignments {
@@ -1316,9 +1782,31 @@ Table TeachingAssignments {
   IsActive boolean
 }
 
+Table Buildings {
+  BuildingId uuid [pk]
+  Code varchar [not null, unique]
+  Name varchar [not null]
+  Address varchar
+  TotalFloors int
+  BuildingType varchar
+  Description varchar
+  IsActive boolean
+}
+
+Table Floors {
+  FloorId uuid [pk]
+  BuildingId uuid [not null]
+  Code varchar [not null]
+  Name varchar
+  FloorNumber int [not null]
+  Description varchar
+  IsActive boolean
+}
+
 Table Rooms {
   RoomId uuid [pk]
   BuildingId uuid [not null]
+  FloorNumber int
   Code varchar [not null, unique]
   Name varchar
   Capacity int
@@ -1393,6 +1881,8 @@ Table TeachingProgressLogs {
   Note varchar
 }
 
+Ref: Floors.BuildingId > Buildings.BuildingId
+Ref: Rooms.BuildingId > Buildings.BuildingId
 Ref: Schedules.RoomId > Rooms.RoomId
 Ref: Schedules.TimeSlotId > TimeSlots.TimeSlotId
 Ref: ScheduleAdjustmentRequests.OriginalScheduleId > Schedules.ScheduleId
@@ -1405,14 +1895,17 @@ Ref: TeachingSessionOverrides.RoomId > Rooms.RoomId
 Ref: TeachingProgressLogs.ScheduleId > Schedules.ScheduleId
 ```
 
-## 2.9. Tổng hợp liên kết giữa các module
+## 2.10. Tổng hợp liên kết giữa các module
 
 Sau khi tách theo module, có thể thấy mỗi module có phạm vi riêng nhưng vẫn liên kết qua các khóa nghiệp vụ chính:
 
 | Module nguồn | Module đích | Liên kết |
 |---|---|---|
 | Account/RBAC | Person/User | `Users.PersonId`, `UserRoles.UserId` |
+| Person/User | Tổ chức nhân sự | `Employees.EmployeeId`, `Staffs.DivisionId`, `Staffs.PositionId`, `Instructors.DegreeId` |
+| Tổ chức nhân sự | Teaching/Schedule | Lịch nghỉ của nhân sự được dùng khi kiểm tra khả dụng giảng viên |
 | Person/User | Academic Setup | `Students.DepartmentId`, `Students.MajorId`, `Students.AcademicCohortId` |
+| Academic Setup | Student lifecycle | `StudentClasses`, `StudentStatusCatalog`, `StudentStatusHistories`, `StudentSpecializationHistories` |
 | Academic Setup | Curriculum/Course | `TrainingPrograms.DepartmentId`, `MajorId`, `SpecializationId`, `AcademicCohortId` |
 | Curriculum/Course | Class/Registration/Grade | `CourseClasses.CourseId`, `TrainingProgramCourses.CourseId` |
 | Class/Registration/Grade | Teaching/Schedule | `TeachingAssignments.CourseClassId`, `Schedules.CourseClassId` |
@@ -1425,11 +1918,12 @@ Sơ đồ tổng hợp:
 flowchart LR
     A["Account/RBAC"] --> B["Person/User"]
     B --> C["Student/Instructor/Staff"]
+    C --> HR["Tổ chức nhân sự"]
     C --> D["Academic Setup"]
+    HR --> G["Teaching/Schedule"]
     D --> E["Curriculum/Course"]
     E --> F["Class/Registration/Grade"]
-    F --> G["Teaching/Schedule"]
+    F --> G
     G --> F
     F --> H["Retake/Improvement"]
 ```
-
