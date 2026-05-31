@@ -6,47 +6,47 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { EventContentArg } from "@fullcalendar/core";
 import { scheduleApi } from "@/api/schedule";
-import { MapPin, Users, BookOpen } from 'lucide-react';
+import { MapPin, Users, BookOpen, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
 import AdjustmentModal from './AdjustmentModal';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LecturerSchedule() {
+  const { user } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const calendarRef = useRef<FullCalendar>(null);
 
   const fetchInitialData = async () => {
+    if (!user?.id) return;
     try {
-      const res = await scheduleApi.getAll();
-      const fetchedSchedules = res.data?.data || res.data || [];
+      const today = new Date();
+      const res = await scheduleApi.getCalendar({
+        instructorId: user.id,
+        month: today.getMonth() + 1,
+        year: today.getFullYear()
+      });
+      
+      const calendarDays = res.data?.data || [];
+      const scheduleEvents: any[] = [];
 
-      const scheduleEvents = fetchedSchedules.map((s: any) => {
-        const today = new Date();
-        const currentDay = today.getDay() === 0 ? 7 : today.getDay();
-        const targetDay = s.dayOfWeek || 2; 
-        const diff = targetDay - currentDay;
-        const targetDate = new Date(today);
-        targetDate.setDate(today.getDate() + diff);
-        
-        const startHour = 7 + (s.startPeriod || 1);
-        const endHour = startHour + ((s.endPeriod || 3) - (s.startPeriod || 1));
-        
-        return {
-          id: s.id || s.scheduleId,
-          title: `${s.courseClassName || s.courseName} - ${s.roomCode || ''}`,
-          start: `${targetDate.toISOString().split('T')[0]}T${startHour.toString().padStart(2, '0')}:00:00`,
-          end: `${targetDate.toISOString().split('T')[0]}T${endHour.toString().padStart(2, '0')}:00:00`,
-          extendedProps: {
-            calendar: s.type === 'TH' ? 'Warning' : 'Primary',
-            roomCode: s.roomCode,
-            courseClassName: s.courseClassName,
-            courseClassId: s.courseClassId,
-            courseName: s.courseName,
-            timeSlotId: s.timeSlotId,
-            periods: (s.endPeriod || 3) - (s.startPeriod || 1),
-            mode: s.type || s.mode
-          }
-        };
+      calendarDays.forEach((day: any) => {
+        day.items.forEach((item: any) => {
+          const start = item.startTime ? `${day.date}T${item.startTime}` : `${day.date}T07:00:00`;
+          const end = item.endTime ? `${day.date}T${item.endTime}` : `${day.date}T10:00:00`;
+
+          scheduleEvents.push({
+            id: item.id,
+            title: `${item.courseClassCode} - ${item.roomCode || ''}`,
+            start,
+            end,
+            extendedProps: {
+              ...item,
+              date: day.date,
+              periods: item.numberOfPeriods || 3
+            }
+          });
+        });
       });
       setEvents(scheduleEvents);
     } catch (error) {

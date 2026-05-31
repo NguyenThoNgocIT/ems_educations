@@ -17,6 +17,13 @@ import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Copy } from 'luc
 import { toast } from 'sonner';
 import { request } from '@/utils/request';
 import { unwrapApiResponse } from '@/api/response';
+import { studentApi } from '@/api/student';
+import { administrativeClassApi } from '@/api/administrative-class';
+import { semesterApi } from '@/api/semester';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { StudentListItem } from '@/types/student';
+import type { AdministrativeClass } from '@/types/lookup';
+import type { Semester } from '@/api/admin-resources';
 
 type StudentClassAssignment = {
   studentClassId?: string;
@@ -56,6 +63,33 @@ export default function StudentClassAssignmentsPage() {
     note: '',
     isActive: true,
   });
+
+  const [students, setStudents] = useState<StudentListItem[]>([]);
+  const [classesList, setClassesList] = useState<AdministrativeClass[]>([]);
+  const [semestersList, setSemestersList] = useState<Semester[]>([]);
+  const [fetchingLookups, setFetchingLookups] = useState(false);
+
+  const fetchLookups = async () => {
+    setFetchingLookups(true);
+    try {
+      const [studentsRes, classesRes, semestersRes] = await Promise.all([
+        studentApi.getAll(),
+        administrativeClassApi.getAll(),
+        semesterApi.getAll()
+      ]);
+      setStudents(studentsRes || []);
+      setClassesList(classesRes || []);
+      setSemestersList(semestersRes || []);
+    } catch (error) {
+      console.error('Failed to fetch lookups', error);
+    } finally {
+      setFetchingLookups(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLookups();
+  }, []);
 
   // Lấy thông tin sinh viên theo ID
   const fetchStudentInfo = async (studentId: string) => {
@@ -367,46 +401,58 @@ export default function StudentClassAssignmentsPage() {
               </div>
             )}
             <div>
-              <Label>ID Sinh viên *</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input 
-                  value={formData.studentId} 
-                  onChange={(e) => setFormData({ ...formData, studentId: e.target.value })} 
-                  placeholder="UUID của sinh viên"
-                  className="flex-1"
-                />
-                <Button type="button" size="sm" variant="outline" onClick={() => copyToClipboard(formData.studentId, 'Sinh viên')}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
+              <Label>Sinh viên *</Label>
+              <Select 
+                value={formData.studentId} 
+                onValueChange={(val) => setFormData({ ...formData, studentId: val })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Chọn sinh viên" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {students.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.studentCode} - {s.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <Label>ID Lớp *</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input 
-                  value={formData.classId} 
-                  onChange={(e) => setFormData({ ...formData, classId: e.target.value })} 
-                  placeholder="UUID của lớp"
-                  className="flex-1"
-                />
-                <Button type="button" size="sm" variant="outline" onClick={() => copyToClipboard(formData.classId, 'Lớp')}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
+              <Label>Lớp hành chính *</Label>
+              <Select 
+                value={formData.classId} 
+                onValueChange={(val) => setFormData({ ...formData, classId: val })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Chọn lớp" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classesList.map((c) => (
+                    <SelectItem key={c.classId || (c as any).id} value={c.classId || (c as any).id}>
+                      {c.classCode} - {c.className}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <Label>ID Học kỳ *</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input 
-                  value={formData.semesterId} 
-                  onChange={(e) => setFormData({ ...formData, semesterId: e.target.value })} 
-                  placeholder="UUID của học kỳ"
-                  className="flex-1"
-                />
-                <Button type="button" size="sm" variant="outline" onClick={() => copyToClipboard(formData.semesterId, 'Học kỳ')}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
+              <Label>Học kỳ *</Label>
+              <Select 
+                value={formData.semesterId} 
+                onValueChange={(val) => setFormData({ ...formData, semesterId: val })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Chọn học kỳ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {semestersList.map((s) => (
+                    <SelectItem key={s.semesterId} value={s.semesterId}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Ghi chú</Label>

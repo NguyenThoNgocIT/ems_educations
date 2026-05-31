@@ -11,6 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { administrativeClassApi } from "@/api/administrative-class";
@@ -302,59 +309,74 @@ export default function ClassesPage() {
                 placeholder="Tìm theo mã lớp, tên lớp, khoa, ngành..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                className="pl-10"
+                className="pl-10 h-10"
               />
             </div>
-            <select
-              value={filterDepartmentId}
-              onChange={(event) => {
-                setFilterDepartmentId(event.target.value);
+            
+            <Select 
+              value={filterDepartmentId} 
+              onValueChange={(val) => {
+                setFilterDepartmentId(val);
                 setFilterMajorId("all");
               }}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
             >
-              <option value="all">Tất cả khoa</option>
-              {departments.map((department) => {
-                const id = getDepartmentId(department);
-                return (
-                  <option key={id} value={id}>
-                    {entityLabel(department.code, department.name)}
-                  </option>
-                );
-              })}
-            </select>
-            <select
-              value={filterMajorId}
-              onChange={(event) => setFilterMajorId(event.target.value)}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
-            >
-              <option value="all">Tất cả ngành</option>
-              {majors
-                .filter((major) => filterDepartmentId === "all" || major.departmentId === filterDepartmentId)
-                .map((major) => {
-                  const id = getMajorId(major);
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Tất cả khoa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả khoa</SelectItem>
+                {departments.map((department) => {
+                  const id = getDepartmentId(department);
                   return (
-                    <option key={id} value={id}>
-                      {entityLabel(major.code, major.name)}
-                    </option>
+                    <SelectItem key={id} value={id}>
+                      {entityLabel(department.code, department.name)}
+                    </SelectItem>
                   );
                 })}
-            </select>
-            <select
-              value={filterCohortId}
-              onChange={(event) => setFilterCohortId(event.target.value)}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
+              </SelectContent>
+            </Select>
+
+            <Select 
+              value={filterMajorId} 
+              onValueChange={(val) => setFilterMajorId(val)}
             >
-              <option value="all">Tất cả khóa</option>
-              {cohorts.map((cohort) => {
-                const id = getCohortId(cohort);
-                return (
-                  <option key={id} value={id}>
-                    {entityLabel(cohort.code, cohort.name)}
-                  </option>
-                );
-              })}
-            </select>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Tất cả ngành" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả ngành</SelectItem>
+                {majors
+                  .filter((major) => filterDepartmentId === "all" || major.departmentId === filterDepartmentId)
+                  .map((major) => {
+                    const id = getMajorId(major);
+                    return (
+                      <SelectItem key={id} value={id}>
+                        {entityLabel(major.code, major.name)}
+                      </SelectItem>
+                    );
+                  })}
+              </SelectContent>
+            </Select>
+
+            <Select 
+              value={filterCohortId} 
+              onValueChange={(val) => setFilterCohortId(val)}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Tất cả khóa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả khóa</SelectItem>
+                {cohorts.map((cohort) => {
+                  const id = getCohortId(cohort);
+                  return (
+                    <SelectItem key={id} value={id}>
+                      {entityLabel(cohort.code, cohort.name)}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -466,97 +488,140 @@ export default function ClassesPage() {
                 </div>
               </div>
             )}
-            <div>
-              <Label>Mã lớp *</Label>
-              <Input value={formData.classCode} onChange={(event) => setField("classCode", event.target.value)} placeholder="VD: K15_CNTT_01" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Mã lớp *</Label>
+                <Input value={formData.classCode} onChange={(event) => setField("classCode", event.target.value)} placeholder="VD: K15_CNTT_01" />
+              </div>
+              <div>
+                <Label>Tên lớp *</Label>
+                <Input value={formData.className} onChange={(event) => setField("className", event.target.value)} placeholder="VD: K15 - Công nghệ thông tin 01" />
+              </div>
             </div>
-            <div>
-              <Label>Tên lớp *</Label>
-              <Input value={formData.className} onChange={(event) => setField("className", event.target.value)} placeholder="VD: K15 - Công nghệ thông tin 01" />
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Khoa *</Label>
+                <Select value={formData.departmentId} onValueChange={(val) => handleDepartmentChange(val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chọn khoa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((department) => {
+                      const id = getDepartmentId(department);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {entityLabel(department.code, department.name)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Ngành</Label>
+                <Select value={formData.majorId} onValueChange={(val) => handleMajorChange(val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chọn ngành" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredMajors.map((major) => {
+                      const id = getMajorId(major);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {entityLabel(major.code, major.name)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label>Khoa *</Label>
-              <select value={formData.departmentId} onChange={(event) => handleDepartmentChange(event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="">Chọn khoa</option>
-                {departments.map((department) => {
-                  const id = getDepartmentId(department);
-                  return (
-                    <option key={id} value={id}>
-                      {entityLabel(department.code, department.name)}
-                    </option>
-                  );
-                })}
-              </select>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Khóa đào tạo *</Label>
+                <Select value={formData.academicCohortId} onValueChange={(val) => setField("academicCohortId", val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chọn khóa đào tạo" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {cohorts.map((cohort) => {
+                      const id = getCohortId(cohort);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {entityLabel(cohort.code, cohort.name)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Giai đoạn lớp</Label>
+                <Select value={formData.classPhase} onValueChange={(val) => setField("classPhase", val as any)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FOUNDATION">Đại cương/cơ sở</SelectItem>
+                    <SelectItem value="SPECIALIZATION">Chuyên ngành</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label>Ngành</Label>
-              <select value={formData.majorId} onChange={(event) => handleMajorChange(event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="">Chọn ngành</option>
-                {filteredMajors.map((major) => {
-                  const id = getMajorId(major);
-                  return (
-                    <option key={id} value={id}>
-                      {entityLabel(major.code, major.name)}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            <div>
-              <Label>Khóa đào tạo *</Label>
-              <select value={formData.academicCohortId} onChange={(event) => setField("academicCohortId", event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="">Chọn khóa đào tạo</option>
-                {cohorts.map((cohort) => {
-                  const id = getCohortId(cohort);
-                  return (
-                    <option key={id} value={id}>
-                      {entityLabel(cohort.code, cohort.name)}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            <div>
-              <Label>Giai đoạn lớp</Label>
-              <select value={formData.classPhase} onChange={(event) => setField("classPhase", event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="FOUNDATION">Đại cương/cơ sở</option>
-                <option value="SPECIALIZATION">Chuyên ngành</option>
-              </select>
-            </div>
+
             {formData.classPhase === "SPECIALIZATION" && (
-              <div className="sm:col-span-2">
+              <div>
                 <Label>Chuyên ngành *</Label>
-                <select value={formData.specializationId} onChange={(event) => setField("specializationId", event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                  <option value="">Chọn chuyên ngành</option>
-                  {filteredSpecializations.map((specialization) => {
-                    const id = getSpecializationId(specialization);
-                    return (
-                      <option key={id} value={id}>
-                        {specializationMap.get(id)}
-                      </option>
-                    );
-                  })}
-                </select>
+                <Select value={formData.specializationId} onValueChange={(val) => setField("specializationId", val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chọn chuyên ngành" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {filteredSpecializations.map((specialization) => {
+                      const id = getSpecializationId(specialization);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {specializationMap.get(id)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
             )}
-            <div>
-              <Label>Cố vấn học tập</Label>
-              <select value={formData.advisorId} onChange={(event) => setField("advisorId", event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="">Chưa gán cố vấn</option>
-                {lecturers.map((lecturer) => (
-                  <option key={lecturer.id} value={lecturer.id}>
-                    {lecturerMap.get(lecturer.id)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>Trạng thái</Label>
-              <select value={formData.status} onChange={(event) => setField("status", Number(event.target.value))} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value={1}>Đang học</option>
-                <option value={0}>Tạm dừng</option>
-                <option value={2}>Đã tốt nghiệp</option>
-              </select>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Cố vấn học tập</Label>
+                <Select value={formData.advisorId || "none"} onValueChange={(val) => setField("advisorId", val === "none" ? "" : val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chưa gán cố vấn" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="none">Chưa gán cố vấn</SelectItem>
+                    {lecturers.map((lecturer) => (
+                      <SelectItem key={lecturer.id} value={lecturer.id}>
+                        {lecturerMap.get(lecturer.id)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Trạng thái</Label>
+                <Select value={String(formData.status)} onValueChange={(val) => setField("status", Number(val))}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Đang học</SelectItem>
+                    <SelectItem value="0">Tạm dừng</SelectItem>
+                    <SelectItem value="2">Đã tốt nghiệp</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div>
               <Label>Sĩ số tối đa</Label>
