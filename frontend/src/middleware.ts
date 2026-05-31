@@ -12,7 +12,7 @@ export function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.some(route => pathname === route);
   
   // Lấy token từ cookie
-  const token = request.cookies.get('access_token')?.value;
+  const token = request.cookies.get('user-token')?.value;
   
   // Nếu là route admin, không phải public, và không có token -> redirect về login
   if (isAdminRoute && !isPublicRoute && !token) {

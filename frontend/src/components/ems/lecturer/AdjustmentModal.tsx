@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { X, Loader2, CalendarRange } from 'lucide-react';
 import { timeSlotApi } from '@/api/timeSlot';
 import { roomApi } from '@/api/room';
+import { scheduleApi } from '@/api/schedule';
 
 interface AdjustmentModalProps {
   isOpen: boolean;
@@ -13,6 +14,11 @@ interface AdjustmentModalProps {
 }
 
 export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess }: AdjustmentModalProps) {
+  const [courseClassId, setCourseClassId] = useState('');
+  const [absentDate, setAbsentDate] = useState('');
+  const [absentTimeSlotId, setAbsentTimeSlotId] = useState('');
+  const [absentPeriods, setAbsentPeriods] = useState(3);
+
   const [requestType, setRequestType] = useState<'ABSENT_MAKEUP' | 'EXTRA_SESSION' | 'RESCHEDULE' | 'ROOM_CHANGE'>('ABSENT_MAKEUP');
   const [proposedDate, setProposedDate] = useState('');
   const [proposedTimeSlotId, setProposedTimeSlotId] = useState('');
@@ -23,11 +29,25 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
 
   const [timeSlots, setTimeSlots] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [myClasses, setMyClasses] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       timeSlotApi.getAll().then(res => setTimeSlots(res.data || []));
       roomApi.getAll().then(res => setRooms(res.data?.data || res.data || []));
+      scheduleApi.getTeachingProgress().then(res => setMyClasses(res.data?.data || []));
+      
+      if (eventData) {
+        setCourseClassId(eventData.courseClassId);
+        setAbsentDate(eventData.date);
+        setAbsentTimeSlotId(eventData.timeSlotId);
+        setAbsentPeriods(eventData.periods || 3);
+      } else {
+        setCourseClassId('');
+        setAbsentDate('');
+        setAbsentTimeSlotId('');
+        setAbsentPeriods(3);
+      }
       
       setType('ABSENT_MAKEUP');
       setProposedDate('');

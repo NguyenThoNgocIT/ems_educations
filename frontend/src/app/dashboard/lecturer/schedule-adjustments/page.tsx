@@ -5,10 +5,12 @@ import { scheduleAdjustmentApi } from '@/api/schedule-adjustment';
 import { toast } from 'sonner';
 import { FileText, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import AdjustmentModal from '@/components/ems/lecturer/AdjustmentModal';
 
 export default function LecturerRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -53,6 +55,13 @@ export default function LecturerRequestsPage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Yêu cầu Điều chỉnh lịch</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Quản lý các đơn xin nghỉ, báo bù, đổi giờ của bạn.</p>
         </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition-colors shadow-sm"
+        >
+          <span className="text-lg">+</span>
+          Tạo yêu cầu mới
+        </button>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -103,6 +112,13 @@ export default function LecturerRequestsPage() {
           </table>
         </div>
       </div>
+
+      <AdjustmentModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        eventData={null}
+        onSuccess={fetchRequests}
+      />
     </div>
   );
 }

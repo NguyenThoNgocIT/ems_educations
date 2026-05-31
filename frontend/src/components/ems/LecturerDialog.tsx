@@ -101,6 +101,7 @@ export default function LecturerDialog({
   const [errors, setErrors] = useState<FormErrors>({});
   const [dobDisplay, setDobDisplay] = useState<string>('');
 
+
   const formatIsoToDisplay = (iso?: string) => {
     if (!iso) return '';
     const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -132,23 +133,6 @@ export default function LecturerDialog({
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
-  const generateCodes = (name: string) => {
-    const t = String(name || '').trim();
-    const words = t.split(/\s+/).filter(Boolean);
-    const initials = words.map((w) => w[0]?.toUpperCase() || '').join('').slice(0, 4) || 'GV';
-    const suffix = String(Date.now()).slice(-4);
-    const instructorCode = `${initials}${suffix}`.toUpperCase();
-    const employeeCode = `NV${suffix}`;
-    return { instructorCode, employeeCode };
-  };
-
-  const buildAutoContactEmail = (fullName: string, instructorCode: string) => {
-    const prefix = getFirstNameNoAccent(fullName);
-    const code = String(instructorCode || '').trim().toLowerCase();
-    if (!prefix || !code) return '';
-    return `${prefix}${code}@donga.edu.vn`;
-  };
-
   // Load lookups
   useEffect(() => {
     if (!open) return;
@@ -156,9 +140,9 @@ export default function LecturerDialog({
     const fetchLookups = async () => {
       try {
         const [departmentData, degreeData, majorData] = await Promise.all([
-          departmentApi.getAll({ isActive: true }),
-          degreeApi.getAll({ isActive: true }),
-          majorApi.getAll({ isActive: true }),
+          departmentApi.getAll({ isActive: true }).catch(() => []),
+          degreeApi.getAll({ isActive: true }).catch(() => []),
+          majorApi.getAll({ isActive: true }).catch(() => []),
         ]);
         setDepartments(departmentData || []);
         setDegrees(degreeData || []);
@@ -227,12 +211,7 @@ export default function LecturerDialog({
     setDobDisplay(formatIsoToDisplay(formData.dateOfBirth));
   }, [formData.dateOfBirth]);
 
-  useEffect(() => {
-    const autoEmail = buildAutoContactEmail(formData.fullName, formData.instructorCode);
-    if (autoEmail) {
-      setFormData((current) => (current.contactEmail === autoEmail ? current : { ...current, contactEmail: autoEmail }));
-    }
-  }, [formData.fullName, formData.instructorCode]);
+
 
   const validate = (): boolean => {
     const nextErrors: FormErrors = {};
@@ -258,11 +237,8 @@ export default function LecturerDialog({
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
         phoneNumber: formData.phoneNumber || undefined,
-        contactEmail: formData.contactEmail || undefined,
         permanentAddress: formData.permanentAddress || undefined,
         note: formData.note || undefined,
-          employeeCode: formData.employeeCode || undefined,
-          instructorCode: formData.instructorCode || undefined,
         startWorkDate: formData.startWorkDate || undefined,
         endWorkDate: formData.endWorkDate || undefined,
         contractType: formData.contractType || undefined,
@@ -275,6 +251,13 @@ export default function LecturerDialog({
         graduationYear: formData.graduationYear ? Number(formData.graduationYear) : undefined,
         isActive: formData.isActive,
       };
+
+      // Khi update: gửi thêm các field đã có
+      if (lecturerId) {
+        payload.employeeCode = formData.employeeCode || undefined;
+        payload.instructorCode = formData.instructorCode || undefined;
+        payload.contactEmail = formData.contactEmail || undefined;
+      }
 
       if (lecturerId) {
         await lecturerApi.update(lecturerId, payload);
@@ -324,14 +307,6 @@ export default function LecturerDialog({
                     id="fullName"
                     value={formData.fullName}
                     onChange={(e) => setField('fullName', e.target.value)}
-                    onBlur={() => {
-                      // auto-generate codes when fullName entered and codes empty
-                      if (!formData.instructorCode || !formData.employeeCode) {
-                        const { instructorCode, employeeCode } = generateCodes(formData.fullName || '');
-                        if (!formData.instructorCode) setField('instructorCode', instructorCode);
-                        if (!formData.employeeCode) setField('employeeCode', employeeCode);
-                      }
-                    }}
                     className="mt-1.5 h-10"
                     placeholder="VD: Nguyễn Văn An"
                     required
@@ -386,17 +361,22 @@ export default function LecturerDialog({
                   />
                 </div>
 
+                {lecturerId && (
                 <div>
-                  <Label htmlFor="contactEmail">Email liên hệ</Label>
+                  <Label htmlFor="contactEmail" className="flex items-center gap-1.5">
+                    Email đào tạo
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded font-normal uppercase tracking-tight">Tự động</span>
+                  </Label>
                   <Input
                     id="contactEmail"
                     type="email"
                     value={formData.contactEmail}
                     readOnly
-                    className="mt-1.5 h-10 bg-muted/50"
-                    placeholder="Tự động sinh theo mã GV"
+                    className="mt-1.5 h-10 bg-muted/50 italic"
+                    placeholder="Hệ thống tự sinh khi lưu"
                   />
                 </div>
+                )}
 
                 <div className="md:col-span-2 lg:col-span-3">
                   <Label htmlFor="permanentAddress">Địa chỉ thường trú</Label>
@@ -419,27 +399,37 @@ export default function LecturerDialog({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
+                {lecturerId && (
                 <div>
-                  <Label htmlFor="employeeCode">Mã nhân viên</Label>
+                  <Label htmlFor="employeeCode" className="flex items-center gap-1.5">
+                    Mã nhân viên (NV)
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded font-normal uppercase tracking-tight">Tự động</span>
+                  </Label>
                   <Input
                     id="employeeCode"
                     value={formData.employeeCode}
-                    onChange={(e) => setField('employeeCode', e.target.value)}
-                    className="mt-1.5 h-10"
-                    placeholder="Mã nhân viên (tự sinh)"
+                    readOnly
+                    className="mt-1.5 h-10 bg-muted/50 font-mono"
+                    placeholder="Hệ thống tự sinh khi lưu"
                   />
                 </div>
+                )}
 
+                {lecturerId && (
                 <div>
-                  <Label htmlFor="instructorCode">Mã giảng viên</Label>
+                  <Label htmlFor="instructorCode" className="flex items-center gap-1.5">
+                    Mã giảng viên (GV)
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded font-normal uppercase tracking-tight">Tự động</span>
+                  </Label>
                   <Input
                     id="instructorCode"
                     value={formData.instructorCode}
-                    onChange={(e) => setField('instructorCode', e.target.value)}
-                    className="mt-1.5 h-10"
-                    placeholder="Mã giảng viên (tự sinh)"
+                    readOnly
+                    className="mt-1.5 h-10 bg-muted/50 font-mono text-primary font-bold"
+                    placeholder="Hệ thống tự sinh khi lưu"
                   />
                 </div>
+                )}
 
                 <div>
                   <Label>Khoa/Bộ môn *</Label>

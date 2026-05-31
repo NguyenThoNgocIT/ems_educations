@@ -12,4 +12,8 @@ export const scheduleApi = {
   getAutoScheduleStatus: (semesterId: string) => apiClient.get(`/api/v1/auto-schedules/status/${semesterId}`),
   getTeachingProgress: (params?: { semesterId?: string; instructorId?: string; courseClassId?: string }) => 
     apiClient.get('/api/v1/schedules/teaching-progress', { params }),
+  getCalendar: (params: { instructorId: string; month: number; year: number }) => 
+    apiClient.get('/api/v1/schedules/calendar', { params }),
+  getInstructorWeek: (id: string, date: string, semesterId?: string) => 
+    apiClient.get(`/api/v1/schedules/instructor/${id}/week`, { params: { date, semesterId } }),
 };
