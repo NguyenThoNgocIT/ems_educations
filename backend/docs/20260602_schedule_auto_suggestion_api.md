@@ -1,6 +1,8 @@
 # API tu dong xep lich va goi y lich bu
-- Thêm API gợi ý lịch bù/tăng tiết:POST /api/v1/schedule-adjustments/suggestions cho giảng viên.
-POST /api/v1/admin/schedule-adjustments/suggestions cho admin.
+
+- Đã làm:
+  Thêm API gợi ý lịch bù/tăng tiết:POST /api/v1/schedule-adjustments/suggestions cho giảng viên.
+  POST /api/v1/admin/schedule-adjustments/suggestions cho admin.
 
 Thêm thuật toán generate candidates -> hard filter -> soft scoring trong ScheduleAdjustmentSuggestionServiceImpl.java.
 Tự check:giảng viên trùng lịch,
@@ -15,6 +17,8 @@ cảnh báo gần cuối kỳ.
 
 Trả về score, checks, warnings để FE hiển thị rõ vì sao hệ thống gợi ý phương án đó.
 Nâng auto schedule trong AutoScheduleService.java: tạo nhiều buổi học thật trong Schedules theo tổng số tiết môn học, không còn chỉ tạo 1 lịch/lớp học phần.
+Thêm docs cho FE tại 20260602_schedule_auto_suggestion_api.md.
+
 ## 1. Tu dong xep lich goc cho lop hoc phan
 
 Endpoint:
@@ -100,9 +104,7 @@ Request mau:
   "fromDate": "2026-12-15",
   "toDate": "2026-12-31",
   "preferredDayOfWeeks": [5, 7],
-  "preferredTimeSlotIds": [
-    "00000000-0000-0000-0000-000000000000"
-  ],
+  "preferredTimeSlotIds": ["00000000-0000-0000-0000-000000000000"],
   "preferredRoomId": null,
   "preferredBuildingId": null,
   "preferSameRoom": true,

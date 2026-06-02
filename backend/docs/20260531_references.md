@@ -1,7 +1,6 @@
 # DANH MỤC TÀI LIỆU THAM KHẢO
 
 > Ngày truy cập: 31/05/2026.
-
 ## 1. Tài liệu tham khảo nền tảng lý thuyết
 
 [1] R. T. Fielding, *Architectural Styles and the Design of Network-based Software Architectures*, Doctoral dissertation, University of California, Irvine, 2000.  
