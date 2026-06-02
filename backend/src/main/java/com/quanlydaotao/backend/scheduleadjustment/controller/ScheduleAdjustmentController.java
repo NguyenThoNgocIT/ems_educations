@@ -5,10 +5,13 @@ import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentBatchAp
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentBatchApproveResponse;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentResponse;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentReviewRequest;
+import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentSuggestionRequest;
+import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentSuggestionResponse;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentSubmitRequest;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentValidateRequest;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentValidationResponse;
 import com.quanlydaotao.backend.scheduleadjustment.service.ScheduleAdjustmentService;
+import com.quanlydaotao.backend.scheduleadjustment.service.ScheduleAdjustmentSuggestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -35,6 +38,7 @@ import java.util.UUID;
 @Tag(name = "Điều chỉnh lịch giảng dạy", description = "API xử lý nghỉ, bù, tăng tiết và đổi lịch qua request/override")
 public class ScheduleAdjustmentController {
     private final ScheduleAdjustmentService service;
+    private final ScheduleAdjustmentSuggestionService suggestionService;
 
     @PostMapping("/validate")
     @PreAuthorize("hasRole('LECTURER')")
@@ -44,6 +48,16 @@ public class ScheduleAdjustmentController {
             @Valid @RequestBody ScheduleAdjustmentValidateRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Kiểm tra yêu cầu điều chỉnh lịch thành công",
                 service.validateForCurrentInstructor(authentication.getName(), request)));
+    }
+
+    @PostMapping("/suggestions")
+    @PreAuthorize("hasRole('LECTURER')")
+    @Operation(summary = "Giáº£ng viÃªn láº¥y gá»£i Ã½ ngÃ y, tiáº¿t, phÃ²ng cho lá»‹ch bÃ¹ hoáº·c tÄƒng tiáº¿t")
+    public ResponseEntity<ApiResponse<ScheduleAdjustmentSuggestionResponse>> suggest(
+            Authentication authentication,
+            @Valid @RequestBody ScheduleAdjustmentSuggestionRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Gá»£i Ã½ lá»‹ch Ä‘iá»u chá»‰nh thÃ nh cÃ´ng",
+                suggestionService.suggestForCurrentInstructor(authentication.getName(), request)));
     }
 
     @PostMapping
