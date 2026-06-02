@@ -574,7 +574,7 @@ flowchart TD
     B --> C["Đề xuất ngày, tiết, phòng học bù/tăng tiết"]
     C --> D["Hệ thống kiểm tra tự động"]
     D --> E{"GV/phòng/lớp rảnh?"}
-    E -- Không --> F["Gợi ý khung giờ hoặc phòng khác"]
+    E -- Không --> F["Hiển thị slot/phòng bị xung đột và các lựa chọn đang rảnh"]
     E -- Có --> G["Gửi yêu cầu đến admin"]
     G --> H["Admin xem và duyệt"]
     H --> I{"Đồng ý?"}
@@ -591,7 +591,7 @@ flowchart TD
 | Kiểm tra trùng lịch | Kiểm tra giảng viên, phòng, lớp trong cùng khung giờ |
 | Xem lịch tuần | Hiển thị lịch học/lịch dạy theo tuần |
 | Tạo yêu cầu điều chỉnh lịch | Giảng viên gửi yêu cầu nghỉ/bù/tăng tiết |
-| Kiểm tra khả dụng | Hệ thống kiểm tra tự động phòng, giảng viên, lớp, học kỳ |
+| Kiểm tra khả dụng | Hệ thống kiểm tra phòng, giảng viên, lớp, học kỳ và trả trạng thái khả dụng của slot/phòng |
 | Duyệt yêu cầu | Admin duyệt, từ chối hoặc trả lại yêu cầu |
 | Lịch override | Lưu lịch thay thế mà không làm mất lịch gốc |
 | Theo dõi tiến độ giảng dạy | Tổng hợp số tiết phải dạy, đã dạy, còn lại |
@@ -622,9 +622,9 @@ Mô tả: Sinh viên xem lịch học theo tuần/học kỳ.
 
 Mô tả: Giảng viên chọn lịch gốc, nhập lý do, ngày bù, tiết bù, phòng đề xuất.
 
-**Hình 3.57. Màn hình kiểm tra tự động khả dụng lịch bù**
+**Hình 3.57. Màn hình kiểm tra khả dụng lịch bù**
 
-Mô tả: Hiển thị kết quả kiểm tra giảng viên rảnh, phòng rảnh, lớp không trùng lịch, ngày nằm trong học kỳ.
+Mô tả: Hiển thị kết quả kiểm tra giảng viên rảnh, phòng rảnh, lớp không trùng lịch, ngày nằm trong học kỳ và danh sách slot/phòng theo trạng thái. Phần thuật toán gợi ý tối ưu chưa hoàn thiện.
 
 **Hình 3.58. Màn hình admin duyệt yêu cầu điều chỉnh lịch**
 
@@ -706,7 +706,7 @@ Kiểm thử được thực hiện nhằm đảm bảo các chức năng hoạt
 | Đăng ký học lại khi trùng lịch | Backend từ chối |
 | Phân công giảng viên trùng lớp học phần | Backend từ chối |
 | Tạo lịch trùng phòng hoặc giảng viên | Backend từ chối |
-| Giảng viên gửi yêu cầu nghỉ/bù | Hệ thống kiểm tra tự động và tạo yêu cầu |
+| Giảng viên gửi yêu cầu nghỉ/bù | Hệ thống kiểm tra khả dụng và tạo yêu cầu nếu dữ liệu hợp lệ |
 | Admin duyệt yêu cầu bù | Tạo lịch override và giữ nguyên lịch gốc |
 | Giảng viên có lịch nghỉ đã duyệt | Hệ thống cảnh báo/chặn khi xếp lịch hoặc duyệt lịch bù trùng ngày nghỉ |
 

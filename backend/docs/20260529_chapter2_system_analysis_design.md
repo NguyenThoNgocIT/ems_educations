@@ -1639,7 +1639,7 @@ flowchart TD
     Teach --> Request{"Có nghỉ/bù/tăng tiết?"}
     Request -- Không --> Progress["Cập nhật tiến độ giảng dạy"]
     Request -- Có --> Submit["Giảng viên gửi ScheduleAdjustmentRequest"]
-    Submit --> AutoCheck["Hệ thống kiểm tra tự động và gợi ý"]
+    Submit --> AutoCheck["Hệ thống kiểm tra tự động và trả trạng thái khả dụng"]
     AutoCheck --> Review["Admin duyệt"]
     Review --> Approved{"Đồng ý?"}
     Approved -- Không --> Reject["Cập nhật trạng thái từ chối/trả lại"]
@@ -1666,7 +1666,7 @@ sequenceDiagram
     S->>DB: Kiểm tra phòng rảnh
     S->>DB: Kiểm tra lớp không trùng lịch
     S->>DB: Kiểm tra ngày trong học kỳ
-    S-->>FE: Kết quả kiểm tra và gợi ý
+    S-->>FE: Kết quả kiểm tra, danh sách slot/phòng và trạng thái khả dụng
     Instructor->>FE: Gửi yêu cầu
     FE->>C: POST /api/v1/schedule-adjustments
     C->>S: create(request)
