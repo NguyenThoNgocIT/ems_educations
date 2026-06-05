@@ -88,7 +88,7 @@ public class AdministrativeClassTestDataSeeder {
             administrativeClass.setClassPhase(seed.phase());
             administrativeClass.setMaxSize(seed.maxSize());
             administrativeClass.setStatus(1);
-            administrativeClass.setNote("Dữ liệu test phân lớp hành chính");
+            administrativeClass.setNote("Lớp hành chính được khởi tạo theo kế hoạch tuyển sinh");
             administrativeClass.setIsActive(true);
             classRepository.save(administrativeClass);
         }
@@ -141,7 +141,7 @@ public class AdministrativeClassTestDataSeeder {
                 studentClass.setClassId(targetClass.getClassId());
                 studentClass.setSemesterId(semester.getSemesterId());
                 studentClass.setStatus("ACTIVE");
-                studentClass.setNote("Seed dữ liệu test lớp hành chính");
+                studentClass.setNote("Sinh viên được phân vào lớp hành chính theo ngành và khóa học");
                 studentClass.setIsActive(true);
                 changedStudentClasses.add(studentClass);
             } else {
