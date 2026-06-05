@@ -39,4 +39,4 @@ open:
     description: Tài liệu API cho dự án hệ thống Quản lý Đào tạo
     version: 1.0.0
     serverName: Local Server
-    serverUrl: http://localhost:${server.port}
+    serverUrl: ${OPEN_API_SERVER_URL:/}

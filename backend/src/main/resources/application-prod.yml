@@ -21,13 +21,13 @@ spring:
     show-sql: false
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
   swagger-ui:
-    enabled: false
+    enabled: true
 open:
   api:
     title: API Quản lý Đào tạo
     description: Tài liệu API cho dự án hệ thống Quản lý Đào tạo
     version: 1.0.0
-    serverName: Local Server
-    serverUrl: http://localhost:${server.port}
+    serverName: Deployed Server
+    serverUrl: ${OPEN_API_SERVER_URL:/}
