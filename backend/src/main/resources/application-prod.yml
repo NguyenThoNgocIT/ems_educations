@@ -1,9 +1,29 @@
 server:
-  port: 8082
+  port: ${PORT:8081}
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 2
 spring:
   config:
     activate:
       on-profile: prod
+  main:
+    lazy-initialization: true
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      max-lifetime: 240000
+      keepalive-time: 60000
+  jpa:
+    open-in-view: false
+    show-sql: false
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 open:
   api:
     title: API Quản lý Đào tạo

@@ -6,7 +6,10 @@ import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentBatchAp
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentResponse;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentReviewRequest;
 import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentStatisticsResponse;
+import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentSuggestionRequest;
+import com.quanlydaotao.backend.scheduleadjustment.dto.ScheduleAdjustmentSuggestionResponse;
 import com.quanlydaotao.backend.scheduleadjustment.service.ScheduleAdjustmentService;
+import com.quanlydaotao.backend.scheduleadjustment.service.ScheduleAdjustmentSuggestionService;
 import com.quanlydaotao.backend.scheduling.service.ScheduleQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +35,7 @@ import java.util.UUID;
 @Tag(name = "Admin điều chỉnh lịch giảng dạy", description = "API admin duyệt và tra cứu yêu cầu điều chỉnh lịch")
 public class AdminScheduleAdjustmentController {
     private final ScheduleAdjustmentService service;
+    private final ScheduleAdjustmentSuggestionService suggestionService;
     private final ScheduleQueryService scheduleQueryService;
 
     @GetMapping
@@ -42,6 +46,14 @@ public class AdminScheduleAdjustmentController {
             @RequestParam(required = false) UUID instructorId) {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách yêu cầu điều chỉnh lịch thành công",
                 service.searchAdmin(status, courseClassId, instructorId)));
+    }
+
+    @PostMapping("/suggestions")
+    @Operation(summary = "Admin láº¥y gá»£i Ã½ ngÃ y, tiáº¿t, phÃ²ng cho yÃªu cáº§u Ä‘iá»u chá»‰nh lá»‹ch")
+    public ResponseEntity<ApiResponse<ScheduleAdjustmentSuggestionResponse>> suggest(
+            @Valid @RequestBody ScheduleAdjustmentSuggestionRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Gá»£i Ã½ lá»‹ch Ä‘iá»u chá»‰nh thÃ nh cÃ´ng",
+                suggestionService.suggest(request)));
     }
 
     @PostMapping("/{requestId}/approve")

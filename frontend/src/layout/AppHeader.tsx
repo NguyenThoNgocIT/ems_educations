@@ -3,6 +3,7 @@
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
+import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +21,7 @@ interface AppHeaderProps {
 
 const roleLabels: Record<string, string> = {
   admin: "Quản trị viên",
+  super_admin: "Quản trị viên cấp cao",
   lecturer: "Giảng viên",
   student: "Sinh viên",
   parents: "Phụ huynh",
@@ -29,9 +31,11 @@ const roleLabels: Record<string, string> = {
 
 const AppHeader: React.FC<AppHeaderProps> = ({ role = "admin" }) => {
   const { isExpanded, isHovered, toggleSidebar, toggleMobileSidebar } = useSidebar();
+  const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const isSidebarOpen = isExpanded || isHovered;
-  const roleLabel = useMemo(() => roleLabels[role] || "Người dùng hệ thống", [role]);
+  const currentRole = user?.role || role;
+  const roleLabel = useMemo(() => roleLabels[currentRole] || "Người dùng hệ thống", [currentRole]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -99,7 +103,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ role = "admin" }) => {
           <ThemeToggleButton />
           <NotificationDropdown href={`/dashboard/${role}/notifications`} />
           <div className="mx-1 hidden h-8 w-px bg-border sm:block" />
-          <UserDropdown role={role} />
+          <UserDropdown role={currentRole} />
         </div>
       </div>
     </header>

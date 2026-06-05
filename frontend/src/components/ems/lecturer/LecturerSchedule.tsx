@@ -6,47 +6,77 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { EventContentArg } from "@fullcalendar/core";
 import { scheduleApi } from "@/api/schedule";
-import { MapPin, Users, BookOpen } from 'lucide-react';
+import { MapPin, Users, BookOpen, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
 import AdjustmentModal from './AdjustmentModal';
+import { useAuth } from '@/context/AuthContext';
+import { request } from '@/utils/request';
 
 export default function LecturerSchedule() {
+  const { user, updateUser } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [currentRange, setCurrentRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [employeeId, setEmployeeId] = useState<string | null>(user?.id || null);
   const calendarRef = useRef<FullCalendar>(null);
 
-  const fetchInitialData = async () => {
-    try {
-      const res = await scheduleApi.getAll();
-      const fetchedSchedules = res.data?.data || res.data || [];
+  // Nếu user.id chưa có (session cũ), tự fetch từ /api/auth/me
+  useEffect(() => {
+    if (user?.id) {
+      setEmployeeId(user.id);
+      return;
+    }
+    if (!user) return;
+    console.log('[LecturerSchedule] user.id missing, fetching from /me...');
+    // Fetch /api/auth/me để lấy employeeId
+    request.get('/api/auth/me').then((res: any) => {
+      console.log('[LecturerSchedule] /me response:', res);
+      const empId = res?.data?.employeeId;
+      console.log('[LecturerSchedule] empId from /me:', empId);
+      if (empId) {
+        setEmployeeId(empId);
+        // Cập nhật vào context & localStorage để lần sau không cần fetch lại
+        updateUser({ id: empId });
+      }
+    }).catch(() => {});
+  }, [user?.id]);
 
-      const scheduleEvents = fetchedSchedules.map((s: any) => {
-        const today = new Date();
-        const currentDay = today.getDay() === 0 ? 7 : today.getDay();
-        const targetDay = s.dayOfWeek || 2; 
-        const diff = targetDay - currentDay;
-        const targetDate = new Date(today);
-        targetDate.setDate(today.getDate() + diff);
-        
-        const startHour = 7 + (s.startPeriod || 1);
-        const endHour = startHour + ((s.endPeriod || 3) - (s.startPeriod || 1));
-        
-        return {
-          id: s.id || s.scheduleId,
-          title: `${s.courseClassName || s.courseName} - ${s.roomCode || ''}`,
-          start: `${targetDate.toISOString().split('T')[0]}T${startHour.toString().padStart(2, '0')}:00:00`,
-          end: `${targetDate.toISOString().split('T')[0]}T${endHour.toString().padStart(2, '0')}:00:00`,
-          extendedProps: {
-            calendar: s.type === 'TH' ? 'Warning' : 'Primary',
-            roomCode: s.roomCode,
-            courseClassName: s.courseClassName,
-            courseClassId: s.courseClassId,
-            courseName: s.courseName,
-            timeSlotId: s.timeSlotId,
-            periods: (s.endPeriod || 3) - (s.startPeriod || 1),
-            mode: s.type || s.mode
-          }
-        };
+  const fetchScheduleForRange = async (start: Date, end: Date) => {
+    if (!employeeId) return;
+    
+    // Calculate the mid-date of the range to get the correct month & year
+    const midDate = new Date((start.getTime() + end.getTime()) / 2);
+    const month = midDate.getMonth() + 1;
+    const year = midDate.getFullYear();
+
+    try {
+      const res = await scheduleApi.getCalendar({
+        instructorId: employeeId,
+        month: month,
+        year: year
+      });
+      console.log('[LecturerSchedule] calling calendar API:', { employeeId, month, year });
+      const calendarDays = res?.data || [];
+      console.log('[LecturerSchedule] calendarDays received:', calendarDays.length, 'days, events:', calendarDays.filter((d: any) => d.items?.length > 0));
+      const scheduleEvents: any[] = [];
+
+      calendarDays.forEach((day: any) => {
+        day.items.forEach((item: any) => {
+          const start = item.startTime ? `${day.date}T${item.startTime}` : `${day.date}T07:00:00`;
+          const end = item.endTime ? `${day.date}T${item.endTime}` : `${day.date}T10:00:00`;
+
+          scheduleEvents.push({
+            id: item.id,
+            title: `${item.courseClassCode} - ${item.roomCode || ''}`,
+            start,
+            end,
+            extendedProps: {
+              ...item,
+              date: day.date,
+              periods: item.numberOfPeriods || 3
+            }
+          });
+        });
       });
       setEvents(scheduleEvents);
     } catch (error) {
@@ -56,8 +86,10 @@ export default function LecturerSchedule() {
   };
 
   useEffect(() => {
-    fetchInitialData();
-  }, []);
+    if (currentRange && employeeId) {
+      fetchScheduleForRange(currentRange.start, currentRange.end);
+    }
+  }, [employeeId, currentRange]);
 
   const renderEventContent = (eventInfo: EventContentArg) => {
     const isPractical = eventInfo.event.extendedProps.mode === 'TH';
@@ -89,6 +121,14 @@ export default function LecturerSchedule() {
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
+          datesSet={(dateInfo) => {
+            setCurrentRange(prev => {
+              if (prev && prev.start.getTime() === dateInfo.start.getTime() && prev.end.getTime() === dateInfo.end.getTime()) {
+                return prev;
+              }
+              return { start: dateInfo.start, end: dateInfo.end };
+            });
+          }}
         headerToolbar={{
           left: "prev,next today",
           center: "title",
@@ -126,7 +166,9 @@ export default function LecturerSchedule() {
         isOpen={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
         eventData={selectedEvent}
-        onSuccess={fetchInitialData}
+        onSuccess={() => {
+          if (currentRange) fetchScheduleForRange(currentRange.start, currentRange.end);
+        }}
       />
     </div>
   );

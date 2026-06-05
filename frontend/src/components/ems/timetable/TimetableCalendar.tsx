@@ -12,9 +12,11 @@ interface Props {
   onDateSelect: (info: DateSelectArg) => void;
   onEventClick: (info: EventClickArg) => void;
   onEventReceive: (info: EventReceiveArg) => void;
+  onEventDrop?: (info: any) => void;
+  onEventResize?: (info: any) => void;
 }
 
-export default function TimetableCalendar({ events, calendarRef, onDateSelect, onEventClick, onEventReceive }: Props) {
+export default function TimetableCalendar({ events, calendarRef, onDateSelect, onEventClick, onEventReceive, onEventDrop, onEventResize }: Props) {
   const renderEventContent = (eventInfo: EventContentArg) => {
     // Nhận diện trạng thái trùng lịch từ Dữ liệu (Component cha truyền vào)
     const isConflict = eventInfo.event.extendedProps.isConflict === true; 
@@ -70,9 +72,12 @@ export default function TimetableCalendar({ events, calendarRef, onDateSelect, o
         events={events}
         selectable={true}
         droppable={true}
+        editable={false}
         select={onDateSelect}
         eventClick={onEventClick}
         eventReceive={onEventReceive}
+        eventDrop={onEventDrop}
+        eventResize={onEventResize}
         eventContent={renderEventContent}
         slotMinTime="07:00:00"
         slotMaxTime="21:30:00"

@@ -3,6 +3,7 @@ package com.quanlydaotao.backend.scheduling.repository;
 import com.quanlydaotao.backend.scheduling.entity.Schedule;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -82,6 +83,22 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
               AND s.date = :date
               AND s.timeSlot.timeSlotId = :timeSlotId
               AND s.isActive = true
+              AND s.scheduleId <> :scheduleId
+              AND (s.scheduleStatus IS NULL OR s.scheduleStatus <> 'CANCELLED')
+            """)
+    boolean hasInstructorConflictIgnoringSchedule(
+            @Param("instructorId") UUID instructorId,
+            @Param("date") LocalDate date,
+            @Param("timeSlotId") UUID timeSlotId,
+            @Param("scheduleId") UUID scheduleId);
+
+    @Query("""
+            SELECT COUNT(s) > 0
+            FROM Schedule s
+            WHERE s.instructor.employeeId = :instructorId
+              AND s.date = :date
+              AND s.timeSlot.timeSlotId = :timeSlotId
+              AND s.isActive = true
               AND (s.scheduleStatus IS NULL OR s.scheduleStatus <> 'CANCELLED')
               AND (:ignoredCourseClassId IS NULL OR s.courseClass.courseClassId <> :ignoredCourseClassId)
             """)
@@ -94,9 +111,41 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
               AND s.date = :date
               AND s.timeSlot.timeSlotId = :timeSlotId
               AND s.isActive = true
+              AND s.scheduleId <> :scheduleId
+              AND (s.scheduleStatus IS NULL OR s.scheduleStatus <> 'CANCELLED')
+            """)
+    boolean hasRoomConflictIgnoringSchedule(
+            @Param("roomId") UUID roomId,
+            @Param("date") LocalDate date,
+            @Param("timeSlotId") UUID timeSlotId,
+            @Param("scheduleId") UUID scheduleId);
+
+    @Query("""
+            SELECT COUNT(s) > 0
+            FROM Schedule s
+            WHERE s.room.roomId = :roomId
+              AND s.date = :date
+              AND s.timeSlot.timeSlotId = :timeSlotId
+              AND s.isActive = true
               AND (s.scheduleStatus IS NULL OR s.scheduleStatus <> 'CANCELLED')
             """)
     boolean hasRoomConflict(UUID roomId, LocalDate date, UUID timeSlotId);
+
+    @Query("""
+            SELECT COUNT(s) > 0
+            FROM Schedule s
+            WHERE s.courseClass.courseClassId = :courseClassId
+              AND s.date = :date
+              AND s.timeSlot.timeSlotId = :timeSlotId
+              AND s.isActive = true
+              AND s.scheduleId <> :scheduleId
+              AND (s.scheduleStatus IS NULL OR s.scheduleStatus <> 'CANCELLED')
+            """)
+    boolean hasCourseClassConflictIgnoringSchedule(
+            @Param("courseClassId") UUID courseClassId,
+            @Param("date") LocalDate date,
+            @Param("timeSlotId") UUID timeSlotId,
+            @Param("scheduleId") UUID scheduleId);
 
     @Query("""
             SELECT COUNT(s) > 0

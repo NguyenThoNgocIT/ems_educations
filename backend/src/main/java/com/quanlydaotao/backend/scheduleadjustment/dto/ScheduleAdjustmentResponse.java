@@ -27,4 +27,13 @@ public class ScheduleAdjustmentResponse {
     private LocalDateTime reviewedAt;
     private Boolean isActive;
     private LocalDateTime createdAt;
+
+    // Human-readable detail fields populated dynamically
+    private String courseClassName;
+    private String classCode;
+    private String instructorName;
+    private String instructorCode;
+    private String proposedRoomCode;
+    private String absentSlotCode;
+    private String proposedSlotCode;
 }

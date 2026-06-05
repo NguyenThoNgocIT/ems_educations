@@ -1,7 +1,10 @@
 'use client';
 
-import React from 'react';
-import LecturerSchedule from '@/components/ems/lecturer/LecturerSchedule';
+import dynamic from 'next/dynamic';
+
+const LecturerSchedule = dynamic(() => import('@/components/ems/lecturer/LecturerSchedule'), {
+  ssr: false,
+});
 
 export default function LecturerMySchedulePage() {
   return (

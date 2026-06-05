@@ -8,4 +8,8 @@ export async function authLogin(body: {
   return request.post('/api/auth/login', body);
 }
 
+export async function authMe() {
+  return request.get('/api/auth/me');
+}
+
 export default request;

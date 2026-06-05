@@ -29,6 +29,13 @@ interface CalendarEvent extends EventInput {
   };
 }
 
+const toArray = (value: any) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  return [];
+};
+
 const Calendar: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [courseClasses, setCourseClasses] = useState<any[]>([]);
@@ -47,7 +54,7 @@ const Calendar: React.FC = () => {
     semesterId: "77730894-3cf6-4f71-9c60-84ce2289c099", // Default semester ID
     note: "",
     mode: "LT",
-    scheduleStatus: "CONFIRMED"
+    scheduleStatus: "PLANNED"
   });
 
   const calendarRef = useRef<FullCalendar>(null);
@@ -64,7 +71,7 @@ const Calendar: React.FC = () => {
       ]);
 
       // Process schedules for calendar
-      const scheduleEvents = (schedulesRes.data?.data || schedulesRes.data || []).map((s: any) => ({
+      const scheduleEvents = toArray(schedulesRes).map((s: any) => ({
         id: s.scheduleId,
         title: `${s.courseClassName} - ${s.roomCode}`,
         start: s.date,
@@ -79,10 +86,10 @@ const Calendar: React.FC = () => {
       setEvents(scheduleEvents);
 
       // Set other data for select inputs
-      setCourseClasses(Array.isArray(classesRes) ? classesRes : []);
-      setRooms(roomsRes.data || roomsRes || []);
-      setTimeSlots(slotsRes.data || []);
-      setLecturers(Array.isArray(lecturersRes) ? lecturersRes : []);
+      setCourseClasses(toArray(classesRes));
+      setRooms(toArray(roomsRes));
+      setTimeSlots(toArray(slotsRes));
+      setLecturers(toArray(lecturersRes));
     } catch (error) {
       console.error("Failed to fetch calendar data", error);
       toast.error("Không thể tải dữ liệu thời khóa biểu");
@@ -143,7 +150,7 @@ const Calendar: React.FC = () => {
       semesterId: "77730894-3cf6-4f71-9c60-84ce2289c099",
       note: "",
       mode: "LT",
-      scheduleStatus: "CONFIRMED"
+      scheduleStatus: "PLANNED"
     });
     setSelectedEvent(null);
   };
@@ -243,8 +250,8 @@ const Calendar: React.FC = () => {
                 >
                   <option value="">-- Chọn phòng --</option>
                   {rooms.map((r: any) => (
-                    <option key={r.roomId} value={r.roomId}>
-                      {r.roomCode} ({r.roomType})
+                    <option key={r.roomId || r.id} value={r.roomId || r.id}>
+                      {r.code || r.roomCode} ({r.type || r.roomType || 'Phòng học'})
                     </option>
                   ))}
                 </select>
@@ -341,8 +348,8 @@ const Calendar: React.FC = () => {
                   onChange={(e) => setFormData({...formData, scheduleStatus: e.target.value})}
                   className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-800 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                 >
-                  <option value="CONFIRMED">Đã xác nhận</option>
-                  <option value="DRAFT">Bản nháp</option>
+                  <option value="PLANNED">Đã lên lịch</option>
+                  <option value="COMPLETED">Đã hoàn thành</option>
                   <option value="CANCELLED">Đã hủy</option>
                 </select>
               </div>

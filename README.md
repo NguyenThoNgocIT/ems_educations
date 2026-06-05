@@ -73,8 +73,8 @@ graph TD
     ./mvnw.cmd spring-boot:run
     ```
 4.  **Tài khoản mặc định:**
-    - **Username:** `admin`
-    - **Password:** `123456`
+    -admin@donga.edu.vn
+        Admin@12345
     - **Swagger UI:** [http://localhost:8081/](http://localhost:8081/)
 
 ---

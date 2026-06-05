@@ -17,6 +17,8 @@ public interface TeachingAssignmentRepository extends JpaRepository<TeachingAssi
 
     boolean existsByInstructorIdAndCourseClassIdAndSemesterIdAndIsActiveTrue(UUID instructorId, UUID courseClassId, UUID semesterId);
 
+    List<TeachingAssignment> findByInstructorIdAndIsActiveTrue(UUID instructorId);
+
     @Query("""
             SELECT a
             FROM TeachingAssignment a

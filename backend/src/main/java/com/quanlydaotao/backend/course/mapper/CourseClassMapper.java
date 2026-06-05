@@ -14,6 +14,8 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface CourseClassMapper {
     @Mapping(target = "id", source = "courseClassId")
+    @Mapping(target = "courseName", source = "course.name")
+    @Mapping(target = "credits", source = "course.credits")
     CourseClassDto toDto(CourseClass entity);
 
     @Mapping(target = "courseClassId", source = "id")

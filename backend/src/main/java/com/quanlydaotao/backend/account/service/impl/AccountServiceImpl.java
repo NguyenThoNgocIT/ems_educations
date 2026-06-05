@@ -10,14 +10,17 @@ import com.quanlydaotao.backend.major.repository.MajorRepository;
 import com.quanlydaotao.backend.trainingprogram.repository.TrainingProgramRepository;
 import com.quanlydaotao.backend.degree.repository.DegreeRepository;
 import com.quanlydaotao.backend.department.repository.DepartmentRepository;
+import com.quanlydaotao.backend.division.repository.DivisionRepository;
 import com.quanlydaotao.backend.employee.entity.Employee;
 import com.quanlydaotao.backend.employee.repository.EmployeeRepository;
+import com.quanlydaotao.backend.infrastructure.persistence.base.BaseEntity;
 import com.quanlydaotao.backend.instructor.entity.InstructorProfile;
 import com.quanlydaotao.backend.instructor.dto.InstructorAdminCreateRequest;
 import com.quanlydaotao.backend.instructor.repository.InstructorProfileRepository;
 import com.quanlydaotao.backend.notification.service.EmailNotificationService;
 import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.person.repository.PersonRepository;
+import com.quanlydaotao.backend.position.repository.PositionRepository;
 import com.quanlydaotao.backend.role.entity.Role;
 import com.quanlydaotao.backend.role.repository.RoleRepository;
 import com.quanlydaotao.backend.staff.entity.Staff;
@@ -76,6 +79,8 @@ public class AccountServiceImpl {
     private final AcademicCohortRepository academicCohortRepository;
     private final DepartmentRepository departmentRepository;
     private final DegreeRepository degreeRepository;
+    private final DivisionRepository divisionRepository;
+    private final PositionRepository positionRepository;
     private final SpecializationRepository specializationRepository;
     private final StudentClassService studentClassService;
     private final StudentStatusHistoryService studentStatusHistoryService;
@@ -321,25 +326,25 @@ public class AccountServiceImpl {
         if (academicCohortId == null) {
             throw new BusinessException("Khóa học không được để trống");
         }
-        if (!departmentRepository.existsById(departmentId)) {
-            throw new BusinessException("Khoa không tồn tại");
-        }
+        ensureActive(departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new BusinessException("Khoa không tồn tại")), "Khoa không còn hoạt động");
         if (majorId != null) {
             Major major = majorRepository.findById(majorId)
                     .orElseThrow(() -> new BusinessException("Ngành không tồn tại"));
+            ensureActive(major, "Ngành không còn hoạt động");
             if (!departmentId.equals(major.getDepartmentId())) {
                 throw new BusinessException("Ngành không thuộc khoa đã chọn");
             }
         }
-        if (!academicCohortRepository.existsById(academicCohortId)) {
-            throw new BusinessException("Khóa học không tồn tại");
-        }
+        ensureActive(academicCohortRepository.findById(academicCohortId)
+                .orElseThrow(() -> new BusinessException("Khóa học không tồn tại")), "Khóa học không còn hoạt động");
         if (specializationId != null) {
             if (majorId == null) {
                 throw new BusinessException("Chuyên ngành phải thuộc một ngành cụ thể");
             }
             Specialization specialization = specializationRepository.findById(specializationId)
                     .orElseThrow(() -> new BusinessException("Chuyên ngành không tồn tại"));
+            ensureActive(specialization, "Chuyên ngành không còn hoạt động");
             if (!departmentId.equals(specialization.getDepartmentId()) || !majorId.equals(specialization.getMajorId())) {
                 throw new BusinessException("Chuyên ngành không thuộc khoa/ngành đã chọn");
             }
@@ -347,11 +352,18 @@ public class AccountServiceImpl {
         if (trainingProgramId != null) {
             TrainingProgram trainingProgram = trainingProgramRepository.findById(trainingProgramId)
                     .orElseThrow(() -> new BusinessException("Chương trình đào tạo không tồn tại"));
+            ensureActive(trainingProgram, "Chương trình đào tạo không còn hoạt động");
             if (!departmentId.equals(trainingProgram.getDepartmentId())) {
                 throw new BusinessException("Chương trình đào tạo không thuộc khoa đã chọn");
             }
+            if (trainingProgram.getMajorId() != null && majorId == null) {
+                throw new BusinessException("Cần chọn ngành khi chọn chương trình đào tạo thuộc ngành");
+            }
             if (majorId != null && trainingProgram.getMajorId() != null && !majorId.equals(trainingProgram.getMajorId())) {
                 throw new BusinessException("Chương trình đào tạo không thuộc ngành đã chọn");
+            }
+            if (trainingProgram.getSpecializationId() != null && specializationId == null) {
+                throw new BusinessException("Cần chọn chuyên ngành khi chọn chương trình đào tạo chuyên ngành");
             }
             if (specializationId != null && !specializationId.equals(trainingProgram.getSpecializationId())) {
                 throw new BusinessException("Chương trình đào tạo không thuộc chuyên ngành đã chọn");
@@ -384,14 +396,26 @@ public class AccountServiceImpl {
         if (request.getDepartmentId() == null) {
             throw new BusinessException("Khoa/Bộ môn không được để trống");
         }
-        if (!departmentRepository.existsById(request.getDepartmentId())) {
-            throw new BusinessException("Khoa/Bộ môn không tồn tại");
+        ensureActive(departmentRepository.findById(request.getDepartmentId())
+                .orElseThrow(() -> new BusinessException("Khoa/Bộ môn không tồn tại")), "Khoa/Bộ môn không còn hoạt động");
+        if (request.getMajorId() != null) {
+            Major major = majorRepository.findById(request.getMajorId())
+                    .orElseThrow(() -> new BusinessException("Ngành không tồn tại"));
+            ensureActive(major, "Ngành không còn hoạt động");
+            if (!request.getDepartmentId().equals(major.getDepartmentId())) {
+                throw new BusinessException("Ngành không thuộc khoa/bộ môn đã chọn");
+            }
         }
-        if (request.getDegreeId() != null && !degreeRepository.existsById(request.getDegreeId())) {
-            throw new BusinessException("Học vị không tồn tại");
-        }
-        if (request.getMajorId() != null && !majorRepository.existsById(request.getMajorId())) {
-            throw new BusinessException("Ngành không tồn tại");
+        if (request.getDegreeId() != null) {
+            var degree = degreeRepository.findById(request.getDegreeId())
+                    .orElseThrow(() -> new BusinessException("Học vị không tồn tại"));
+            ensureActive(degree, "Học vị không còn hoạt động");
+            if (degree.getMajorId() != null && request.getMajorId() == null) {
+                throw new BusinessException("Cần chọn ngành khi chọn học vị gắn với ngành");
+            }
+            if (degree.getMajorId() != null && !degree.getMajorId().equals(request.getMajorId())) {
+                throw new BusinessException("Học vị không thuộc ngành đã chọn");
+            }
         }
 
         String instructorCode = normalizeCode(request.getInstructorCode(), "GV" + employee.getEmployeeCode());
@@ -416,11 +440,15 @@ public class AccountServiceImpl {
         if (request.getDivisionId() == null) {
             throw new BusinessException("Phòng ban không được để trống");
         }
-        if (!existsActiveReference("Divisions", "DivisionId", request.getDivisionId())) {
-            throw new BusinessException("Phòng ban không tồn tại");
-        }
-        if (request.getPositionId() != null && !existsActiveReference("Positions", "PositionId", request.getPositionId())) {
-            throw new BusinessException("Chức vụ không tồn tại");
+        ensureActive(divisionRepository.findById(request.getDivisionId())
+                .orElseThrow(() -> new BusinessException("Phòng ban không tồn tại")), "Phòng ban không còn hoạt động");
+        if (request.getPositionId() != null) {
+            var position = positionRepository.findById(request.getPositionId())
+                    .orElseThrow(() -> new BusinessException("Chức vụ không tồn tại"));
+            ensureActive(position, "Chức vụ không còn hoạt động");
+            if (position.getDivisionId() != null && !request.getDivisionId().equals(position.getDivisionId())) {
+                throw new BusinessException("Chức vụ không thuộc phòng ban đã chọn");
+            }
         }
 
         String staffCode = normalizeCode(request.getStaffCode(), "NV" + employee.getEmployeeCode());
@@ -512,7 +540,7 @@ public class AccountServiceImpl {
 
     private boolean existsActiveReference(String tableName, String idColumn, UUID id) {
         Number count = (Number) entityManager.createNativeQuery(
-                        "SELECT COUNT(1) FROM " + tableName + " WHERE " + idColumn + " = :id AND IsActive = 1")
+                        "SELECT COUNT(1) FROM " + tableName + " WHERE " + idColumn + " = :id AND IsActive = TRUE")
                 .setParameter("id", id)
                 .getSingleResult();
         return count.longValue() > 0;
@@ -585,7 +613,7 @@ public class AccountServiceImpl {
 
     private boolean classMatchesCohort(UUID classId, UUID academicCohortId) {
         Number count = (Number) entityManager.createNativeQuery(
-                        "SELECT COUNT(1) FROM Classes WHERE ClassId = :classId AND (AcademicCohortId IS NULL OR AcademicCohortId = :cohortId)")
+                        "SELECT COUNT(1) FROM Classes WHERE ClassId = :classId AND IsActive = TRUE AND (AcademicCohortId IS NULL OR AcademicCohortId = :cohortId)")
                 .setParameter("classId", classId)
                 .setParameter("cohortId", academicCohortId)
                 .getSingleResult();
@@ -595,5 +623,11 @@ public class AccountServiceImpl {
     private String buildConfirmationLink(String token) {
         String separator = passwordChangeUrl.contains("?") ? "&" : "?";
         return passwordChangeUrl + separator + "token=" + token;
+    }
+
+    private void ensureActive(BaseEntity entity, String message) {
+        if (!Boolean.TRUE.equals(entity.getIsActive())) {
+            throw new BusinessException(message);
+        }
     }
 }

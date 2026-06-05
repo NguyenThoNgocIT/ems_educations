@@ -39,6 +39,19 @@ interface StudentDialogProps {
 
 const toDateInputValue = (value?: string) => (value ? value.slice(0, 10) : '');
 
+const removeAccents = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+
+const getFirstNameNoAccent = (fullName: string) => {
+  const normalized = removeAccents(fullName.trim()).replace(/\s+/g, ' ');
+  const parts = normalized.split(' ').filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1].toLowerCase() : '';
+};
+
 const defaultStudent: StudentAdminFormData = {
   fullName: '',
   studentCode: '',
@@ -128,6 +141,7 @@ export default function StudentDialog({
   const [errors, setErrors] = useState<FormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
 
+
   const getProgramId = (program: TrainingProgram) => program.trainingProgramId || program.programId || program.id || '';
   const getProgramCode = (program: TrainingProgram) => program.code || program.programCode || 'CTDT';
   const getProgramName = (program: TrainingProgram) => program.name || program.programName || 'Chương trình đào tạo';
@@ -195,19 +209,8 @@ export default function StudentDialog({
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
-  const generateEmail = (fullName: string) => {
-    if (!fullName.trim()) return '';
-    const nameParts = fullName.trim().toLowerCase().split(/\s+/);
-    const lastName = nameParts[nameParts.length - 1];
-    const firstName = nameParts[0];
-    return `${lastName}.${firstName}@donga.edu.vn`;
-  };
-
   const handleFullNameChange = (name: string) => {
-    setFormData((current) => ({
-      ...current,
-      fullName: name,
-    }));
+    setFormData((current) => ({ ...current, fullName: name }));
     setErrors((current) => ({ ...current, fullName: undefined }));
   };
 
@@ -377,17 +380,22 @@ export default function StudentDialog({
         const progChanged = formData.trainingProgramId !== originalValues.trainingProgramId;
         const majorChanged = formData.majorId !== originalValues.majorId;
         const cohortChanged = formData.academicCohortId !== originalValues.academicCohortId;
+        const classChanged = formData.classId !== originalValues.classId;
         if (deptChanged || progChanged || majorChanged || cohortChanged) {
           payload.departmentId = formData.departmentId || undefined;
           payload.trainingProgramId = formData.trainingProgramId || undefined;
           payload.majorId = formData.majorId || undefined;
           payload.academicCohortId = formData.academicCohortId || undefined;
         }
+        if (classChanged) {
+          payload.classId = formData.classId || undefined;
+        }
       } else {
         payload.departmentId = formData.departmentId || undefined;
         payload.trainingProgramId = formData.trainingProgramId || undefined;
         payload.majorId = formData.majorId || undefined;
         payload.academicCohortId = formData.academicCohortId || undefined;
+        payload.classId = formData.classId || undefined;
       }
 
       // Only include academic references (cohort/program/major) when changed
@@ -399,13 +407,13 @@ export default function StudentDialog({
       dateOfBirth: formData.dateOfBirth,
       gender: formData.gender,
       phoneNumber: formData.phoneNumber || undefined,
-      contactEmail: formData.contactEmail || undefined,
+      // contactEmail & studentCode: BE tự sinh, không gửi lên
       permanentAddress: formData.permanentAddress || undefined,
       departmentId: formData.departmentId,
       trainingProgramId: formData.trainingProgramId,
       majorId: formData.majorId,
       academicCohortId: formData.academicCohortId,
-      // semester removed
+      classId: formData.classId || undefined,
       admissionDate: formData.admissionDate || undefined,
       note: formData.note || undefined,
     });
@@ -471,7 +479,7 @@ export default function StudentDialog({
                 Thông tin cá nhân
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className={studentId ? "md:col-span-2 lg:col-span-2" : "md:col-span-2 lg:col-span-3"}>
+                <div className="md:col-span-2 lg:col-span-2">
                   <Label htmlFor="fullName">Họ và tên *</Label>
                   <Input
                     id="fullName"
@@ -485,16 +493,19 @@ export default function StudentDialog({
                 </div>
 
                 {studentId && (
-                  <div className="md:col-span-2 lg:col-span-1">
-                    <Label htmlFor="studentCode">Mã sinh viên</Label>
-                    <Input
-                      id="studentCode"
-                      value={formData.studentCode}
-                      onChange={(e) => setField('studentCode', e.target.value)}
-                      className={controlClass('studentCode', 'mt-1.5 h-10')}
-                      placeholder="Mã sinh viên"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="studentCode" className="flex items-center gap-1.5">
+                    Mã sinh viên
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded font-normal uppercase tracking-tight">Tự động</span>
+                  </Label>
+                  <Input
+                    id="studentCode"
+                    value={formData.studentCode}
+                    readOnly
+                    className={controlClass('studentCode', 'mt-1.5 h-10 bg-slate-50 font-mono text-primary font-semibold')}
+                    placeholder="Hệ thống tự sinh khi lưu"
+                  />
+                </div>
                 )}
 
                 <div>
@@ -534,17 +545,22 @@ export default function StudentDialog({
                   />
                 </div>
 
+                {studentId && (
                 <div>
-                  <Label htmlFor="contactEmail">Email liên hệ</Label>
+                  <Label htmlFor="contactEmail" className="flex items-center gap-1.5">
+                    Email đào tạo
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded font-normal uppercase tracking-tight">Tự động</span>
+                  </Label>
                   <Input
                     id="contactEmail"
                     type="email"
                     value={formData.contactEmail}
-                    onChange={(e) => setField('contactEmail', e.target.value)}
-                    className={controlClass('contactEmail', 'mt-1.5 h-10')}
-                    placeholder={formData.contactEmail || generateEmail(formData.fullName) || 'Để trống sẽ tự động gợi ý'}
+                    readOnly
+                    className={controlClass('contactEmail', 'mt-1.5 h-10 bg-slate-50 text-slate-600 italic')}
+                    placeholder="Hệ thống tự sinh khi lưu"
                   />
                 </div>
+                )}
 
                 <div className="md:col-span-2 lg:col-span-2">
                   <Label htmlFor="permanentAddress">Địa chỉ thường trú</Label>
@@ -679,6 +695,32 @@ export default function StudentDialog({
                     </p>
                   )}
                   {errors.academicCohortId && <p className="mt-1 text-xs text-destructive">{errors.academicCohortId}</p>}
+                </div>
+
+                <div>
+                  <Label>Lớp hành chính</Label>
+                  <Select
+                    value={formData.classId}
+                    onValueChange={(value) => setField('classId', value || '')}
+                    disabled={!formData.departmentId || !formData.academicCohortId}
+                  >
+                    <SelectTrigger className="mt-1.5 h-10 w-full">
+                      <SelectValue>
+                        {classes.find((c) => getClassId(c) === formData.classId)
+                          ? (classes.find((c) => getClassId(c) === formData.classId) as AdministrativeClass).classCode
+                          : !formData.departmentId || !formData.academicCohortId
+                            ? 'Chọn Khoa & Khóa trước'
+                            : 'Chọn lớp hành chính'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredClasses.map((cls) => (
+                        <SelectItem key={getClassId(cls)} value={getClassId(cls)}>
+                          {cls.classCode || cls.className || 'Lớp'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Semester removed: only admissionDate and cohort are kept */}

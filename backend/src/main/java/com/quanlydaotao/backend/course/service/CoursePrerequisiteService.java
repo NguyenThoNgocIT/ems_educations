@@ -8,6 +8,6 @@ import java.util.UUID;
 public interface CoursePrerequisiteService {
     List<PrerequisiteDto> getPrerequisitesByCourse(UUID courseId);
     PrerequisiteDto addPrerequisite(CreatePrerequisiteRequest request);
-    void deletePrerequisite(UUID id);
+    void deletePrerequisite(UUID courseId, UUID prereqId);
     boolean checkExists(UUID courseId, UUID prereqId);
 }

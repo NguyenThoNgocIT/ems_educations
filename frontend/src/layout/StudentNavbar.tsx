@@ -4,7 +4,6 @@ import { useSidebar } from "@/context/SidebarContext";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ChevronRight } from "lucide-react";
 import { StudentNavGroups } from "@/constants/student_navigation";
 
 export default function StudentSidebar() {
@@ -90,12 +89,6 @@ export default function StudentSidebar() {
                       {item.name}
                     </span>
                   </div>
-                  
-                  {isOpen && (
-                    <span className="ml-2 flex flex-shrink-0 items-center gap-2">
-                      <ChevronRight className={`h-3.5 w-3.5 transition-transform ${active ? "text-emerald-500 translate-x-0.5 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500"}`} />
-                    </span>
-                  )}
                 </Link>
               );
             })}

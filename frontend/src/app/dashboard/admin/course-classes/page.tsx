@@ -15,12 +15,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, RefreshCw, Save } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, RefreshCw, Save, Users, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { courseApi, courseClassApi } from '@/api/course';
+import { departmentApi } from '@/api/department';
 import { semesterApi } from '@/api/semester';
 import { roomApi } from '@/api/room';
 import { unwrapApiResponse } from '@/api/response';
+import type { Department } from '@/types/lookup';
 
 interface CourseClass {
   id: string;
@@ -49,6 +51,19 @@ interface FormErrors {
   maxStudent?: string;
   currentStudent?: string;
   dateRange?: string;
+}
+
+interface CourseClassStudent {
+  courseRegistrationId?: string;
+  studentId?: string;
+  studentCode?: string;
+  fullName?: string;
+  contactEmail?: string;
+  phoneNumber?: string;
+  registrationType?: number;
+  status?: number;
+  isPaid?: boolean;
+  registeredAt?: string;
 }
 
 const getCourseClassId = (item: any) => item.id || item.courseClassId || '';
@@ -84,6 +99,7 @@ const normalizeList = (response: any) => {
 };
 
 const getCourseId = (course: any) => course.id || course.courseId || '';
+const getDepartmentId = (department: Department) => department.departmentId || department.id || '';
 const getSemesterId = (semester: any) => semester.semesterId || semester.id || '';
 const getRoomId = (room: any) => room.roomId || room.id || '';
 
@@ -91,11 +107,19 @@ export default function CourseClassesPage() {
   const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('all');
   const [filterSemester, setFilterSemester] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [sortColumn, setSortColumn] = useState<keyof CourseClass>('classCode');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [selectedClass, setSelectedClass] = useState<CourseClass | null>(null);
+  const [classStudents, setClassStudents] = useState<CourseClassStudent[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferringStudent, setTransferringStudent] = useState<CourseClassStudent | null>(null);
+  const [targetCourseClassId, setTargetCourseClassId] = useState('');
+  const [transferLoading, setTransferLoading] = useState(false);
 
   // Dialog & Form states
   const [modalOpen, setModalOpen] = useState(false);
@@ -104,6 +128,7 @@ export default function CourseClassesPage() {
   const [fetchingLookups, setFetchingLookups] = useState(false);
   
   const [courses, setCourses] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [semesters, setSemesters] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
 
@@ -138,12 +163,14 @@ export default function CourseClassesPage() {
   const fetchLookups = async () => {
     setFetchingLookups(true);
     try {
-      const [courseRes, semesterRes, roomRes] = await Promise.all([
+      const [courseRes, departmentRes, semesterRes, roomRes] = await Promise.all([
         courseApi.getAll(),
+        departmentApi.getAll({ isActive: true }),
         semesterApi.getAll({ isActive: true }),
         roomApi.getAll(),
       ]);
       setCourses(normalizeList(courseRes));
+      setDepartments(departmentRes || []);
       setSemesters(normalizeList(semesterRes));
       setRooms(normalizeList(roomRes));
     } catch (error) {
@@ -164,6 +191,35 @@ export default function CourseClassesPage() {
     [courseClasses],
   );
 
+  const courseMap = useMemo(() => {
+    const map = new Map<string, any>();
+    courses.forEach((course) => {
+      const id = getCourseId(course);
+      if (id) map.set(id, course);
+    });
+    return map;
+  }, [courses]);
+
+  const departmentMap = useMemo(() => {
+    const map = new Map<string, Department>();
+    departments.forEach((department) => {
+      const id = getDepartmentId(department);
+      if (id) map.set(id, department);
+    });
+    return map;
+  }, [departments]);
+
+  const getCourseDepartmentId = (item: CourseClass) => {
+    const course = item.courseId ? courseMap.get(item.courseId) : null;
+    return String(course?.departmentId || item.courseCode?.split('-')[0] || '');
+  };
+
+  const getDepartmentLabel = (item: CourseClass) => {
+    const departmentId = getCourseDepartmentId(item);
+    const department = departmentMap.get(departmentId);
+    return [department?.code, department?.name].filter(Boolean).join(' - ') || departmentId || 'Chưa rõ khoa';
+  };
+
   const filteredData = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
     const direction = sortDirection === 'asc' ? 1 : -1;
@@ -174,9 +230,11 @@ export default function CourseClassesPage() {
           !search ||
           item.classCode.toLowerCase().includes(search) ||
           item.courseName.toLowerCase().includes(search) ||
-          item.semesterName.toLowerCase().includes(search);
+          item.semesterName.toLowerCase().includes(search) ||
+          getDepartmentLabel(item).toLowerCase().includes(search);
+        const matchesDepartment = filterDepartment === 'all' || getCourseDepartmentId(item) === filterDepartment;
         const matchesSemester = filterSemester === 'all' || item.semesterName === filterSemester;
-        return matchesSearch && matchesSemester;
+        return matchesSearch && matchesDepartment && matchesSemester;
       })
       .sort((a, b) => {
         const aVal = a[sortColumn];
@@ -186,10 +244,20 @@ export default function CourseClassesPage() {
         }
         return String(aVal ?? '').localeCompare(String(bVal ?? '')) * direction;
       });
-  }, [courseClasses, filterSemester, searchTerm, sortColumn, sortDirection]);
+  }, [courseClasses, courseMap, departmentMap, filterDepartment, filterSemester, searchTerm, sortColumn, sortDirection]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
   const paginatedData = filteredData.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  const transferTargets = useMemo(() => {
+    if (!selectedClass) return [];
+    return courseClasses.filter((item) =>
+      item.id !== selectedClass.id &&
+      item.courseId === selectedClass.courseId &&
+      item.semesterId === selectedClass.semesterId &&
+      item.isActive !== false,
+    );
+  }, [courseClasses, selectedClass]);
 
   const handleSort = (column: keyof CourseClass) => {
     if (sortColumn === column) {
@@ -209,6 +277,59 @@ export default function CourseClassesPage() {
       return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Đã đầy</Badge>;
     }
     return <Badge variant="secondary">Đã đóng</Badge>;
+  };
+
+  const getRegistrationStatus = (status?: number) => {
+    if (status === 1) return 'Đã đăng ký';
+    if (status === 2) return 'Đã hủy';
+    if (status === 3) return 'Hoàn tất';
+    return status == null ? 'Không rõ' : `Trạng thái ${status}`;
+  };
+
+  const handleSelectClass = async (item: CourseClass) => {
+    setSelectedClass(item);
+    setStudentsLoading(true);
+    try {
+      const rows = await courseClassApi.getStudents(item.id);
+      setClassStudents(Array.isArray(rows) ? rows : []);
+    } catch (error) {
+      console.error(error);
+      toast.error('Không thể tải danh sách sinh viên của lớp học phần');
+      setClassStudents([]);
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
+
+  const openTransferModal = (student: CourseClassStudent) => {
+    if (!student.courseRegistrationId) {
+      toast.error('Không tìm thấy mã đăng ký học phần của sinh viên');
+      return;
+    }
+    setTransferringStudent(student);
+    setTargetCourseClassId('');
+    setTransferModalOpen(true);
+  };
+
+  const handleTransferStudent = async () => {
+    if (!selectedClass || !transferringStudent?.courseRegistrationId || !targetCourseClassId) {
+      toast.error('Vui lòng chọn lớp học phần chuyển đến');
+      return;
+    }
+
+    setTransferLoading(true);
+    try {
+      await courseClassApi.transferStudent(transferringStudent.courseRegistrationId, targetCourseClassId);
+      toast.success('Đã chuyển sinh viên sang lớp học phần mới');
+      setTransferModalOpen(false);
+      await fetchCourseClasses();
+      await handleSelectClass(selectedClass);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Chuyển lớp học phần thất bại');
+    } finally {
+      setTransferLoading(false);
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -336,11 +457,11 @@ export default function CourseClassesPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_260px_220px]">
             <div className="relative flex-1">
               <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
               <Input
-                placeholder="Tìm theo mã lớp, môn học, học kỳ..."
+                placeholder="Tìm theo mã lớp, môn học, khoa, học kỳ..."
                 className="pl-10"
                 value={searchTerm}
                 onChange={(event) => {
@@ -350,13 +471,35 @@ export default function CourseClassesPage() {
               />
             </div>
             <Select
+              value={filterDepartment}
+              onValueChange={(value) => {
+                setFilterDepartment(value || 'all');
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Chọn khoa/đơn vị" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả khoa/đơn vị</SelectItem>
+                {departments.map((department) => {
+                  const id = getDepartmentId(department);
+                  return (
+                    <SelectItem key={id} value={id}>
+                      {[department.code, department.name].filter(Boolean).join(' - ') || id}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <Select
               value={filterSemester}
               onValueChange={(value) => {
                 setFilterSemester(value || 'all');
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-full sm:w-56">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Chọn học kỳ" />
               </SelectTrigger>
               <SelectContent>
@@ -376,6 +519,7 @@ export default function CourseClassesPage() {
               <thead>
                 <tr className="border-b">
                   <th className="cursor-pointer px-4 py-3 text-left text-sm font-semibold hover:bg-muted/50" onClick={() => handleSort('classCode')}>Mã lớp</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Khoa</th>
                   <th className="cursor-pointer px-4 py-3 text-left text-sm font-semibold hover:bg-muted/50" onClick={() => handleSort('courseName')}>Môn học</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Học kỳ</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Phòng</th>
@@ -387,16 +531,23 @@ export default function CourseClassesPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-muted-foreground">Đang tải dữ liệu...</td>
+                    <td colSpan={8} className="py-10 text-center text-muted-foreground">Đang tải dữ liệu...</td>
                   </tr>
                 ) : paginatedData.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-muted-foreground">Chưa có lớp học phần phù hợp</td>
+                    <td colSpan={8} className="py-10 text-center text-muted-foreground">Chưa có lớp học phần phù hợp</td>
                   </tr>
                 ) : (
                   paginatedData.map((item) => (
-                    <tr key={item.id} className="border-b transition-colors hover:bg-muted/50">
+                    <tr
+                      key={item.id}
+                      onClick={() => handleSelectClass(item)}
+                      className={`cursor-pointer border-b transition-colors hover:bg-muted/50 ${
+                        selectedClass?.id === item.id ? 'bg-primary/5' : ''
+                      }`}
+                    >
                       <td className="px-4 py-3 text-sm font-medium">{item.classCode}</td>
+                      <td className="px-4 py-3 text-sm">{getDepartmentLabel(item)}</td>
                       <td className="px-4 py-3 text-sm">{item.courseName}</td>
                       <td className="px-4 py-3 text-sm">{item.semesterName}</td>
                       <td className="px-4 py-3 text-sm">{item.roomName}</td>
@@ -404,10 +555,25 @@ export default function CourseClassesPage() {
                       <td className="px-4 py-3 text-sm">{getStatusBadge(item.status)}</td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenModal(item)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenModal(item);
+                            }}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(item.id, item.classCode)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDelete(item.id, item.classCode);
+                            }}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -453,6 +619,133 @@ export default function CourseClassesPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold">Danh sách sinh viên lớp học phần</h2>
+              <p className="text-sm text-muted-foreground">
+                {selectedClass
+                  ? `${selectedClass.classCode} - ${selectedClass.courseName}`
+                  : 'Nhấn vào một lớp học phần ở bảng trên để xem sinh viên đăng ký thật.'}
+              </p>
+            </div>
+            {selectedClass && (
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+                <Users className="h-4 w-4" />
+                {classStudents.length}/{selectedClass.maxStudent}
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!selectedClass ? (
+            <div className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">
+              Chưa chọn lớp học phần.
+            </div>
+          ) : studentsLoading ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">Đang tải danh sách sinh viên...</div>
+          ) : classStudents.length === 0 ? (
+            <div className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">
+              Lớp học phần này chưa có sinh viên đăng ký.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Mã SV</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Họ tên</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Email</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">SĐT</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Trạng thái</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Thanh toán</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classStudents.map((student) => (
+                    <tr key={student.courseRegistrationId || student.studentId} className="border-b hover:bg-muted/50">
+                      <td className="px-4 py-3 text-sm font-mono">{student.studentCode || '—'}</td>
+                      <td className="px-4 py-3 text-sm font-medium">{student.fullName || '—'}</td>
+                      <td className="px-4 py-3 text-sm">{student.contactEmail || '—'}</td>
+                      <td className="px-4 py-3 text-sm">{student.phoneNumber || '—'}</td>
+                      <td className="px-4 py-3 text-sm">{getRegistrationStatus(student.status)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        {student.isPaid ? (
+                          <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Đã thanh toán</Badge>
+                        ) : (
+                          <Badge variant="secondary">Chưa thanh toán</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openTransferModal(student)}
+                          title="Chuyển lớp học phần"
+                        >
+                          <ArrowRightLeft className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={transferModalOpen} onOpenChange={setTransferModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Chuyển sinh viên sang lớp học phần khác</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg bg-muted/50 p-3 text-sm">
+              <p className="text-muted-foreground">Sinh viên</p>
+              <p className="mt-1 font-semibold">
+                {transferringStudent?.studentCode || '—'} - {transferringStudent?.fullName || '—'}
+              </p>
+              <p className="mt-2 text-muted-foreground">Lớp hiện tại</p>
+              <p className="mt-1 font-semibold">
+                {selectedClass?.classCode || '—'} - {selectedClass?.courseName || '—'}
+              </p>
+            </div>
+
+            <div>
+              <Label>Lớp học phần chuyển đến</Label>
+              <Select value={targetCourseClassId} onValueChange={setTargetCourseClassId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Chọn lớp cùng môn, cùng học kỳ" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[320px]">
+                  {transferTargets.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.classCode} - {item.currentStudent}/{item.maxStudent}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {transferTargets.length === 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Chưa có lớp học phần khác cùng môn và cùng học kỳ để chuyển.
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferModalOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleTransferStudent} disabled={transferLoading || transferTargets.length === 0}>
+              {transferLoading ? 'Đang chuyển...' : 'Chuyển lớp'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

@@ -12,6 +12,29 @@ import java.util.UUID;
 @Repository
 public interface TeachingSessionOverrideRepository extends JpaRepository<TeachingSessionOverride, UUID> {
     List<TeachingSessionOverride> findByCourseClassIdInAndIsActiveTrue(List<UUID> courseClassIds);
+
+    @Query("""
+            SELECT o
+            FROM TeachingSessionOverride o
+            WHERE o.roomId = :roomId
+              AND o.teachingDate = :date
+              AND o.isActive = true
+              AND o.isVisible = true
+              AND o.status <> 'CANCELLED'
+            """)
+    List<TeachingSessionOverride> findVisibleByRoomAndDate(UUID roomId, LocalDate date);
+
+    @Query("""
+            SELECT o
+            FROM TeachingSessionOverride o
+            WHERE o.courseClassId = :courseClassId
+              AND o.teachingDate = :date
+              AND o.isActive = true
+              AND o.isVisible = true
+              AND o.status <> 'CANCELLED'
+            """)
+    List<TeachingSessionOverride> findVisibleByCourseClassAndDate(UUID courseClassId, LocalDate date);
+
     @Query("""
             SELECT o
             FROM TeachingSessionOverride o

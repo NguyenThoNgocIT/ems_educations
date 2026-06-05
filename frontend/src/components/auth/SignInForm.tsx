@@ -95,6 +95,8 @@ export default function SignInForm() {
             fullName: authData.fullName || authData.username || "Người dùng",
             username: authData.username,
             email: authData.username,
+            id: authData.employeeId || null,
+            avatarUrl: authData.avatarUrl || null,
             roles: authData.roles || [],
             permissions: authData.permissions || [],
           }),

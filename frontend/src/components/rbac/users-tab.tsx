@@ -65,7 +65,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   // Add User Modal States
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
 
-  const { user: authUser } = useAuth();
+  const { user: authUser, refreshUser } = useAuth();
   const currentUserEmail = authUser?.email || authUser?.username || '';
 
   const fetchRoles = useCallback(async () => {
@@ -213,6 +213,13 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         return rId && selectedRoleIds.has(rId);
       });
       setRawUsers(prev => prev.map(u => u.id === modalUser.id ? { ...u, roles: updatedRoles } : u));
+      if (
+        modalUser.id === authUser?.id ||
+        modalUser.email === authUser?.email ||
+        modalUser.username === authUser?.username
+      ) {
+        await refreshUser();
+      }
       
       toast.success(`Đã cập nhật roles cho user ${modalUser.fullName || modalUser.email}`);
       closeModal();

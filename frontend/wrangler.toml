@@ -1,4 +1,4 @@
-name = "education_mona"
+name = "education_ems"
 main = ".open-next/worker.js" 
 compatibility_date = "2026-01-04"
 compatibility_flags = ["nodejs_compat"]
@@ -9,6 +9,8 @@ binding = "ASSETS"
 
 [vars]
 NEXTJS_ENV = "production"
+NEXT_PUBLIC_API_BASE_URL = ""
+BACKEND_API_BASE_URL = "http://uems-backend.us-east-1.elasticbeanstalk.com"
 
 [observability]
 enabled = true
@@ -16,5 +18,3 @@ enabled = true
 # THÊM ĐOẠN NÀY: Ép Wrangler build theo định dạng ESM
 [build]
 command = "npm run build:cf"
-[build.upload]
-format = "modules"

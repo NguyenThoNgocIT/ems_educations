@@ -11,17 +11,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Copy } from "lucide-react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Copy, Users } from "lucide-react";
 import { toast } from "sonner";
 import { administrativeClassApi } from "@/api/administrative-class";
 import { academicCohortApi } from "@/api/academic-cohort";
 import { departmentApi } from "@/api/department";
 import { lecturerApi } from "@/api/lecturer";
 import { majorApi } from "@/api/major";
+import { studentApi } from "@/api/student";
 import { unwrapApiResponse } from "@/api/response";
 import { request } from "@/utils/request";
 import type { AcademicCohort, AdministrativeClass, Department, Major, Specialization } from "@/types/lookup";
 import type { LecturerListItem } from "@/types/instructor";
+import type { StudentListItem } from "@/types/student";
 import { useEffect, useMemo, useState } from "react";
 
 const getDepartmentId = (department: Department) => department.departmentId || department.id || "";
@@ -62,15 +71,19 @@ export default function ClassesPage() {
   const [cohorts, setCohorts] = useState<AcademicCohort[]>([]);
   const [specializations, setSpecializations] = useState<Specialization[]>([]);
   const [lecturers, setLecturers] = useState<LecturerListItem[]>([]);
+  const [students, setStudents] = useState<StudentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [studentSearchTerm, setStudentSearchTerm] = useState("");
   const [filterDepartmentId, setFilterDepartmentId] = useState("all");
   const [filterMajorId, setFilterMajorId] = useState("all");
   const [filterCohortId, setFilterCohortId] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
+  const [studentModalOpen, setStudentModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<AdministrativeClass | null>(null);
+  const [viewingClass, setViewingClass] = useState<AdministrativeClass | null>(null);
   const [formData, setFormData] = useState(initialForm);
 
   const departmentMap = useMemo(
@@ -99,6 +112,26 @@ export default function ClassesPage() {
     () => new Map(lecturers.map((lecturer) => [lecturer.id, entityLabel(lecturer.instructorCode, lecturer.fullName)])),
     [lecturers],
   );
+  const studentsByClassId = useMemo(() => {
+    const map = new Map<string, StudentListItem[]>();
+    students.forEach((student) => {
+      if (!student.classId) return;
+      map.set(student.classId, [...(map.get(student.classId) ?? []), student]);
+    });
+    return map;
+  }, [students]);
+
+  const viewingClassStudents = useMemo(() => {
+    if (!viewingClass) return [];
+    const classStudents = studentsByClassId.get(getClassId(viewingClass)) ?? [];
+    const search = studentSearchTerm.trim().toLowerCase();
+    if (!search) return classStudents;
+
+    return classStudents.filter((student) =>
+      [student.studentCode, student.fullName, student.contactEmail, student.phoneNumber]
+        .some((value) => (value || "").toLowerCase().includes(search)),
+    );
+  }, [studentSearchTerm, studentsByClassId, viewingClass]);
 
   const filteredMajors = useMemo(
     () => majors.filter((major) => !formData.departmentId || major.departmentId === formData.departmentId),
@@ -118,13 +151,14 @@ export default function ClassesPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [classData, departmentData, majorData, cohortData, specializationData, lecturerData] = await Promise.all([
+      const [classData, departmentData, majorData, cohortData, specializationData, lecturerData, studentData] = await Promise.all([
         administrativeClassApi.getAll(),
         departmentApi.getAll({ isActive: true }),
         majorApi.getAll({ isActive: true }),
         academicCohortApi.getAll({ isActive: true }),
         getSpecializations(),
         lecturerApi.getAll().catch(() => []),
+        studentApi.getAll().catch(() => []),
       ]);
       setClasses(classData || []);
       setDepartments(departmentData || []);
@@ -132,6 +166,7 @@ export default function ClassesPage() {
       setCohorts(cohortData || []);
       setSpecializations(specializationData || []);
       setLecturers(lecturerData || []);
+      setStudents(studentData || []);
     } catch (error) {
       toast.error("Không thể tải dữ liệu lớp hành chính");
       setClasses([]);
@@ -198,6 +233,12 @@ export default function ClassesPage() {
       isActive: item.isActive ?? true,
     });
     setModalOpen(true);
+  };
+
+  const openStudentDialog = (item: AdministrativeClass) => {
+    setViewingClass(item);
+    setStudentSearchTerm("");
+    setStudentModalOpen(true);
   };
 
   const handleDepartmentChange = (departmentId: string) => {
@@ -302,59 +343,74 @@ export default function ClassesPage() {
                 placeholder="Tìm theo mã lớp, tên lớp, khoa, ngành..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                className="pl-10"
+                className="pl-10 h-10"
               />
             </div>
-            <select
-              value={filterDepartmentId}
-              onChange={(event) => {
-                setFilterDepartmentId(event.target.value);
+            
+            <Select 
+              value={filterDepartmentId} 
+              onValueChange={(val) => {
+                setFilterDepartmentId(val);
                 setFilterMajorId("all");
               }}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
             >
-              <option value="all">Tất cả khoa</option>
-              {departments.map((department) => {
-                const id = getDepartmentId(department);
-                return (
-                  <option key={id} value={id}>
-                    {entityLabel(department.code, department.name)}
-                  </option>
-                );
-              })}
-            </select>
-            <select
-              value={filterMajorId}
-              onChange={(event) => setFilterMajorId(event.target.value)}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
-            >
-              <option value="all">Tất cả ngành</option>
-              {majors
-                .filter((major) => filterDepartmentId === "all" || major.departmentId === filterDepartmentId)
-                .map((major) => {
-                  const id = getMajorId(major);
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Tất cả khoa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả khoa</SelectItem>
+                {departments.map((department) => {
+                  const id = getDepartmentId(department);
                   return (
-                    <option key={id} value={id}>
-                      {entityLabel(major.code, major.name)}
-                    </option>
+                    <SelectItem key={id} value={id}>
+                      {entityLabel(department.code, department.name)}
+                    </SelectItem>
                   );
                 })}
-            </select>
-            <select
-              value={filterCohortId}
-              onChange={(event) => setFilterCohortId(event.target.value)}
-              className="rounded-md border bg-background px-3 py-2 text-sm"
+              </SelectContent>
+            </Select>
+
+            <Select 
+              value={filterMajorId} 
+              onValueChange={(val) => setFilterMajorId(val)}
             >
-              <option value="all">Tất cả khóa</option>
-              {cohorts.map((cohort) => {
-                const id = getCohortId(cohort);
-                return (
-                  <option key={id} value={id}>
-                    {entityLabel(cohort.code, cohort.name)}
-                  </option>
-                );
-              })}
-            </select>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Tất cả ngành" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả ngành</SelectItem>
+                {majors
+                  .filter((major) => filterDepartmentId === "all" || major.departmentId === filterDepartmentId)
+                  .map((major) => {
+                    const id = getMajorId(major);
+                    return (
+                      <SelectItem key={id} value={id}>
+                        {entityLabel(major.code, major.name)}
+                      </SelectItem>
+                    );
+                  })}
+              </SelectContent>
+            </Select>
+
+            <Select 
+              value={filterCohortId} 
+              onValueChange={(val) => setFilterCohortId(val)}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Tất cả khóa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả khóa</SelectItem>
+                {cohorts.map((cohort) => {
+                  const id = getCohortId(cohort);
+                  return (
+                    <SelectItem key={id} value={id}>
+                      {entityLabel(cohort.code, cohort.name)}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -388,6 +444,7 @@ export default function ClassesPage() {
                     const majorLabel = entityLabel(item.majorCode, item.majorName) || majorMap.get(item.majorId || "");
                     const cohortLabel =
                       entityLabel(item.academicCohortCode, item.academicCohortName) || cohortMap.get(item.academicCohortId || "");
+                    const classStudents = studentsByClassId.get(id) ?? [];
 
                     return (
                       <tr key={id} className="border-b hover:bg-muted/50">
@@ -402,7 +459,16 @@ export default function ClassesPage() {
                         <td className="px-4 py-3 text-sm">{renderRelation(departmentLabel)}</td>
                         <td className="px-4 py-3 text-sm">{renderRelation(majorLabel)}</td>
                         <td className="px-4 py-3 text-sm">{renderRelation(cohortLabel)}</td>
-                        <td className="px-4 py-3 text-sm">{item.maxSize || "-"}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <button
+                            type="button"
+                            onClick={() => openStudentDialog(item)}
+                            className="font-semibold text-emerald-700 hover:underline"
+                          >
+                            {classStudents.length}
+                          </button>
+                          <span className="text-muted-foreground"> / {item.maxSize || "-"}</span>
+                        </td>
                         <td className="px-4 py-3 text-sm">
                           <span className={`rounded-full px-2 py-1 text-xs ${item.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                             {item.isActive ? "Hoạt động" : "Không hoạt động"}
@@ -410,6 +476,9 @@ export default function ClassesPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => openStudentDialog(item)} title="Xem sinh viên">
+                              <Users className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => openEditDialog(item)}>
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -449,6 +518,77 @@ export default function ClassesPage() {
         </CardContent>
       </Card>
 
+      <Dialog open={studentModalOpen} onOpenChange={setStudentModalOpen}>
+        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Sinh viên lớp {viewingClass?.classCode || ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <p className="font-semibold text-slate-950 dark:text-white">{viewingClass?.className}</p>
+                <p className="text-sm text-muted-foreground">
+                  {viewingClassStudents.length} sinh viên phù hợp / {(viewingClass && studentsByClassId.get(getClassId(viewingClass))?.length) || 0} sinh viên trong lớp
+                </p>
+              </div>
+              <div className="relative w-full md:w-80">
+                <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+                <Input
+                  value={studentSearchTerm}
+                  onChange={(event) => setStudentSearchTerm(event.target.value)}
+                  placeholder="Tìm mã, tên, email, SĐT..."
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full min-w-[780px]">
+                <thead className="bg-muted/50">
+                  <tr className="border-b">
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Mã SV</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Họ tên</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Email</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">SĐT</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {viewingClassStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                        Chưa có sinh viên trong lớp này.
+                      </td>
+                    </tr>
+                  ) : (
+                    viewingClassStudents.map((student) => (
+                      <tr key={student.id} className="border-b last:border-0 hover:bg-muted/40">
+                        <td className="px-4 py-3 text-sm font-semibold text-emerald-700">{student.studentCode || "--"}</td>
+                        <td className="px-4 py-3 text-sm">{student.fullName || "--"}</td>
+                        <td className="px-4 py-3 text-sm">{student.contactEmail || "--"}</td>
+                        <td className="px-4 py-3 text-sm">{student.phoneNumber || "--"}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`rounded-full px-2 py-1 text-xs ${student.isActive !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                            {student.isActive !== false ? "Đang học" : "Ngừng học"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStudentModalOpen(false)}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -466,97 +606,140 @@ export default function ClassesPage() {
                 </div>
               </div>
             )}
-            <div>
-              <Label>Mã lớp *</Label>
-              <Input value={formData.classCode} onChange={(event) => setField("classCode", event.target.value)} placeholder="VD: K15_CNTT_01" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Mã lớp *</Label>
+                <Input value={formData.classCode} onChange={(event) => setField("classCode", event.target.value)} placeholder="VD: K15_CNTT_01" />
+              </div>
+              <div>
+                <Label>Tên lớp *</Label>
+                <Input value={formData.className} onChange={(event) => setField("className", event.target.value)} placeholder="VD: K15 - Công nghệ thông tin 01" />
+              </div>
             </div>
-            <div>
-              <Label>Tên lớp *</Label>
-              <Input value={formData.className} onChange={(event) => setField("className", event.target.value)} placeholder="VD: K15 - Công nghệ thông tin 01" />
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Khoa *</Label>
+                <Select value={formData.departmentId} onValueChange={(val) => handleDepartmentChange(val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chọn khoa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((department) => {
+                      const id = getDepartmentId(department);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {entityLabel(department.code, department.name)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Ngành</Label>
+                <Select value={formData.majorId} onValueChange={(val) => handleMajorChange(val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chọn ngành" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredMajors.map((major) => {
+                      const id = getMajorId(major);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {entityLabel(major.code, major.name)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label>Khoa *</Label>
-              <select value={formData.departmentId} onChange={(event) => handleDepartmentChange(event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="">Chọn khoa</option>
-                {departments.map((department) => {
-                  const id = getDepartmentId(department);
-                  return (
-                    <option key={id} value={id}>
-                      {entityLabel(department.code, department.name)}
-                    </option>
-                  );
-                })}
-              </select>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Khóa đào tạo *</Label>
+                <Select value={formData.academicCohortId} onValueChange={(val) => setField("academicCohortId", val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chọn khóa đào tạo" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {cohorts.map((cohort) => {
+                      const id = getCohortId(cohort);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {entityLabel(cohort.code, cohort.name)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Giai đoạn lớp</Label>
+                <Select value={formData.classPhase} onValueChange={(val) => setField("classPhase", val as any)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FOUNDATION">Đại cương/cơ sở</SelectItem>
+                    <SelectItem value="SPECIALIZATION">Chuyên ngành</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label>Ngành</Label>
-              <select value={formData.majorId} onChange={(event) => handleMajorChange(event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="">Chọn ngành</option>
-                {filteredMajors.map((major) => {
-                  const id = getMajorId(major);
-                  return (
-                    <option key={id} value={id}>
-                      {entityLabel(major.code, major.name)}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            <div>
-              <Label>Khóa đào tạo *</Label>
-              <select value={formData.academicCohortId} onChange={(event) => setField("academicCohortId", event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="">Chọn khóa đào tạo</option>
-                {cohorts.map((cohort) => {
-                  const id = getCohortId(cohort);
-                  return (
-                    <option key={id} value={id}>
-                      {entityLabel(cohort.code, cohort.name)}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            <div>
-              <Label>Giai đoạn lớp</Label>
-              <select value={formData.classPhase} onChange={(event) => setField("classPhase", event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="FOUNDATION">Đại cương/cơ sở</option>
-                <option value="SPECIALIZATION">Chuyên ngành</option>
-              </select>
-            </div>
+
             {formData.classPhase === "SPECIALIZATION" && (
-              <div className="sm:col-span-2">
+              <div>
                 <Label>Chuyên ngành *</Label>
-                <select value={formData.specializationId} onChange={(event) => setField("specializationId", event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                  <option value="">Chọn chuyên ngành</option>
-                  {filteredSpecializations.map((specialization) => {
-                    const id = getSpecializationId(specialization);
-                    return (
-                      <option key={id} value={id}>
-                        {specializationMap.get(id)}
-                      </option>
-                    );
-                  })}
-                </select>
+                <Select value={formData.specializationId} onValueChange={(val) => setField("specializationId", val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chọn chuyên ngành" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {filteredSpecializations.map((specialization) => {
+                      const id = getSpecializationId(specialization);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {specializationMap.get(id)}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
             )}
-            <div>
-              <Label>Cố vấn học tập</Label>
-              <select value={formData.advisorId} onChange={(event) => setField("advisorId", event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value="">Chưa gán cố vấn</option>
-                {lecturers.map((lecturer) => (
-                  <option key={lecturer.id} value={lecturer.id}>
-                    {lecturerMap.get(lecturer.id)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>Trạng thái</Label>
-              <select value={formData.status} onChange={(event) => setField("status", Number(event.target.value))} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm">
-                <option value={1}>Đang học</option>
-                <option value={0}>Tạm dừng</option>
-                <option value={2}>Đã tốt nghiệp</option>
-              </select>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Cố vấn học tập</Label>
+                <Select value={formData.advisorId || "none"} onValueChange={(val) => setField("advisorId", val === "none" ? "" : val)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chưa gán cố vấn" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="none">Chưa gán cố vấn</SelectItem>
+                    {lecturers.map((lecturer) => (
+                      <SelectItem key={lecturer.id} value={lecturer.id}>
+                        {lecturerMap.get(lecturer.id)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Trạng thái</Label>
+                <Select value={String(formData.status)} onValueChange={(val) => setField("status", Number(val))}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Đang học</SelectItem>
+                    <SelectItem value="0">Tạm dừng</SelectItem>
+                    <SelectItem value="2">Đã tốt nghiệp</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div>
               <Label>Sĩ số tối đa</Label>

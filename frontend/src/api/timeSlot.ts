@@ -1,4 +1,5 @@
 import { request } from '@/utils/request';
+import { unwrapApiResponse } from '@/api/response';
 import { withCache, clearCache } from '@/utils/cache';
 
 const CACHE_PREFIX = 'timeSlots';
@@ -8,7 +9,7 @@ export const timeSlotApi = {
   getAll: (params?: { keyword?: string; isActive?: boolean }) => {
     const cacheKey = `${CACHE_PREFIX}_${JSON.stringify(params || {})}`;
     return withCache(cacheKey, async () => {
-      return request.get('/api/v1/time-slots', { params });
+      return unwrapApiResponse<any[]>(await request.get('/api/v1/time-slots', { params }));
     });
   },
   

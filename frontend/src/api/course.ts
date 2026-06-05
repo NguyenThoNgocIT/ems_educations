@@ -41,7 +41,19 @@ export const courseClassApi = {
   },
   getById: async (id: string) => unwrapApiResponse<any>(await request.get(`/api/v1/courses/classes/${id}`)),
   getByCourse: async (courseId: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/${courseId}/classes`)),
-  getBySemester: async (semesterId: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/classes/semester/${semesterId}`)),
+  getBySemester: async (semesterId: string) => {
+    return withCache(`${COURSE_CLASS_CACHE_PREFIX}_semester_${semesterId}`, async () => {
+      return unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/classes/semester/${semesterId}`));
+    });
+  },
+  getStudents: async (id: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/classes/${id}/students`)),
+  transferStudent: async (registrationId: string, targetCourseClassId: string) => {
+    const response = await request.put(`/api/v1/courses/classes/registrations/${registrationId}/transfer`, {
+      targetCourseClassId,
+    });
+    clearCache(COURSE_CLASS_CACHE_PREFIX);
+    return unwrapApiResponse<any>(response);
+  },
   create: async (data: any) => {
     const response = unwrapApiResponse<any>(await request.post('/api/v1/courses/classes', data));
     clearCache(COURSE_CLASS_CACHE_PREFIX);
@@ -60,7 +72,7 @@ export const courseClassApi = {
 };
 
 export const coursePrerequisiteApi = {
-  getByCourse: (courseId: string) => request.get(`/api/course-prerequisites/course/${courseId}`),
-  add: (data: { courseId: string; prerequisiteId: string; type: string }) => request.post('/api/course-prerequisites', data),
-  delete: (id: string) => request.delete(`/api/course-prerequisites/${id}`),
+  getByCourse: (courseId: string) => request.get(`/api/v1/course-prerequisites/admin/course/${courseId}`),
+  add: (data: { courseId: string; prerequisiteId: string; type: string }) => request.post('/api/v1/course-prerequisites/admin', data),
+  delete: (courseId: string, prereqId: string) => request.delete(`/api/v1/course-prerequisites/admin`, { params: { courseId, prereqId } }),
 };
