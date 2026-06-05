@@ -1,4 +1,5 @@
 import apiClient from './auth';
+import { unwrapApiResponse } from '@/api/response';
 import { withCache, clearCache } from '@/utils/cache';
 
 const CACHE_PREFIX = 'rooms';
@@ -7,7 +8,7 @@ export const roomApi = {
   getAll: async () => {
     return withCache(CACHE_PREFIX, async () => {
       const response = await apiClient.get('/api/v1/rooms');
-      return response?.data || [];
+      return unwrapApiResponse<any[]>(response);
     });
   },
   getById: async (id: string) => {

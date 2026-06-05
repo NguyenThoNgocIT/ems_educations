@@ -380,17 +380,22 @@ export default function StudentDialog({
         const progChanged = formData.trainingProgramId !== originalValues.trainingProgramId;
         const majorChanged = formData.majorId !== originalValues.majorId;
         const cohortChanged = formData.academicCohortId !== originalValues.academicCohortId;
+        const classChanged = formData.classId !== originalValues.classId;
         if (deptChanged || progChanged || majorChanged || cohortChanged) {
           payload.departmentId = formData.departmentId || undefined;
           payload.trainingProgramId = formData.trainingProgramId || undefined;
           payload.majorId = formData.majorId || undefined;
           payload.academicCohortId = formData.academicCohortId || undefined;
         }
+        if (classChanged) {
+          payload.classId = formData.classId || undefined;
+        }
       } else {
         payload.departmentId = formData.departmentId || undefined;
         payload.trainingProgramId = formData.trainingProgramId || undefined;
         payload.majorId = formData.majorId || undefined;
         payload.academicCohortId = formData.academicCohortId || undefined;
+        payload.classId = formData.classId || undefined;
       }
 
       // Only include academic references (cohort/program/major) when changed
@@ -408,6 +413,7 @@ export default function StudentDialog({
       trainingProgramId: formData.trainingProgramId,
       majorId: formData.majorId,
       academicCohortId: formData.academicCohortId,
+      classId: formData.classId || undefined,
       admissionDate: formData.admissionDate || undefined,
       note: formData.note || undefined,
     });
@@ -689,6 +695,32 @@ export default function StudentDialog({
                     </p>
                   )}
                   {errors.academicCohortId && <p className="mt-1 text-xs text-destructive">{errors.academicCohortId}</p>}
+                </div>
+
+                <div>
+                  <Label>Lớp hành chính</Label>
+                  <Select
+                    value={formData.classId}
+                    onValueChange={(value) => setField('classId', value || '')}
+                    disabled={!formData.departmentId || !formData.academicCohortId}
+                  >
+                    <SelectTrigger className="mt-1.5 h-10 w-full">
+                      <SelectValue>
+                        {classes.find((c) => getClassId(c) === formData.classId)
+                          ? (classes.find((c) => getClassId(c) === formData.classId) as AdministrativeClass).classCode
+                          : !formData.departmentId || !formData.academicCohortId
+                            ? 'Chọn Khoa & Khóa trước'
+                            : 'Chọn lớp hành chính'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredClasses.map((cls) => (
+                        <SelectItem key={getClassId(cls)} value={getClassId(cls)}>
+                          {cls.classCode || cls.className || 'Lớp'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Semester removed: only admissionDate and cohort are kept */}

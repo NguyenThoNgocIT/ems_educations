@@ -79,13 +79,13 @@ export default function AdminScheduleAdjustmentsPage() {
     setIsSubmitting(true);
     try {
       if (actionType === 'APPROVE') {
-        await scheduleAdjustmentApi.approve(requestId, { adminNote });
+        await scheduleAdjustmentApi.approve(requestId, { note: adminNote });
         toast.success('Đã duyệt yêu cầu điều chỉnh lịch học');
       } else if (actionType === 'REJECT') {
-        await scheduleAdjustmentApi.reject(requestId, { adminNote });
+        await scheduleAdjustmentApi.reject(requestId, { note: adminNote });
         toast.success('Đã từ chối yêu cầu điều chỉnh lịch học');
       } else if (actionType === 'RETURN') {
-        await scheduleAdjustmentApi.returnToInstructor(requestId, { adminNote });
+        await scheduleAdjustmentApi.returnToInstructor(requestId, { note: adminNote });
         toast.success('Đã trả yêu cầu về cho Giảng viên chỉnh sửa');
       }
       

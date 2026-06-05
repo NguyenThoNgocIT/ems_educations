@@ -18,7 +18,26 @@ export interface ScheduleAdjustmentSubmitRequest extends ScheduleAdjustmentValid
 }
 
 export interface ScheduleAdjustmentReviewRequest {
-  adminNote?: string;
+  note?: string;
+}
+
+export interface ScheduleAdjustmentSuggestionRequest {
+  courseClassId: string;
+  originalScheduleId?: string;
+  requestedByInstructorId?: string;
+  requestType: 'ABSENT_MAKEUP' | 'EXTRA_SESSION' | 'RESCHEDULE' | 'ROOM_CHANGE';
+  absentDate?: string;
+  absentTimeSlotId?: string;
+  absentPeriods?: number;
+  proposedPeriods?: number;
+  fromDate?: string;
+  toDate?: string;
+  preferredDayOfWeeks?: number[];
+  preferredTimeSlotIds?: string[];
+  preferredRoomId?: string;
+  preferredBuildingId?: string;
+  preferSameRoom?: boolean;
+  maxSuggestions?: number;
 }
 
 export const scheduleAdjustmentApi = {
@@ -29,20 +48,26 @@ export const scheduleAdjustmentApi = {
     apiClient.post('/api/v1/schedule-adjustments', data),
     
   getMine: () => 
-    apiClient.get('/api/v1/schedule-adjustments/me'),
+    apiClient.get('/api/v1/schedule-adjustments/my'),
+
+  suggest: (data: ScheduleAdjustmentSuggestionRequest) =>
+    apiClient.post('/api/v1/schedule-adjustments/suggestions', data),
     
   getByInstructor: (instructorId: string) => 
-    apiClient.get(`/api/v1/schedule-adjustments/admin/instructor/${instructorId}`),
+    apiClient.get('/api/v1/admin/schedule-adjustments', { params: { instructorId } }),
     
-  searchAdmin: (params?: { status?: string, courseClassId?: string, instructorId?: string }) => 
-    apiClient.get('/api/v1/schedule-adjustments/admin', { params }),
+  searchAdmin: (params?: { status?: string, courseClassId?: string, instructorId?: string, requestType?: string, departmentId?: string, semesterId?: string, page?: number, size?: number }) => 
+    apiClient.get('/api/v1/admin/schedule-adjustments', { params }),
+
+  suggestAdmin: (data: ScheduleAdjustmentSuggestionRequest) =>
+    apiClient.post('/api/v1/admin/schedule-adjustments/suggestions', data),
     
   approve: (requestId: string, data: ScheduleAdjustmentReviewRequest) => 
-    apiClient.post(`/api/v1/schedule-adjustments/admin/${requestId}/approve`, data),
+    apiClient.post(`/api/v1/admin/schedule-adjustments/${requestId}/approve`, data),
     
   reject: (requestId: string, data: ScheduleAdjustmentReviewRequest) => 
-    apiClient.post(`/api/v1/schedule-adjustments/admin/${requestId}/reject`, data),
+    apiClient.post(`/api/v1/admin/schedule-adjustments/${requestId}/reject`, data),
     
   returnToInstructor: (requestId: string, data: ScheduleAdjustmentReviewRequest) => 
-    apiClient.post(`/api/v1/schedule-adjustments/admin/${requestId}/return`, data),
+    apiClient.post(`/api/v1/admin/schedule-adjustments/${requestId}/return`, data),
 };

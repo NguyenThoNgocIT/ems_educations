@@ -16,4 +16,17 @@ export const gradeApi = {
   // Nhập điểm hàng loạt
   updateBatch: (data: Array<{ id: string; attendanceScore: number; midtermScore: number; finalScore: number }>) => 
     request.post('/api/grades/batch', data),
+
+  // Instructor APIs
+  getInstructorClasses: () =>
+    request.get('/api/v1/instructors/grades/course-classes'),
+
+  getClassComponents: (courseClassId: string) =>
+    request.get(`/api/v1/instructors/grades/course-classes/${courseClassId}/components`),
+
+  getClassStudents: (courseClassId: string) =>
+    request.get(`/api/v1/instructors/grades/course-classes/${courseClassId}/students`),
+
+  upsertComponentScore: (courseRegistrationId: string, data: { gradeComponentId: string; score: number; note?: string }) =>
+    request.post(`/api/v1/instructors/grades/registrations/${courseRegistrationId}/component-scores`, data),
 };

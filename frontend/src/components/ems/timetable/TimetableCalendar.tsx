@@ -72,7 +72,7 @@ export default function TimetableCalendar({ events, calendarRef, onDateSelect, o
         events={events}
         selectable={true}
         droppable={true}
-        editable={true}
+        editable={false}
         select={onDateSelect}
         eventClick={onEventClick}
         eventReceive={onEventReceive}

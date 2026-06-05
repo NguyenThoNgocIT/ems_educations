@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from "@/components/ui/modal";
-import { CalendarDays, CheckCircle2 } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Loader2 } from 'lucide-react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,46 @@ interface Props {
   lecturers: any[];
   onSubmit: () => Promise<void>;
   isEditing?: boolean;
+  isSubmitting?: boolean;
   onDelete?: () => Promise<void>;
 }
 
-export default function TimetableModal({ isOpen, onClose, formData, setFormData, courseClasses, rooms, timeSlots, lecturers, onSubmit, isEditing = false, onDelete }: Props) {
+const courseClassIdOf = (courseClass: any) => String(courseClass?.courseClassId || courseClass?.id || "");
+const roomIdOf = (room: any) => String(room?.roomId || room?.id || "");
+const timeSlotIdOf = (timeSlot: any) => String(timeSlot?.timeSlotId || timeSlot?.id || "");
+const lecturerIdOf = (lecturer: any) => String(lecturer?.employeeId || lecturer?.id || "");
+
+const courseClassLabel = (courseClass: any) => {
+  if (!courseClass) return "";
+  return `${courseClass.classCode || courseClass.courseClassName || "Chua ro ma lop"} - ${courseClass.courseName || "Mon hoc"}`;
+};
+
+const lecturerLabel = (lecturer: any) => {
+  if (!lecturer) return "";
+  const code = lecturer.instructorCode || lecturer.employeeCode || "";
+  return `${lecturer.fullName || lecturer.name || "Chua ro giang vien"}${code ? ` (${code})` : ""}`;
+};
+
+const roomLabel = (room: any) => {
+  if (!room) return "";
+  return `${room.code || room.roomCode || "Khong ro ma phong"} (${room.type || room.roomType || "Phong hoc"})`;
+};
+
+const timeSlotLabel = (timeSlot: any) => {
+  if (!timeSlot) return "";
+  return `${timeSlot.slotCode || "Ca hoc"}: ${timeSlot.startTime || ""} - ${timeSlot.endTime || ""}`;
+};
+
+export default function TimetableModal({ isOpen, onClose, formData, setFormData, courseClasses, rooms, timeSlots, lecturers, onSubmit, isEditing = false, isSubmitting = false, onDelete }: Props) {
+  const selectedCourseClass = courseClasses.find((c: any) => courseClassIdOf(c) === String(formData.courseClassId));
+  const selectedLecturer = lecturers.find((l: any) => lecturerIdOf(l) === String(formData.instructorId));
+  const selectedRoom = rooms.find((r: any) => roomIdOf(r) === String(formData.roomId));
+  const selectedTimeSlot = timeSlots.find((t: any) => timeSlotIdOf(t) === String(formData.timeSlotId));
+  const selectedCourseClassLabel = courseClassLabel(selectedCourseClass) || formData.courseClassName || "";
+  const selectedLecturerLabel = lecturerLabel(selectedLecturer) || formData.instructorName || "";
+  const selectedRoomLabel = roomLabel(selectedRoom) || formData.roomCode || "";
+  const selectedTimeSlotLabel = timeSlotLabel(selectedTimeSlot) || formData.slotCode || "";
+
   return (
     <Modal
       isOpen={isOpen}
@@ -46,22 +82,54 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
         </div>
         
         <div className="space-y-5">
+          {selectedCourseClass && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 text-sm dark:border-emerald-900 dark:bg-emerald-950/20">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-white">
+                    {selectedCourseClass.classCode || selectedCourseClass.courseClassName}
+                  </div>
+                  <div className="mt-0.5 text-slate-600 dark:text-slate-350">
+                    {selectedCourseClass.courseName || 'Chưa có tên môn học'}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white px-3 py-1 font-semibold text-emerald-700 shadow-sm dark:bg-slate-900 dark:text-emerald-400">
+                  {selectedCourseClass.credits || 0} TC
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-400 sm:grid-cols-4">
+                <div>Sĩ số: {selectedCourseClass.currentStudent ?? selectedCourseClass.currentStudents ?? 0}/{selectedCourseClass.maxStudent ?? selectedCourseClass.maxStudents ?? '-'}</div>
+                <div>Học kỳ: {selectedCourseClass.semesterName || selectedCourseClass.semesterCode || '-'}</div>
+                <div>Bắt đầu: {selectedCourseClass.startDate || '-'}</div>
+                <div>Kết thúc: {selectedCourseClass.endDate || '-'}</div>
+              </div>
+            </div>
+          )}
+
           {/* Lớp học phần & Giảng viên */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-2">
               <Label>Lớp học phần <span className="text-destructive">*</span></Label>
               <Select 
                 value={formData.courseClassId || ""} 
-                onValueChange={(val) => setFormData({...formData, courseClassId: val})}
+                onValueChange={(val) => {
+                  const nextClass = courseClasses.find((c: any) => courseClassIdOf(c) === String(val));
+                  setFormData({
+                    ...formData,
+                    courseClassId: val,
+                    roomId: nextClass?.roomId || formData.roomId,
+                    semesterId: nextClass?.semesterId || formData.semesterId
+                  });
+                }}
               >
                 <SelectTrigger className="w-full h-11 bg-gray-50/50 dark:bg-gray-800/50">
-                  <SelectValue placeholder="-- Chọn lớp học phần --" />
+                  <SelectValue placeholder="-- Chọn lớp học phần --">{selectedCourseClassLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="z-[9999]">
                   {courseClasses?.length > 0 ? (
                     courseClasses.map((c: any) => (
-                      <SelectItem key={c.id || c.courseClassId} value={String(c.id || c.courseClassId)}>
-                        {c.classCode || c.courseClassName || 'Chưa rõ mã lớp'}
+                      <SelectItem key={courseClassIdOf(c)} value={courseClassIdOf(c)}>
+                        {courseClassLabel(c)}
                       </SelectItem>
                     ))
                   ) : (
@@ -72,19 +140,19 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
             </div>
 
             <div className="space-y-2">
-              <Label>Giảng viên phụ trách</Label>
+              <Label>Giảng viên phụ trách <span className="text-destructive">*</span></Label>
               <Select 
                 value={formData.instructorId || ""} 
                 onValueChange={(val) => setFormData({...formData, instructorId: val})}
               >
                 <SelectTrigger className="w-full h-11 bg-gray-50/50 dark:bg-gray-800/50">
-                  <SelectValue placeholder="-- Chọn giảng viên --" />
+                  <SelectValue placeholder="-- Chọn giảng viên --">{selectedLecturerLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="z-[9999]">
                   {lecturers?.length > 0 ? (
                     lecturers.map((l: any) => (
-                      <SelectItem key={l.id || l.employeeId} value={String(l.id || l.employeeId)}>
-                        {l.fullName} ({l.instructorCode || l.employeeCode})
+                      <SelectItem key={lecturerIdOf(l)} value={lecturerIdOf(l)}>
+                        {lecturerLabel(l)}
                       </SelectItem>
                     ))
                   ) : (
@@ -104,13 +172,13 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
                 onValueChange={(val) => setFormData({...formData, roomId: val})}
               >
                 <SelectTrigger className="w-full h-11 bg-gray-50/50 dark:bg-gray-800/50">
-                  <SelectValue placeholder="-- Chọn phòng --" />
+                  <SelectValue placeholder="-- Chọn phòng --">{selectedRoomLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="z-[9999]">
                   {rooms?.length > 0 ? (
                     rooms.map((r: any) => (
-                      <SelectItem key={r.id || r.roomId} value={String(r.id || r.roomId)}>
-                        {r.code || r.roomCode || 'Không rõ mã phòng'} ({r.type || r.roomType || 'Phòng học'})
+                      <SelectItem key={roomIdOf(r)} value={roomIdOf(r)}>
+                        {roomLabel(r)}
                       </SelectItem>
                     ))
                   ) : (
@@ -127,13 +195,13 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
                 onValueChange={(val) => setFormData({...formData, timeSlotId: val})}
               >
                 <SelectTrigger className="w-full h-11 bg-gray-50/50 dark:bg-gray-800/50">
-                  <SelectValue placeholder="-- Chọn ca học --" />
+                  <SelectValue placeholder="-- Chọn ca học --">{selectedTimeSlotLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="z-[9999]">
                   {timeSlots?.length > 0 ? (
                     timeSlots.map((t: any) => (
-                      <SelectItem key={t.id || t.timeSlotId} value={String(t.id || t.timeSlotId)}>
-                        {t.slotCode}: {t.startTime} - {t.endTime}
+                      <SelectItem key={timeSlotIdOf(t)} value={timeSlotIdOf(t)}>
+                        {timeSlotLabel(t)}
                       </SelectItem>
                     ))
                   ) : (
@@ -229,10 +297,15 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
             <Button 
               onClick={onSubmit} 
               type="button" 
+              disabled={isSubmitting}
               className="px-6 h-11 bg-brand-500 hover:bg-brand-600 text-white shadow-md shadow-brand-500/20"
             >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              {isEditing ? "Cập Nhật Lịch" : "Xác nhận Lịch"}
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+              )}
+              {isSubmitting ? "Đang lưu..." : isEditing ? "Cập Nhật Lịch" : "Xác nhận Lịch"}
             </Button>
           </div>
         </div>

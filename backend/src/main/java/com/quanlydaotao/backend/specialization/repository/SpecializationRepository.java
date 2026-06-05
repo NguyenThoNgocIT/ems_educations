@@ -16,7 +16,8 @@ public interface SpecializationRepository extends JpaRepository<Specialization, 
     @Query("""
             SELECT s
             FROM Specialization s
-            WHERE (:keyword IS NULL OR LOWER(s.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+            WHERE s.deletedAt IS NULL
+              AND (:keyword IS NULL OR LOWER(s.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
                    OR LOWER(s.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:departmentId IS NULL OR s.departmentId = :departmentId)
               AND (:majorId IS NULL OR s.majorId = :majorId)

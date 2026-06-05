@@ -13,6 +13,13 @@ interface AdjustmentModalProps {
   onSuccess: () => void;
 }
 
+const toArray = (value: any) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  return [];
+};
+
 export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess }: AdjustmentModalProps) {
   const [courseClassId, setCourseClassId] = useState('');
   const [absentDate, setAbsentDate] = useState('');
@@ -30,12 +37,15 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
   const [timeSlots, setTimeSlots] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [myClasses, setMyClasses] = useState<any[]>([]);
+  
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [selectedScheduleId, setSelectedScheduleId] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      timeSlotApi.getAll().then(res => setTimeSlots(res.data || []));
-      roomApi.getAll().then(res => setRooms(res.data?.data || res.data || []));
-      scheduleApi.getTeachingProgress().then(res => setMyClasses(res.data?.data || []));
+      timeSlotApi.getAll().then(res => setTimeSlots(toArray(res)));
+      roomApi.getAll().then(res => setRooms(toArray(res)));
+      scheduleApi.getTeachingProgress().then(res => setMyClasses(toArray(res)));
       
       if (eventData) {
         setCourseClassId(eventData.courseClassId);
@@ -57,8 +67,34 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (courseClassId && !eventData) {
+      scheduleApi.getByCourseClass(courseClassId).then(res => {
+        setSchedules(toArray(res));
+      });
+    } else {
+      setSchedules([]);
+    }
+    setSelectedScheduleId('');
+  }, [courseClassId, eventData]);
+
+  useEffect(() => {
+    if (selectedScheduleId) {
+      const selected = schedules.find(s => s.scheduleId === selectedScheduleId);
+      if (selected) {
+        setAbsentDate(selected.date);
+        setAbsentTimeSlotId(selected.timeSlotId);
+        setAbsentPeriods(selected.numberOfPeriods || 3);
+      }
+    } else if (!eventData) {
+      setAbsentDate('');
+      setAbsentTimeSlotId('');
+      setAbsentPeriods(3);
+    }
+  }, [selectedScheduleId, schedules, eventData]);
+
   const type = requestType;
-  const setType = setRequestType; // alias for backwards compat in rendering
+  const setType = setRequestType;
   const newDate = proposedDate;
   const setNewDate = setProposedDate;
   const newTimeSlotId = proposedTimeSlotId;
@@ -66,11 +102,9 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
   const newRoomId = proposedRoomId;
   const setNewRoomId = setProposedRoomId;
   
-  const needsProposed = requestType !== 'ABSENT_MAKEUP'; // Simplification: we might always need it if they combine it. Let's just say for simplicity we ask for proposed unless they just want to ABSENT. Wait, the docs say ABSENT_MAKEUP "Nghỉ và dạy bù", so it always needs proposed! Let's just always show proposed unless we add a pure ABSENT type later.
-  // Wait, let's keep it simple: ALL types need proposedDate/proposedTimeSlotId except maybe we assume ABSENT_MAKEUP needs it.
   const needsProposedForm = true; 
 
-  if (!isOpen || !eventData) return null;
+  if (!isOpen) return null;
 
   const handleValidate = async () => {
     if (!proposedDate || !proposedTimeSlotId || !proposedRoomId) {
@@ -80,24 +114,31 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
     
     setIsValidating(true);
     try {
+      const activeCourseClassId = eventData ? eventData.courseClassId : courseClassId;
+      const activeOriginalScheduleId = eventData ? (eventData.originalScheduleId || eventData.scheduleId || eventData.id) : (selectedScheduleId || undefined);
+      
       const res = await scheduleAdjustmentApi.validate({
-        courseClassId: eventData.courseClassId,
-        originalScheduleId: eventData.originalScheduleId,
+        courseClassId: activeCourseClassId,
+        originalScheduleId: activeOriginalScheduleId,
         requestType,
-        absentDate: eventData.date,
-        absentTimeSlotId: eventData.timeSlotId,
-        absentPeriods: eventData.periods,
+        absentDate: requestType === 'EXTRA_SESSION' ? undefined : absentDate || undefined,
+        absentTimeSlotId: requestType === 'EXTRA_SESSION' ? undefined : absentTimeSlotId || undefined,
+        absentPeriods: requestType === 'EXTRA_SESSION' ? undefined : absentPeriods || undefined,
         proposedDate,
         proposedTimeSlotId,
         proposedRoomId,
-        proposedPeriods: eventData.periods
+        proposedPeriods: requestType === 'EXTRA_SESSION' ? 3 : absentPeriods
       });
-      const data = res.data?.data;
-      if (data?.isValid) {
+      const data = res.data?.data || res.data;
+      if (data?.valid) {
         toast.success('Lịch hợp lệ, bạn có thể gửi yêu cầu!');
         return true;
       } else {
-        toast.error('Lịch bị trùng: ' + (data?.conflicts?.join(', ') || 'Kiểm tra lại'));
+        const errorMessages = data?.results
+          ?.filter((result: any) => result.status === 'ERROR')
+          .map((result: any) => result.message)
+          .filter(Boolean);
+        toast.error(errorMessages?.length ? errorMessages.join(', ') : 'Lịch chưa hợp lệ, vui lòng kiểm tra lại');
         return false;
       }
     } catch (error: any) {
@@ -119,17 +160,20 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
 
     setIsSubmitting(true);
     try {
+      const activeCourseClassId = eventData ? eventData.courseClassId : courseClassId;
+      const activeOriginalScheduleId = eventData ? (eventData.originalScheduleId || eventData.scheduleId || eventData.id) : (selectedScheduleId || undefined);
+
       await scheduleAdjustmentApi.submit({
-        courseClassId: eventData.courseClassId,
-        originalScheduleId: eventData.originalScheduleId,
+        courseClassId: activeCourseClassId,
+        originalScheduleId: activeOriginalScheduleId,
         requestType,
-        absentDate: eventData.date,
-        absentTimeSlotId: eventData.timeSlotId,
-        absentPeriods: eventData.periods,
+        absentDate: requestType === 'EXTRA_SESSION' ? undefined : absentDate || undefined,
+        absentTimeSlotId: requestType === 'EXTRA_SESSION' ? undefined : absentTimeSlotId || undefined,
+        absentPeriods: requestType === 'EXTRA_SESSION' ? undefined : absentPeriods || undefined,
         proposedDate,
         proposedTimeSlotId,
         proposedRoomId,
-        proposedPeriods: eventData.periods,
+        proposedPeriods: requestType === 'EXTRA_SESSION' ? 3 : absentPeriods,
         reason
       });
       toast.success('Đã gửi yêu cầu thành công!');
@@ -158,19 +202,57 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
         </div>
 
         {/* Body */}
-        <div className="p-5 space-y-4">
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Lớp học phần đang chọn:</p>
-            <p className="font-semibold">{eventData.courseClassName}</p>
-            <p className="text-sm mt-1">Lịch cũ: <span className="font-medium text-amber-600">{eventData.date}</span></p>
-          </div>
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+          {eventData ? (
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Lớp học phần đang chọn:</p>
+              <p className="font-semibold">{eventData.courseClassName}</p>
+              <p className="text-sm mt-1">Lịch cũ: <span className="font-medium text-amber-600">{eventData.date}</span></p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Lớp học phần</label>
+                <select
+                  value={courseClassId}
+                  onChange={e => setCourseClassId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm bg-white dark:bg-slate-900"
+                >
+                  <option value="">-- Chọn lớp học phần --</option>
+                  {myClasses.map((c: any) => (
+                    <option key={c.courseClassId} value={c.courseClassId}>
+                      {c.courseClassCode} - {c.courseName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {requestType !== 'EXTRA_SESSION' && courseClassId && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Buổi học cần điều chỉnh</label>
+                  <select
+                    value={selectedScheduleId}
+                    onChange={e => setSelectedScheduleId(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm bg-white dark:bg-slate-900"
+                  >
+                    <option value="">-- Chọn buổi học --</option>
+                    {schedules.map((s: any) => (
+                      <option key={s.scheduleId} value={s.scheduleId}>
+                        Ngày {s.date} (Ca {s.slotCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Loại yêu cầu</label>
             <select 
               value={requestType} 
               onChange={e => setRequestType(e.target.value as any)}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm bg-white dark:bg-slate-900"
             >
               <option value="ABSENT_MAKEUP">Nghỉ và dạy bù</option>
               <option value="RESCHEDULE">Đổi lịch</option>
@@ -222,7 +304,7 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
               value={reason} 
               onChange={e => setReason(e.target.value)}
               placeholder="Nhập lý do xin nghỉ/đổi lịch..."
-              className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent min-h-[80px]"
+              className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent min-h-[80px] text-sm bg-white dark:bg-slate-900"
             />
           </div>
         </div>
@@ -250,7 +332,7 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
           <button 
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-5 py-2 text-sm font-medium rounded-xl bg-brand-600 text-white shadow-md shadow-brand-500/20 hover:bg-brand-700 transition-colors flex items-center gap-2"
+            className="px-5 py-2 text-sm font-medium rounded-xl bg-[#009640] text-white hover:bg-[#008137] transition-colors flex items-center gap-2"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Gửi yêu cầu

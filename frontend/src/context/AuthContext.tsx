@@ -1,16 +1,17 @@
-// src/context/AuthContext.tsx
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { request } from '@/utils/request';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { authMe } from '@/api/auth';
 
-// Định nghĩa kiểu dữ liệu cho User và Context
 interface User {
-  role: 'admin' | 'lecturer' | 'student';
+  role: string;
   fullName: string;
   email?: string;
   username?: string;
   id?: string;
+  avatarUrl?: string;
+  roles?: string[];
+  permissions?: string[];
 }
 
 interface AuthContextType {
@@ -19,37 +20,68 @@ interface AuthContextType {
   login: (userData: User, token: string) => void;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
-// Tạo Context với giá trị mặc định
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider component
+function normalizeRole(roles?: string[], fallback = 'student') {
+  return (roles?.[0] || fallback).toLowerCase().replace(/^role_/, '');
+}
+
+function toUser(data: any, previous?: User | null): User {
+  const roles = data?.roles || previous?.roles || [];
+
+  return {
+    role: normalizeRole(roles, previous?.role || 'student'),
+    fullName: data?.fullName || data?.username || previous?.fullName || 'Người dùng',
+    username: data?.username || previous?.username,
+    email: data?.email || data?.username || previous?.email,
+    id: data?.employeeId || data?.id || previous?.id,
+    avatarUrl: data && Object.prototype.hasOwnProperty.call(data, 'avatarUrl') ? data.avatarUrl : previous?.avatarUrl,
+    roles,
+    permissions: data?.permissions || previous?.permissions || [],
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Khôi phục trạng thái đăng nhập khi refresh trang
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     const savedToken = localStorage.getItem('access_token');
-    
-    if (savedUser && savedToken) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Lỗi parse user:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('access_token');
-      }
+
+    if (!savedUser || !savedToken) {
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+
+    try {
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+
+      authMe()
+        .then((response: any) => {
+          const freshUser = toUser(response?.data || response, parsedUser);
+          setUser(freshUser);
+          localStorage.setItem('user', JSON.stringify(freshUser));
+        })
+        .catch(() => {
+          // Keep the cached user when /me is unavailable.
+        })
+        .finally(() => setIsLoading(false));
+    } catch (error) {
+      console.error('Loi parse user:', error);
+      localStorage.removeItem('user');
+      localStorage.removeItem('access_token');
+      setIsLoading(false);
+    }
   }, []);
 
   const login = (userData: User, token: string) => {
     setUser(userData);
-    // Lưu vào localStorage để giữ trạng thái khi refresh
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('access_token', token);
   };
@@ -58,15 +90,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('access_token');
-    // Không gọi API logout nếu BE không yêu cầu
   };
 
   const updateUser = (data: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...data };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-    }
+    if (!user) return;
+
+    const updatedUser = { ...user, ...data };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  const refreshUser = async () => {
+    const response: any = await authMe();
+    const freshUser = toUser(response?.data || response, user);
+    setUser(freshUser);
+    localStorage.setItem('user', JSON.stringify(freshUser));
   };
 
   const value = {
@@ -75,17 +113,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     updateUser,
+    refreshUser,
     isAuthenticated: !!user,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook để sử dụng AuthContext
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

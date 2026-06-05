@@ -70,7 +70,9 @@ public class StudentClassServiceImpl implements StudentClassService {
         if (request.getIsActive() == null) {
             studentClass.setIsActive(true);
         }
-        return studentClassMapper.toDto(studentClassRepository.save(studentClass));
+        StudentClass saved = studentClassRepository.save(studentClass);
+        syncCurrentAdministrativeClass(studentId);
+        return studentClassMapper.toDto(saved);
     }
 
     @Override
@@ -80,6 +82,7 @@ public class StudentClassServiceImpl implements StudentClassService {
         studentClass.setIsActive(false);
         studentClass.setDeletedAt(LocalDateTime.now());
         studentClassRepository.save(studentClass);
+        syncCurrentAdministrativeClass(studentClass.getStudentId());
     }
 
     @Override
@@ -102,7 +105,9 @@ public class StudentClassServiceImpl implements StudentClassService {
         studentClass.setNote(note);
         studentClass.setIsActive(true);
         studentClass.setDeletedAt(null);
-        return studentClassMapper.toDto(studentClassRepository.save(studentClass));
+        StudentClass saved = studentClassRepository.save(studentClass);
+        syncCurrentAdministrativeClass(studentId);
+        return studentClassMapper.toDto(saved);
     }
 
     private StudentClass findStudentClass(UUID id) {
@@ -194,5 +199,16 @@ public class StudentClassServiceImpl implements StudentClassService {
         return trainingProgramRepository.findById(student.getTrainingProgramId())
                 .map(TrainingProgram::getDepartmentId)
                 .orElse(null);
+    }
+
+    private void syncCurrentAdministrativeClass(UUID studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("KhÃ´ng tÃ¬m tháº¥y sinh viÃªn"));
+        UUID currentClassId = studentClassRepository.findByStudentIdAndIsActiveTrue(studentId).stream()
+                .findFirst()
+                .map(StudentClass::getClassId)
+                .orElse(null);
+        student.setClassId(currentClassId);
+        studentRepository.save(student);
     }
 }

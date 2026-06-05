@@ -22,6 +22,14 @@ public interface StudentClassRepository extends JpaRepository<StudentClass, UUID
             """)
     List<StudentClass> findByStudentIdAndClassIdAndSemesterId(UUID studentId, UUID classId, UUID semesterId);
 
+    @Query("""
+            SELECT sc
+            FROM StudentClass sc
+            WHERE sc.studentId = :studentId
+              AND sc.isActive = true
+            ORDER BY sc.createdAt DESC,
+                     sc.studentClassId DESC
+            """)
     List<StudentClass> findByStudentIdAndIsActiveTrue(UUID studentId);
 
     @Query("""

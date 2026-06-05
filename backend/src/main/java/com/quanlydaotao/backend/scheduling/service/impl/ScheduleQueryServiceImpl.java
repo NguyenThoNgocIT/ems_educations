@@ -199,7 +199,7 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
     @Override
     @Transactional(readOnly = true)
     public List<ScheduleTeachingProgressReportResponse> getTeachingProgress(UUID semesterId, UUID instructorId, UUID courseClassId) {
-        List<CourseClass> courseClasses = resolveCourseClassesForProgress(semesterId, courseClassId);
+        List<CourseClass> courseClasses = resolveCourseClassesForProgress(semesterId, instructorId, courseClassId);
         return courseClasses.stream()
                 .filter(courseClass -> instructorId == null || hasInstructorSchedule(courseClass.getCourseClassId(), instructorId))
                 .map(this::buildProgress)
@@ -275,26 +275,41 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
     }
 
     private ScheduleCalendarItemDto toCalendarItem(Schedule schedule) {
+        Course course = course(schedule.getCourseClass().getCourseId());
         return ScheduleCalendarItemDto.builder()
                 .id(schedule.getScheduleId())
                 .courseClassId(schedule.getCourseClass().getCourseClassId())
                 .courseClassCode(schedule.getCourseClass().getClassCode())
+                .courseClassName(schedule.getCourseClass().getClassCode())
+                .courseName(course.getName())
                 .timeSlotId(schedule.getTimeSlot().getTimeSlotId())
                 .timeSlotLabel(timeSlotLabel(schedule.getTimeSlot()))
+                .startTime(schedule.getTimeSlot().getStartTime())
+                .endTime(schedule.getTimeSlot().getEndTime())
+                .numberOfPeriods(schedule.getNumberOfPeriods())
                 .roomId(schedule.getRoom().getRoomId())
                 .roomCode(schedule.getRoom().getCode())
+                .mode(schedule.getMode())
                 .status(schedule.getScheduleStatus() == null ? "FIXED" : schedule.getScheduleStatus())
                 .note(schedule.getNote())
                 .build();
     }
 
     private ScheduleCalendarItemDto toCalendarItem(TeachingSessionOverride override) {
+        CourseClass courseClass = courseClass(override.getCourseClassId());
+        Course course = course(courseClass.getCourseId());
+        TimeSlot slot = slotById(override.getTimeSlotId());
         return ScheduleCalendarItemDto.builder()
                 .id(override.getOverrideId())
                 .courseClassId(override.getCourseClassId())
-                .courseClassCode(courseClassCode(override.getCourseClassId()))
+                .courseClassCode(courseClass.getClassCode())
+                .courseClassName(courseClass.getClassCode())
+                .courseName(course.getName())
                 .timeSlotId(override.getTimeSlotId())
-                .timeSlotLabel(timeSlotLabel(slotById(override.getTimeSlotId())))
+                .timeSlotLabel(timeSlotLabel(slot))
+                .startTime(slot == null ? null : slot.getStartTime())
+                .endTime(slot == null ? null : slot.getEndTime())
+                .numberOfPeriods(override.getNumberOfPeriods())
                 .roomId(override.getRoomId())
                 .roomCode(roomCode(override.getRoomId()))
                 .status(resolveOverrideStatus(override))
@@ -340,12 +355,18 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
 
     private ScheduleTeachingProgressReportResponse buildProgress(CourseClass courseClass) {
         Course course = course(courseClass.getCourseId());
+        Semester semester = semesterRepository.findById(courseClass.getSemesterId()).orElse(null);
         int requiredPeriods = requiredPeriods(course);
         int taughtPeriods = defaultInt(progressLogRepository.sumTaughtPeriods(courseClass.getCourseClassId()));
         int remaining = Math.max(requiredPeriods - taughtPeriods, 0);
         return ScheduleTeachingProgressReportResponse.builder()
                 .courseClassId(courseClass.getCourseClassId())
                 .courseClassCode(courseClass.getClassCode())
+                .semesterId(courseClass.getSemesterId())
+                .semesterCode(semester == null ? null : semester.getCode())
+                .semesterName(semester == null ? null : semester.getName())
+                .semesterStartDate(semester == null ? null : semester.getStartDate())
+                .semesterEndDate(semester == null ? null : semester.getEndDate())
                 .courseName(course.getName())
                 .credits(course.getCredits())
                 .startDate(courseClass.getStartDate())
@@ -358,9 +379,22 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
                 .build();
     }
 
-    private List<CourseClass> resolveCourseClassesForProgress(UUID semesterId, UUID courseClassId) {
+    private List<CourseClass> resolveCourseClassesForProgress(UUID semesterId, UUID instructorId, UUID courseClassId) {
         if (courseClassId != null) {
             return List.of(courseClass(courseClassId));
+        }
+        if (semesterId == null && instructorId != null) {
+            return scheduleRepository.findByInstructorEmployeeId(instructorId).stream()
+                    .map(Schedule::getCourseClass)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(
+                            CourseClass::getCourseClassId,
+                            courseClass -> courseClass,
+                            (first, ignored) -> first))
+                    .values()
+                    .stream()
+                    .sorted(Comparator.comparing(CourseClass::getStartDate, Comparator.nullsLast(Comparator.reverseOrder())))
+                    .toList();
         }
         UUID targetSemesterId = semesterId != null ? semesterId : resolveCurrentSemesterId();
         return courseClassRepository.findBySemesterId(targetSemesterId);

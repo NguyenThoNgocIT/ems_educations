@@ -11,6 +11,11 @@ import java.util.UUID;
 public class ScheduleTeachingProgressReportResponse {
     private UUID courseClassId;
     private String courseClassCode;
+    private UUID semesterId;
+    private String semesterCode;
+    private String semesterName;
+    private LocalDate semesterStartDate;
+    private LocalDate semesterEndDate;
     private String courseName;
     private Double credits;
     private LocalDate startDate;

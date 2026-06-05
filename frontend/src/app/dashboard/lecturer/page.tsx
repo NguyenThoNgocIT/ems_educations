@@ -1,202 +1,266 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { BookOpen, Users, Clock, Bell, ChevronRight, CheckCircle2, Info } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { courseClassApi } from "@/api/course";
+import { BookOpen, CalendarClock, CheckCircle2, ChevronRight, Clock, Info, Loader2, Users } from "lucide-react";
 import { scheduleApi } from "@/api/schedule";
+import { useAuth } from "@/context/AuthContext";
+import { request } from "@/utils/request";
+
+const toArray = (value: any) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  return [];
+};
+
+const getEmployeeIdFromMe = async () => {
+  const res: any = await request.get("/api/auth/me");
+  return res?.employeeId || res?.data?.employeeId || res?.data?.data?.employeeId || null;
+};
+
+const formatTime = (start?: string, end?: string) => {
+  const trim = (value?: string) => String(value || "").slice(0, 5);
+  return `${trim(start) || "--:--"} - ${trim(end) || "--:--"}`;
+};
+
+const formatDate = (value?: string) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("vi-VN", { weekday: "short", day: "2-digit", month: "2-digit" }).format(date);
+};
 
 export default function LecturerDashboard() {
-  const [stats, setStats] = useState({
-    classesCount: 0,
-    todaySchedulesCount: 0,
-    studentCount: 0,
-    notificationsCount: 0
-  });
-  
-  const [todaySchedules, setTodaySchedules] = useState<any[]>([]);
+  const { user, updateUser } = useAuth();
+  const [employeeId, setEmployeeId] = useState<string | null>((user as any)?.id || null);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [upcomingSchedules, setUpcomingSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    if ((user as any)?.id) {
+      setEmployeeId((user as any).id);
+      return;
+    }
+
+    if (!user) return;
+
+    getEmployeeIdFromMe()
+      .then((id) => {
+        if (id) {
+          setEmployeeId(id);
+          updateUser({ id });
+        }
+      })
+      .catch(() => {});
+  }, [user, updateUser]);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      if (!employeeId) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        // Fetch classes
-        const classRes = await courseClassApi.getAll();
-        const classes = classRes || [];
-        
-        // Fetch schedules
-        const scheduleRes = await scheduleApi.getAll();
-        const schedules = scheduleRes.data?.data || scheduleRes.data || [];
+        setLoading(true);
+        const now = new Date();
+        const [classesRes, calendarRes] = await Promise.all([
+          scheduleApi.getTeachingProgress({ instructorId: employeeId }),
+          scheduleApi.getCalendar({
+            instructorId: employeeId,
+            month: now.getMonth() + 1,
+            year: now.getFullYear(),
+          }),
+        ]);
 
-        // Tính toán thống kê
-        setStats({
-          classesCount: classes.length,
-          todaySchedulesCount: schedules.length, 
-          studentCount: classes.length * 40, // Ước tính 40 SV/lớp
-          notificationsCount: 2 // Mock notifications
-        });
+        const classRows = toArray(classesRes);
+        const calendarDays = toArray(calendarRes);
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-        // Ánh xạ danh sách lịch dạy (Lấy tối đa 3 lịch)
-        const mappedSchedules = schedules.slice(0, 3).map((s: any) => {
-           const startHour = 7 + (s.startPeriod || 1);
-           const endHour = startHour + ((s.endPeriod || 2) - (s.startPeriod || 1));
-           return {
-             time: `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`,
-             name: s.courseName || s.courseClassName || "Lớp học phần",
-             code: s.courseClassCode || s.courseClassId?.substring(0, 8) || "Mã lớp",
-             room: s.roomCode || s.roomName || "Phòng học",
-             type: s.type || "LT"
-           };
-        });
-        
-        setTodaySchedules(mappedSchedules);
+        const schedules = calendarDays
+          .flatMap((day: any) =>
+            toArray(day.items).map((item: any) => ({
+              ...item,
+              date: day.date,
+            })),
+          )
+          .filter((item: any) => new Date(`${item.date}T${item.startTime || "00:00:00"}`).getTime() >= todayStart)
+          .sort((a: any, b: any) => {
+            return new Date(`${a.date}T${a.startTime || "00:00:00"}`).getTime()
+              - new Date(`${b.date}T${b.startTime || "00:00:00"}`).getTime();
+          });
+
+        setClasses(classRows);
+        setUpcomingSchedules(schedules);
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu dashboard", error);
+        console.error("Loi khi tai dashboard giang vien", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
+    if (user) {
+      fetchDashboard();
+    }
+  }, [employeeId, user]);
+
+  const stats = useMemo(() => {
+    const requiredPeriods = classes.reduce((sum, item) => sum + Number(item.requiredPeriods || 0), 0);
+    const taughtPeriods = classes.reduce((sum, item) => sum + Number(item.taughtPeriods || 0), 0);
+    const remainingPeriods = classes.reduce((sum, item) => sum + Number(item.remainingPeriods || 0), 0);
+
+    return {
+      classesCount: classes.length,
+      scheduleCount: upcomingSchedules.length,
+      taughtPeriods,
+      remainingPeriods,
+      requiredPeriods,
+    };
+  }, [classes, upcomingSchedules]);
+
+  const nextSchedules = upcomingSchedules.slice(0, 3);
+  const displayName = user?.fullName || (user as any)?.name || "Giảng viên";
 
   return (
     <div className="space-y-6">
-      {/* KHỐI TIÊU ĐỀ CHÀO MỪNG */}
       <div className="flex flex-col">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          Xin chào, Giảng viên 👋
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">Chúc bạn một ngày làm việc và giảng dạy hiệu quả!</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Xin chào, {displayName}</h1>
+        <p className="mt-1 text-slate-500 dark:text-slate-400">
+          Tổng quan lịch giảng dạy và lớp học phần đang phụ trách của bạn.
+        </p>
       </div>
 
-      {/* 4 KHỐI CARD THỐNG KÊ */}
+      {!employeeId && !loading && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          Chưa lấy được mã giảng viên từ phiên đăng nhập. Hãy đăng xuất và đăng nhập lại để đồng bộ dữ liệu.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {/* Lớp đang dạy */}
-        <div className="rounded-3xl border border-gray-200/50 bg-white/60 backdrop-blur-xl p-5 shadow-sm hover:shadow-lg hover:border-brand-300 dark:border-gray-800/50 dark:bg-gray-900/40 dark:hover:border-brand-500/50 transition-all flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Lớp đang giảng dạy</p>
-            <h4 className="mt-2 text-3xl font-black text-gray-800 dark:text-white">
-              {loading ? "..." : stats.classesCount}
-            </h4>
-            <p className="mt-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 px-2 py-0.5 rounded-full inline-block">Học kỳ này</p>
-          </div>
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-800/20 text-brand-600 dark:text-brand-400">
-            <BookOpen className="h-7 w-7" />
-          </div>
-        </div>
-
-        {/* Tiết dạy */}
-        <div className="rounded-3xl border border-gray-200/50 bg-white/60 backdrop-blur-xl p-5 shadow-sm hover:shadow-lg hover:border-sky-300 dark:border-gray-800/50 dark:bg-gray-900/40 dark:hover:border-sky-500/50 transition-all flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Lịch phân công</p>
-            <h4 className="mt-2 text-3xl font-black text-gray-800 dark:text-white">
-              {loading ? "..." : stats.todaySchedulesCount}
-            </h4>
-            <p className="mt-1 text-[10px] font-semibold text-sky-600 bg-sky-50 dark:bg-sky-500/10 dark:text-sky-400 px-2 py-0.5 rounded-full inline-block">Tổng lịch dạy</p>
-          </div>
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-50 to-sky-100 dark:from-sky-900/20 dark:to-sky-800/20 text-sky-600 dark:text-sky-400">
-            <Clock className="h-7 w-7" />
-          </div>
-        </div>
-
-        {/* Tổng sinh viên */}
-        <div className="rounded-3xl border border-gray-200/50 bg-white/60 backdrop-blur-xl p-5 shadow-sm hover:shadow-lg hover:border-indigo-300 dark:border-gray-800/50 dark:bg-gray-900/40 dark:hover:border-indigo-500/50 transition-all flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Sinh viên quản lý</p>
-            <h4 className="mt-2 text-3xl font-black text-gray-800 dark:text-white">
-              {loading ? "..." : stats.studentCount}
-            </h4>
-            <p className="mt-1 text-[10px] font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 dark:text-indigo-400 px-2 py-0.5 rounded-full inline-block">Ước tính</p>
-          </div>
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 text-indigo-600 dark:text-indigo-400">
-            <Users className="h-7 w-7" />
-          </div>
-        </div>
-
-        {/* Thông báo chưa đọc */}
-        <div className="rounded-3xl border border-gray-200/50 bg-white/60 backdrop-blur-xl p-5 shadow-sm hover:shadow-lg hover:border-rose-300 dark:border-gray-800/50 dark:bg-gray-900/40 dark:hover:border-rose-500/50 transition-all flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Thông báo mới</p>
-            <h4 className="mt-2 text-3xl font-black text-gray-800 dark:text-white">
-              {loading ? "..." : stats.notificationsCount}
-            </h4>
-            <p className="mt-1 text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-400 px-2 py-0.5 rounded-full inline-block">Cần xử lý ngay</p>
-          </div>
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-50 to-rose-100 dark:from-rose-900/20 dark:to-rose-800/20 text-rose-600 dark:text-rose-400">
-            <Bell className="h-7 w-7" />
-          </div>
-        </div>
+        <StatCard icon={BookOpen} label="Lớp phụ trách" value={stats.classesCount} hint="Theo phân công" tone="emerald" loading={loading} />
+        <StatCard icon={CalendarClock} label="Lịch sắp tới" value={stats.scheduleCount} hint="Trong tháng này" tone="sky" loading={loading} />
+        <StatCard icon={CheckCircle2} label="Tiết đã dạy" value={stats.taughtPeriods} hint={`/${stats.requiredPeriods || 0} tiết yêu cầu`} tone="indigo" loading={loading} />
+        <StatCard icon={Clock} label="Tiết còn lại" value={stats.remainingPeriods} hint="Cần hoàn thành" tone="amber" loading={loading} />
       </div>
 
-      {/* CHI TIẾT LỊCH DẠY BÊN DƯỚI */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Lịch dạy chi tiết */}
-        <div className="lg:col-span-2 rounded-3xl border border-gray-200/50 bg-white/60 backdrop-blur-xl p-6 shadow-sm dark:border-gray-800/50 dark:bg-gray-900/40 flex flex-col">
+        <div className="flex flex-col rounded-3xl border border-gray-200/50 bg-white/70 p-6 shadow-sm dark:border-gray-800/50 dark:bg-gray-900/40 lg:col-span-2">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800/50">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Lịch giảng dạy tới đây</h3>
-            <Link href="/dashboard/lecturer/my-schedule" className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 font-semibold flex items-center gap-1 group">
-              Xem thời khóa biểu <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform"/>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Lịch giảng dạy sắp tới</h3>
+              <p className="mt-1 text-xs text-slate-500">Dữ liệu được lọc theo chính tài khoản giảng viên hiện tại.</p>
+            </div>
+            <Link href="/dashboard/lecturer/my-schedule" className="flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-700">
+              Xem lịch <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="mt-5 space-y-4 flex-1">
+
+          <div className="mt-5 flex-1 space-y-4">
             {loading ? (
-              <div className="text-center py-10 text-gray-400">Đang tải lịch giảng dạy...</div>
-            ) : todaySchedules.length > 0 ? (
-              todaySchedules.map((item, idx) => (
-                <div key={idx} className="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-gray-50/80 hover:bg-white border border-gray-100 hover:border-brand-200 hover:shadow-md dark:bg-gray-800/30 dark:border-gray-800 dark:hover:bg-gray-800/50 dark:hover:border-brand-500/30 transition-all gap-4 sm:gap-0">
-                  <div className="flex gap-5 items-center">
-                    <div className="flex flex-col items-center justify-center bg-white dark:bg-gray-900 shadow-sm border border-gray-100 dark:border-gray-800 rounded-xl py-2 px-3 min-w-[100px]">
-                      <span className="text-xs font-black text-brand-600 dark:text-brand-400">{item.time.split(' - ')[0]}</span>
-                      <span className="text-[10px] font-bold text-gray-400">đến {item.time.split(' - ')[1]}</span>
+              <div className="flex items-center justify-center py-12 text-slate-500">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Đang tải dữ liệu giảng viên...
+              </div>
+            ) : nextSchedules.length > 0 ? (
+              nextSchedules.map((item, index) => (
+                <div
+                  key={item.id || `${item.date}-${item.timeSlotId}-${index}`}
+                  className="group flex flex-col justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/80 p-4 transition hover:border-brand-200 hover:bg-white hover:shadow-md dark:border-gray-800 dark:bg-gray-800/30 sm:flex-row sm:items-center"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex min-w-[120px] flex-col items-center justify-center rounded-xl border border-gray-100 bg-white px-3 py-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                      <span className="text-[11px] font-bold text-slate-500">{formatDate(item.date)}</span>
+                      <span className="text-xs font-black text-brand-600">{formatTime(item.startTime, item.endTime)}</span>
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-brand-600 transition-colors">{item.name}</p>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${item.type === 'TH' ? 'bg-amber-100 text-amber-700' : 'bg-brand-100 text-brand-700'}`}>{item.type}</span>
+                      <div className="mb-1 flex items-center gap-2">
+                        <p className="text-sm font-bold text-gray-900 transition group-hover:text-brand-600 dark:text-white">
+                          {item.courseClassName || item.courseClassCode || "Lớp học phần"}
+                        </p>
+                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${item.mode === "TH" ? "bg-amber-100 text-amber-700" : "bg-brand-100 text-brand-700"}`}>
+                          {item.mode || "LT"}
+                        </span>
                       </div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{item.code}</p>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{item.courseName || "Tên học phần"}</p>
                     </div>
                   </div>
-                  <div className="sm:text-right">
-                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 w-full sm:w-auto justify-center">
-                      <Info size={14} className="text-brand-500"/> {item.room}
-                    </span>
-                  </div>
+                  <span className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                    <Info size={14} className="text-brand-500" /> {item.roomCode || "Chưa xếp phòng"}
+                  </span>
                 </div>
               ))
             ) : (
-              <div className="text-center py-10 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-                <Clock className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 font-medium">Chưa có lịch phân công</p>
+              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-gray-800/50">
+                <Clock className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+                <p className="font-medium text-gray-500">Chưa có lịch giảng dạy sắp tới trong tháng này</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Thông báo từ phòng ban */}
-        <div className="rounded-3xl border border-gray-200/50 bg-white/60 backdrop-blur-xl p-6 shadow-sm dark:border-gray-800/50 dark:bg-gray-900/40">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800/50">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Tin tức nhận được</h3>
-            <span className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 cursor-pointer font-semibold">Xem tất cả</span>
+        <div className="rounded-3xl border border-gray-200/50 bg-white/70 p-6 shadow-sm dark:border-gray-800/50 dark:bg-gray-900/40">
+          <div className="border-b border-gray-100 pb-4 dark:border-gray-800/50">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Lớp nổi bật</h3>
+            <p className="mt-1 text-xs text-slate-500">Các lớp có khối lượng còn lại cao.</p>
           </div>
-          <div className="mt-5 space-y-5">
-            <div className="relative pl-4">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500 rounded-full"></div>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 px-2 py-0.5 rounded mb-1.5 inline-block">Khẩn cấp</span>
-              <p className="text-sm font-bold text-gray-800 dark:text-slate-200 leading-tight">Hạn cuối khóa điểm thi học kỳ 2</p>
-              <p className="text-xs font-medium text-gray-400 mt-1 flex items-center gap-1"><Clock size={12}/> Hạn chót: 30/05/2026</p>
-            </div>
-            
-            <div className="relative pl-4">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-full"></div>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded mb-1.5 inline-block">Phòng Đào tạo</span>
-              <p className="text-sm font-bold text-gray-800 dark:text-slate-200 leading-tight">Triển khai quy chế coi thi mới</p>
-              <p className="text-xs font-medium text-gray-400 mt-1 flex items-center gap-1"><CheckCircle2 size={12}/> Ngày nhận: 19/05/2026</p>
-            </div>
+          <div className="mt-5 space-y-4">
+            {loading ? (
+              <div className="py-10 text-center text-sm text-slate-500">Đang tải lớp phụ trách...</div>
+            ) : classes.length > 0 ? (
+              [...classes]
+                .sort((a, b) => Number(b.remainingPeriods || 0) - Number(a.remainingPeriods || 0))
+                .slice(0, 3)
+                .map((item, index) => (
+                  <Link
+                    href="/dashboard/lecturer/my-classes"
+                    key={item.courseClassId || index}
+                    className="block rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:border-emerald-200 hover:bg-white dark:border-slate-800 dark:bg-slate-800/40"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                        <Users className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold text-slate-900 dark:text-white">{item.courseClassCode || "Mã lớp"}</div>
+                        <div className="mt-0.5 line-clamp-2 text-xs text-slate-500">{item.courseName || "Tên học phần"}</div>
+                        <div className="mt-2 text-[11px] font-semibold text-emerald-700">
+                          Còn {item.remainingPeriods || 0} tiết
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-500">
+                Chưa có lớp phụ trách
+              </div>
+            )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, hint, tone, loading }: { icon: any; label: string; value: number; hint: string; tone: "emerald" | "sky" | "indigo" | "amber"; loading: boolean }) {
+  const toneClass = {
+    emerald: "from-emerald-50 to-emerald-100 text-emerald-700",
+    sky: "from-sky-50 to-sky-100 text-sky-700",
+    indigo: "from-indigo-50 to-indigo-100 text-indigo-700",
+    amber: "from-amber-50 to-amber-100 text-amber-700",
+  }[tone];
+
+  return (
+    <div className="flex items-center justify-between rounded-3xl border border-gray-200/50 bg-white/70 p-5 shadow-sm backdrop-blur-xl transition hover:shadow-lg dark:border-gray-800/50 dark:bg-gray-900/40">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</p>
+        <h4 className="mt-2 text-3xl font-black text-gray-800 dark:text-white">{loading ? "..." : value}</h4>
+        <p className="mt-1 inline-block rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500">{hint}</p>
+      </div>
+      <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${toneClass}`}>
+        <Icon className="h-7 w-7" />
       </div>
     </div>
   );

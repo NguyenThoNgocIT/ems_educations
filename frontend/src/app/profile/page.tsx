@@ -57,6 +57,21 @@ export default function ProfilePage() {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
   };
 
+  const getRoleAvatar = (role?: string): string => {
+    const avatars: Record<string, string> = {
+      admin: "/images/user/user-01.jpg",
+      super_admin: "/images/user/user-01.jpg",
+      lecturer: "/images/user/user-04.jpg",
+      teacher: "/images/user/user-04.jpg",
+      student: "/images/user/user-02.jpg",
+      consultant: "/images/user/user-06.jpg",
+      parents: "/images/user/user-08.jpg",
+      "branch-management": "/images/user/user-10.jpg",
+    };
+
+    return avatars[role || ""] || "/images/user/user-03.jpg";
+  };
+
   const getRoleLabel = (role?: string): string => {
     const labels: Record<string, string> = {
       admin: "Quản trị viên (Admin)",
@@ -79,9 +94,17 @@ export default function ProfilePage() {
           <div className="absolute -top-16 md:-top-20 left-1/2 md:left-10 transform -translate-x-1/2 md:translate-x-0">
             <div className="relative group">
               <div className="h-32 w-32 md:h-40 md:w-40 rounded-full border-4 border-white dark:border-gray-900 bg-white dark:bg-gray-800 shadow-xl flex items-center justify-center overflow-hidden">
-                <span className="text-4xl md:text-5xl font-black text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 w-full h-full flex items-center justify-center">
-                  {getInitials(displayUser.fullName)}
-                </span>
+                {displayUser.avatarUrl || displayUser.role ? (
+                  <img
+                    src={displayUser.avatarUrl || getRoleAvatar(displayUser.role)}
+                    alt={displayUser.fullName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-4xl md:text-5xl font-black text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 w-full h-full flex items-center justify-center">
+                    {getInitials(displayUser.fullName)}
+                  </span>
+                )}
               </div>
               <button className="absolute bottom-2 right-2 p-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-lg transition-transform hover:scale-110">
                 <Camera size={18} />
