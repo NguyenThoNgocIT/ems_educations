@@ -1,89 +1,215 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
-import { toast } from 'sonner';
-import { request } from '@/utils/request';
-import { unwrapApiResponse } from '@/api/response';
-import { studentApi } from '@/api/student';
-import { administrativeClassApi } from '@/api/administrative-class';
-import { semesterApi } from '@/api/semester';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { StudentListItem } from '@/types/student';
-import type { AdministrativeClass } from '@/types/lookup';
-import type { Semester } from '@/api/admin-resources';
+import React, { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BookOpen, GraduationCap, Layers, Search, Trash2, UserPlus, Users } from "lucide-react";
+import { toast } from "sonner";
+import { request } from "@/utils/request";
+import { unwrapApiResponse } from "@/api/response";
+import { studentApi } from "@/api/student";
+import { administrativeClassApi } from "@/api/administrative-class";
+import { semesterApi } from "@/api/semester";
+import { lecturerApi } from "@/api/lecturer";
+import { courseClassApi } from "@/api/course";
+import type { StudentListItem } from "@/types/student";
+import type { AdministrativeClass } from "@/types/lookup";
+import type { Semester } from "@/api/admin-resources";
 
 type StudentClassAssignment = {
   studentClassId?: string;
   studentId?: string;
-  studentName?: string;
-  studentCode?: string;
   classId?: string;
-  className?: string;
-  classCode?: string;
   semesterId?: string;
-  semesterName?: string;
-  academicYear?: string;
-  isActive?: boolean;
-  enrolledAt?: string;
   note?: string;
-  roleInClass?: string;
-  status?: string;
+  isActive?: boolean;
 };
 
-// Cache để tránh gọi API nhiều lần
-const studentCache = new Map();
-const classCache = new Map();
-const semesterCache = new Map();
+type CourseClass = {
+  courseClassId?: string;
+  id?: string;
+  classCode?: string;
+  code?: string;
+  courseCode?: string;
+  courseName?: string;
+  semesterId?: string;
+};
+
+type Lecturer = {
+  id?: string;
+  employeeId?: string;
+  instructorId?: string;
+  instructorCode?: string;
+  fullName?: string;
+};
+
+type CourseClassStudent = {
+  studentId?: string;
+  studentCode?: string;
+  fullName?: string;
+};
+
+function getClassId(item: AdministrativeClass) {
+  return item.classId || item.id || "";
+}
+
+function getCourseClassId(item: CourseClass) {
+  return item.courseClassId || item.id || "";
+}
+
+function getLecturerId(item: Lecturer) {
+  return item.instructorId || item.id || item.employeeId || "";
+}
+
+function normalizeRows<T>(response: unknown): T[] {
+  const data = unwrapApiResponse<any>(response);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.content)) return data.content;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+}
 
 export default function StudentClassAssignmentsPage() {
   const [assignments, setAssignments] = useState<StudentClassAssignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<StudentClassAssignment | null>(null);
-  const [formData, setFormData] = useState({
-    studentId: '',
-    classId: '',
-    semesterId: '',
-    note: '',
-    isActive: true,
-  });
-
   const [students, setStudents] = useState<StudentListItem[]>([]);
   const [classesList, setClassesList] = useState<AdministrativeClass[]>([]);
   const [semestersList, setSemestersList] = useState<Semester[]>([]);
-  const [fetchingLookups, setFetchingLookups] = useState(false);
+  const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
+  const [courseClassStudentIds, setCourseClassStudentIds] = useState<Set<string>>(new Set());
+  const [lecturers, setLecturers] = useState<Lecturer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSemesterId, setSelectedSemesterId] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [studentModalOpen, setStudentModalOpen] = useState(false);
+  const [courseModalOpen, setCourseModalOpen] = useState(false);
+  const [studentForm, setStudentForm] = useState({ studentId: "", note: "" });
+  const [courseForm, setCourseForm] = useState({ courseClassId: "", instructorId: "", note: "" });
+
+  const selectedSemester = semestersList.find((semester) => semester.semesterId === selectedSemesterId);
+  const selectedClass = classesList.find((item) => getClassId(item) === selectedClassId);
+
+  const studentById = useMemo(() => {
+    const map = new Map<string, StudentListItem>();
+    students.forEach((student) => {
+      if (student.id) map.set(student.id, student);
+      if (student.studentId) map.set(student.studentId, student);
+    });
+    return map;
+  }, [students]);
+
+  const assignmentsInSemester = useMemo(
+    () => assignments.filter((item) => item.semesterId === selectedSemesterId && item.isActive !== false),
+    [assignments, selectedSemesterId],
+  );
+
+  const classSummaries = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    return classesList
+      .map((item) => {
+        const classId = getClassId(item);
+        const members = assignmentsInSemester.filter((assignment) => assignment.classId === classId);
+        return { ...item, classId, studentCount: members.length };
+      })
+      .filter((item) => {
+        if (!keyword) return true;
+        return [item.classCode, item.className, item.departmentName, item.majorName].some((value) =>
+          String(value || "").toLowerCase().includes(keyword),
+        );
+      })
+      .sort((a, b) => String(a.classCode || "").localeCompare(String(b.classCode || "")));
+  }, [assignmentsInSemester, classesList, searchTerm]);
+
+  const selectedMembers = useMemo(() => {
+    return assignmentsInSemester
+      .filter((item) => item.classId === selectedClassId)
+      .map((assignment) => ({
+        ...assignment,
+        student: assignment.studentId ? studentById.get(assignment.studentId) : undefined,
+      }))
+      .sort((a, b) => String(a.student?.studentCode || "").localeCompare(String(b.student?.studentCode || "")));
+  }, [assignmentsInSemester, selectedClassId, studentById]);
+
+  const availableStudents = useMemo(() => {
+    const assignedIds = new Set(assignmentsInSemester.map((item) => item.studentId).filter(Boolean));
+    const hasCourseClassRoster = courseClassStudentIds.size > 0;
+
+    return students.filter((student) => {
+      const id = student.id || student.studentId;
+      return id && !assignedIds.has(id) && (!hasCourseClassRoster || courseClassStudentIds.has(id));
+    });
+  }, [assignmentsInSemester, courseClassStudentIds, students]);
+
+  const totalAssigned = assignmentsInSemester.length;
+  const filledClasses = classSummaries.filter((item) => item.studentCount > 0).length;
 
   const fetchLookups = async () => {
-    setFetchingLookups(true);
+    setLoading(true);
     try {
-      const [studentsRes, classesRes, semestersRes] = await Promise.all([
+      const [studentRows, classRows, semesterRows, courseClassRows, lecturerRows] = await Promise.all([
         studentApi.getAll(),
-        administrativeClassApi.getAll(),
-        semesterApi.getAll()
+        administrativeClassApi.getAll({ isActive: true }),
+        semesterApi.getAll(),
+        courseClassApi.getAll(),
+        lecturerApi.getAll(),
       ]);
-      setStudents(studentsRes || []);
-      setClassesList(classesRes || []);
-      setSemestersList(semestersRes || []);
+      setStudents(studentRows || []);
+      setClassesList(classRows || []);
+      setSemestersList(semesterRows || []);
+      setCourseClasses(courseClassRows || []);
+      setLecturers(lecturerRows || []);
+
+      const activeSemester = (semesterRows || []).find((item) => item.isActive) || semesterRows?.[0];
+      if (!selectedSemesterId && activeSemester?.semesterId) {
+        setSelectedSemesterId(activeSemester.semesterId);
+      }
     } catch (error) {
-      console.error('Failed to fetch lookups', error);
+      console.error(error);
+      toast.error("Không thể tải dữ liệu lớp, sinh viên, học kỳ");
     } finally {
-      setFetchingLookups(false);
+      setLoading(false);
+    }
+  };
+
+  const fetchAssignments = async () => {
+    try {
+      const response = await request.get("/api/v1/student-classes/admin", {
+        params: { semesterId: selectedSemesterId || undefined, isActive: true },
+      });
+      setAssignments(normalizeRows<StudentClassAssignment>(response));
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể tải dữ liệu phân lớp theo học kỳ");
+      setAssignments([]);
+    }
+  };
+
+  const fetchCourseClassStudents = async () => {
+    const classesInSemester = courseClasses.filter((item) => !selectedSemesterId || item.semesterId === selectedSemesterId);
+    if (!selectedSemesterId || classesInSemester.length === 0) {
+      setCourseClassStudentIds(new Set());
+      return;
+    }
+
+    try {
+      const rosters = await Promise.all(
+        classesInSemester
+          .map(getCourseClassId)
+          .filter(Boolean)
+          .map((id) => courseClassApi.getStudents(id).catch(() => [])),
+      );
+      const ids = new Set<string>();
+      rosters.flat().forEach((student: CourseClassStudent) => {
+        if (student.studentId) ids.add(student.studentId);
+      });
+      setCourseClassStudentIds(ids);
+    } catch {
+      setCourseClassStudentIds(new Set());
     }
   };
 
@@ -91,364 +217,307 @@ export default function StudentClassAssignmentsPage() {
     fetchLookups();
   }, []);
 
-  // Lấy thông tin sinh viên theo ID
-  const fetchStudentInfo = async (studentId: string) => {
-    if (studentCache.has(studentId)) return studentCache.get(studentId);
-    try {
-      const response = await request.get(`/api/v1/students/admin/${studentId}`);
-      const data = unwrapApiResponse<any>(response);
-      const info = { studentName: data.fullName, studentCode: data.studentCode };
-      studentCache.set(studentId, info);
-      return info;
-    } catch {
-      return { studentName: 'Chưa lấy được thông tin sinh viên', studentCode: '—' };
-    }
-  };
-
-  // Lấy thông tin lớp theo ID
-  const fetchClassInfo = async (classId: string) => {
-    if (classCache.has(classId)) return classCache.get(classId);
-    try {
-      const response = await request.get(`/api/v1/classes/admin/${classId}`);
-      const data = unwrapApiResponse<any>(response);
-      const info = { className: data.className, classCode: data.classCode };
-      classCache.set(classId, info);
-      return info;
-    } catch {
-      return { className: 'Chưa lấy được thông tin lớp', classCode: '—' };
-    }
-  };
-
-  // Lấy thông tin học kỳ theo ID
-  const fetchSemesterInfo = async (semesterId: string) => {
-    if (semesterCache.has(semesterId)) return semesterCache.get(semesterId);
-    try {
-      const response = await request.get(`/api/v1/semesters/admin/${semesterId}`);
-      const data = unwrapApiResponse<any>(response);
-      const info = { semesterName: data.name, academicYear: data.schoolYearName || data.schoolYearCode || '—' };
-      semesterCache.set(semesterId, info);
-      return info;
-    } catch {
-      return { semesterName: 'Chưa lấy được thông tin học kỳ', academicYear: '—' };
-    }
-  };
-
-  const fetchAssignments = async () => {
-    setLoading(true);
-    try {
-      const response = await request.get('/api/v1/student-classes/admin', {
-        params: { keyword: searchTerm || undefined }
-      });
-      const data = unwrapApiResponse<any>(response);
-      let rows = [];
-      if (Array.isArray(data)) rows = data;
-      else if (Array.isArray(data?.content)) rows = data.content;
-      else if (Array.isArray(data?.data)) rows = data.data;
-      else rows = [];
-
-      // Enrich dữ liệu: thêm tên từ các API khác
-      const enrichedRows = await Promise.all(
-        rows.map(async (item: any) => {
-          const [studentInfo, classInfo, semesterInfo] = await Promise.all([
-            fetchStudentInfo(item.studentId),
-            fetchClassInfo(item.classId),
-            fetchSemesterInfo(item.semesterId)
-          ]);
-          return {
-            ...item,
-            studentName: studentInfo.studentName,
-            studentCode: studentInfo.studentCode,
-            className: classInfo.className,
-            classCode: classInfo.classCode,
-            semesterName: semesterInfo.semesterName,
-            academicYear: semesterInfo.academicYear,
-          };
-        })
-      );
-
-      setAssignments(enrichedRows);
-    } catch (error: any) {
-      console.error('Fetch error:', error);
-      toast.error(error.response?.data?.message || 'Không thể tải danh sách');
-      setAssignments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    if (selectedSemesterId) fetchAssignments();
+  }, [selectedSemesterId]);
 
   useEffect(() => {
-    fetchAssignments();
-  }, [searchTerm]);
+    fetchCourseClassStudents();
+  }, [courseClasses, selectedSemesterId]);
 
-  const filteredItems = assignments.filter(item =>
-    item.studentCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.classCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.className?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    if (!selectedClassId && classSummaries.length > 0) {
+      setSelectedClassId(classSummaries[0].classId);
+    }
+  }, [classSummaries, selectedClassId]);
 
-  const totalPages = Math.ceil(filteredItems.length / rowsPerPage);
-  const paginatedItems = filteredItems.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  const openCreateDialog = () => {
-    setEditingItem(null);
-    setFormData({ studentId: '', classId: '', semesterId: '', note: '', isActive: true });
-    setModalOpen(true);
+  const openStudentModal = () => {
+    if (!selectedSemesterId || !selectedClassId) {
+      toast.error("Vui lòng chọn học kỳ và lớp hành chính");
+      return;
+    }
+    setStudentForm({ studentId: "", note: "" });
+    setStudentModalOpen(true);
   };
 
-  const openEditDialog = (item: StudentClassAssignment) => {
-    setEditingItem(item);
-    setFormData({
-      studentId: item.studentId || '',
-      classId: item.classId || '',
-      semesterId: item.semesterId || '',
-      note: item.note || '',
-      isActive: item.isActive ?? true,
-    });
-    setModalOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!formData.studentId || !formData.classId || !formData.semesterId) {
-      toast.error('Vui lòng điền đầy đủ ID sinh viên, ID lớp và ID học kỳ');
+  const handleAssignStudent = async () => {
+    if (!studentForm.studentId || !selectedClassId || !selectedSemesterId) {
+      toast.error("Vui lòng chọn sinh viên, lớp và học kỳ");
       return;
     }
 
+    setSaving(true);
     try {
-      if (editingItem) {
-        await request.put(`/api/v1/student-classes/admin/${editingItem.studentClassId}`, formData);
-        toast.success('Cập nhật thành công');
-      } else {
-        await request.post('/api/v1/student-classes/admin', formData);
-        toast.success('Thêm phân công thành công');
-      }
-      setModalOpen(false);
-      // Clear cache để refresh dữ liệu mới
-      studentCache.clear();
-      classCache.clear();
-      semesterCache.clear();
+      await request.post("/api/v1/student-classes/admin", {
+        studentId: studentForm.studentId,
+        classId: selectedClassId,
+        semesterId: selectedSemesterId,
+        status: "ACTIVE",
+        isActive: true,
+        note: studentForm.note,
+      });
+      toast.success("Đã gán sinh viên vào lớp hành chính");
+      setStudentModalOpen(false);
       fetchAssignments();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Thao tác thất bại');
+      toast.error(error?.response?.data?.message || "Gán sinh viên thất bại");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Bạn có chắc muốn xóa phân công này?')) {
-      try {
-        await request.delete(`/api/v1/student-classes/admin/${id}`);
-        toast.success('Xóa thành công');
-        fetchAssignments();
-      } catch (error) {
-        toast.error('Xóa thất bại');
-      }
+  const handleRemoveStudent = async (assignmentId?: string) => {
+    if (!assignmentId) return;
+    if (!confirm("Xóa sinh viên khỏi lớp hành chính trong học kỳ này?")) return;
+
+    try {
+      await request.delete(`/api/v1/student-classes/admin/${assignmentId}`);
+      toast.success("Đã xóa sinh viên khỏi lớp");
+      fetchAssignments();
+    } catch {
+      toast.error("Xóa sinh viên khỏi lớp thất bại");
     }
   };
 
-  const copyToClipboard = (text: string, type: string) => {
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    toast.success(`Đã copy ${type} ID: ${text.substring(0, 8)}...`);
+  const openCourseModal = () => {
+    if (!selectedSemesterId || !selectedClassId) {
+      toast.error("Vui lòng chọn học kỳ và lớp hành chính");
+      return;
+    }
+    setCourseForm({ courseClassId: "", instructorId: "", note: "" });
+    setCourseModalOpen(true);
+  };
+
+  const handleAssignCourseClass = async () => {
+    if (!courseForm.courseClassId || !courseForm.instructorId || !selectedClassId || !selectedSemesterId) {
+      toast.error("Vui lòng chọn lớp học phần và giảng viên");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await request.post("/api/v1/teaching-assignments/admin", {
+        instructorId: courseForm.instructorId,
+        courseClassId: courseForm.courseClassId,
+        classId: selectedClassId,
+        semesterId: selectedSemesterId,
+        isActive: true,
+        note: courseForm.note,
+      });
+      toast.success("Đã gán lớp học phần và giảng viên");
+      setCourseModalOpen(false);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Gán lớp học phần thất bại");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex min-h-[420px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Phân công sinh viên theo lớp và học kỳ</h1>
-          <p className="text-muted-foreground">Quản lý việc gán sinh viên vào lớp hành chính theo từng học kỳ</p>
+          <h1 className="text-3xl font-bold tracking-tight">Phân lớp theo học kỳ</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sinh viên ban đầu nằm trong lớp học phần theo môn và học kỳ. Sau khi chọn hướng học, dùng màn này để chuyển/gán sang lớp hành chính.
+          </p>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4 mr-2" />
-          Thêm phân công
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="min-w-[240px]">
+            <Label>Học kỳ</Label>
+            <Select
+              value={selectedSemesterId}
+              onValueChange={(value) => {
+                setSelectedSemesterId(value);
+                setSelectedClassId("");
+              }}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Chọn học kỳ" />
+              </SelectTrigger>
+              <SelectContent>
+                {semestersList.filter((semester) => semester.semesterId).map((semester) => (
+                  <SelectItem key={semester.semesterId} value={semester.semesterId || ""}>
+                    {semester.name || semester.code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={openStudentModal} className="mt-auto">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Gán sinh viên
+          </Button>
+          <Button onClick={openCourseModal} variant="outline" className="mt-auto">
+            <BookOpen className="mr-2 h-4 w-4" />
+            Gán lớp học phần
+          </Button>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Tìm kiếm theo MSSV, tên sinh viên, tên lớp..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-lg border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Học kỳ đang xem</p>
+            <GraduationCap className="h-5 w-5 text-primary" />
           </div>
-        </CardHeader>
-        <CardContent>
+          <p className="mt-3 text-2xl font-bold">{selectedSemester?.name || "Chưa chọn"}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Lớp có sinh viên</p>
+            <Layers className="h-5 w-5 text-primary" />
+          </div>
+          <p className="mt-3 text-2xl font-bold">
+            {filledClasses}/{classesList.length}
+          </p>
+        </div>
+        <div className="rounded-lg border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Sinh viên từ lớp học phần</p>
+            <Users className="h-5 w-5 text-primary" />
+          </div>
+          <p className="mt-3 text-2xl font-bold">{courseClassStudentIds.size}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{totalAssigned} đã gán lớp hành chính</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <section className="rounded-lg border bg-card">
+          <div className="border-b p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Tìm lớp hành chính, khoa, ngành..."
+                className="pl-10"
+              />
+            </div>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b">
-                  <th className="px-4 py-3 text-left text-sm font-semibold">ID</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">MSSV</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Họ tên</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Mã lớp</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Tên lớp</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Học kỳ</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Trạng thái</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Thao tác</th>
+                <tr className="border-b bg-muted/40">
+                  <th className="px-4 py-3 text-left font-semibold">Lớp hành chính</th>
+                  <th className="px-4 py-3 text-left font-semibold">Khoa / đơn vị</th>
+                  <th className="px-4 py-3 text-left font-semibold">Ngành</th>
+                  <th className="px-4 py-3 text-center font-semibold">Sĩ số</th>
+                  <th className="px-4 py-3 text-left font-semibold">Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                      Chưa có dữ liệu phân công. Hãy thêm mới.
+                {classSummaries.map((item) => (
+                  <tr
+                    key={item.classId}
+                    onClick={() => setSelectedClassId(item.classId)}
+                    className={`cursor-pointer border-b transition hover:bg-muted/50 ${
+                      selectedClassId === item.classId ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <p className="font-semibold">{item.classCode || "—"}</p>
+                      <p className="text-xs text-muted-foreground">{item.className || "Chưa có tên lớp"}</p>
+                    </td>
+                    <td className="px-4 py-3">{item.departmentName || "—"}</td>
+                    <td className="px-4 py-3">{item.majorName || "—"}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        {item.studentCount}/{item.maxSize || "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.isActive === false ? (
+                        <span className="text-xs text-muted-foreground">Ngừng hoạt động</span>
+                      ) : (
+                        <span className="text-xs font-medium text-emerald-700">Đang mở</span>
+                      )}
                     </td>
                   </tr>
-                ) : (
-                  paginatedItems.map((item) => (
-                    <tr key={item.studentClassId} className="border-b hover:bg-muted/50">
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs">{item.studentClassId?.substring(0, 8)}...</span>
-                          <button
-                            onClick={() => copyToClipboard(item.studentClassId!, 'Phân công')}
-                            className="text-blue-500 hover:text-blue-700"
-                            title="Copy ID"
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                       </td>
-                      <td className="px-4 py-3 text-sm font-mono text-xs">{item.studentCode || '—'}</td>
-                      <td className="px-4 py-3 text-sm">{item.studentName || '—'}</td>
-                      <td className="px-4 py-3 text-sm font-medium">{item.classCode || '—'}</td>
-                      <td className="px-4 py-3 text-sm">{item.className || '—'}</td>
-                      <td className="px-4 py-3 text-sm">{item.semesterName || '—'}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          item.isActive 
-                            ? "bg-green-100 text-green-800" 
-                            : "bg-gray-100 text-gray-800"
-                        }`}>
-                          {item.isActive ? "Đang theo học" : "Đã kết thúc"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(item)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(item.studentClassId!)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                ))}
+                {classSummaries.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                      Không tìm thấy lớp hành chính phù hợp.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
+        </section>
 
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Hiển thị</span>
-              <select
-                value={rowsPerPage}
-                onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-              <span className="text-sm text-muted-foreground">trên tổng {filteredItems.length} bản ghi</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm">Trang {currentPage} / {totalPages || 1}</span>
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+        <aside className="rounded-lg border bg-card">
+          <div className="border-b p-4">
+            <p className="text-sm text-muted-foreground">Danh sách sinh viên trong lớp</p>
+            <h2 className="mt-1 text-xl font-bold">{selectedClass?.classCode || "Chọn lớp"}</h2>
+            <p className="text-sm text-muted-foreground">
+              {selectedClass?.className || "Chọn một lớp ở bảng bên trái để quản lý."}
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Dialog Thêm/Sửa */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingItem ? 'Chỉnh sửa phân công' : 'Thêm phân công mới'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {editingItem && (
-              <div>
-                <Label>ID phân công</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Input value={editingItem.studentClassId || ''} disabled className="bg-gray-100 font-mono text-sm flex-1" />
-                  <Button type="button" size="sm" variant="outline" onClick={() => copyToClipboard(editingItem.studentClassId!, 'Phân công')}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
+          <div className="max-h-[620px] overflow-y-auto p-4">
+            {selectedMembers.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                Lớp này chưa có sinh viên trong học kỳ đã chọn.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {selectedMembers.map((item) => (
+                  <div key={item.studentClassId} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{item.student?.fullName || "Chưa lấy được tên"}</p>
+                      <p className="text-xs text-muted-foreground">{item.student?.studentCode || item.studentId}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => handleRemoveStudent(item.studentClassId)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
+          </div>
+        </aside>
+      </div>
+
+      <Dialog open={studentModalOpen} onOpenChange={setStudentModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gán sinh viên vào lớp hành chính</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg bg-muted/50 p-3">
+                <p className="text-muted-foreground">Học kỳ</p>
+                <p className="font-semibold">{selectedSemester?.name || "—"}</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3">
+                <p className="text-muted-foreground">Lớp</p>
+                <p className="font-semibold">{selectedClass?.classCode || "—"}</p>
+              </div>
+            </div>
             <div>
-              <Label>Sinh viên *</Label>
-              <Select 
-                value={formData.studentId} 
-                onValueChange={(val) => setFormData({ ...formData, studentId: val })}
-              >
+              <Label>Sinh viên từ lớp học phần chưa gán lớp hành chính</Label>
+              <Select value={studentForm.studentId} onValueChange={(value) => setStudentForm({ ...studentForm, studentId: value })}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Chọn sinh viên" />
                 </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {students.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.studentCode} - {s.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Lớp hành chính *</Label>
-              <Select 
-                value={formData.classId} 
-                onValueChange={(val) => setFormData({ ...formData, classId: val })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Chọn lớp" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classesList.map((c) => (
-                    <SelectItem key={c.classId || (c as any).id} value={c.classId || (c as any).id}>
-                      {c.classCode} - {c.className}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Học kỳ *</Label>
-              <Select 
-                value={formData.semesterId} 
-                onValueChange={(val) => setFormData({ ...formData, semesterId: val })}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Chọn học kỳ" />
-                </SelectTrigger>
-                <SelectContent>
-                  {semestersList.map((s) => (
-                    <SelectItem key={s.semesterId} value={s.semesterId}>
-                      {s.name}
+                <SelectContent className="max-h-[320px]">
+                  {availableStudents.filter((student) => student.id || student.studentId).map((student) => (
+                    <SelectItem key={student.id || student.studentId} value={student.id || student.studentId || ""}>
+                      {student.studentCode} - {student.fullName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -456,26 +525,71 @@ export default function StudentClassAssignmentsPage() {
             </div>
             <div>
               <Label>Ghi chú</Label>
-              <Textarea 
-                value={formData.note} 
-                onChange={(e) => setFormData({ ...formData, note: e.target.value })} 
-                rows={3}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                id="isActive" 
-                checked={formData.isActive} 
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} 
-                className="w-4 h-4"
-              />
-              <Label htmlFor="isActive" className="cursor-pointer">Đang hoạt động</Label>
+              <Textarea value={studentForm.note} onChange={(event) => setStudentForm({ ...studentForm, note: event.target.value })} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Hủy</Button>
-            <Button onClick={handleSave}>Lưu</Button>
+            <Button variant="outline" onClick={() => setStudentModalOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleAssignStudent} disabled={saving}>
+              Lưu phân lớp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={courseModalOpen} onOpenChange={setCourseModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gán lớp học phần và giảng viên</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Lớp học phần sau khi chia</Label>
+              <Select value={courseForm.courseClassId} onValueChange={(value) => setCourseForm({ ...courseForm, courseClassId: value })}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Chọn lớp học phần" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[320px]">
+                  {courseClasses
+                    .filter((item) => !selectedSemesterId || !item.semesterId || item.semesterId === selectedSemesterId)
+                    .filter((item) => getCourseClassId(item))
+                    .map((item) => (
+                      <SelectItem key={getCourseClassId(item)} value={getCourseClassId(item)}>
+                        {item.classCode || item.code || "Lớp học phần"} - {item.courseCode || item.courseName || ""}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Giảng viên phụ trách</Label>
+              <Select value={courseForm.instructorId} onValueChange={(value) => setCourseForm({ ...courseForm, instructorId: value })}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Chọn giảng viên" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[320px]">
+                  {lecturers.filter((lecturer) => getLecturerId(lecturer)).map((lecturer) => (
+                    <SelectItem key={getLecturerId(lecturer)} value={getLecturerId(lecturer)}>
+                      {lecturer.instructorCode || "GV"} - {lecturer.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Ghi chú</Label>
+              <Textarea value={courseForm.note} onChange={(event) => setCourseForm({ ...courseForm, note: event.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCourseModalOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleAssignCourseClass} disabled={saving}>
+              Lưu phân công
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

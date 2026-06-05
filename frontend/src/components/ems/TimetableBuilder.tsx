@@ -21,6 +21,34 @@ import TimetableSidebar from "./timetable/TimetableSidebar";
 import TimetableCalendar from "./timetable/TimetableCalendar";
 import TimetableModal from "./timetable/TimetableModal";
 
+const toArray = (value: any) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  return [];
+};
+
+const courseClassIdOf = (courseClass: any) => String(courseClass?.courseClassId || courseClass?.id || "");
+const roomIdOf = (room: any) => String(room?.roomId || room?.id || "");
+const timeSlotIdOf = (timeSlot: any) => String(timeSlot?.timeSlotId || timeSlot?.id || "");
+const lecturerIdOf = (lecturer: any) => String(lecturer?.employeeId || lecturer?.id || "");
+
+const unwrapResponseData = (response: any) => response?.data?.data || response?.data || response || {};
+
+const timeToMinutes = (time?: string) => {
+  if (!time) return Number.MAX_SAFE_INTEGER;
+  const [hour = "0", minute = "0"] = time.split(":");
+  return Number(hour) * 60 + Number(minute);
+};
+
+const sortTimeSlots = (slots: any[]) => {
+  return [...slots].sort((a, b) => {
+    const byStartTime = timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+    if (byStartTime !== 0) return byStartTime;
+    return String(a.slotCode || "").localeCompare(String(b.slotCode || ""), "vi", { numeric: true });
+  });
+};
+
 export default function TimetableBuilder() {
   const [events, setEvents] = useState<any[]>([]);
   const [courseClasses, setCourseClasses] = useState<any[]>([]);
@@ -37,26 +65,97 @@ export default function TimetableBuilder() {
   
   const [isAutoScheduling, setIsAutoScheduling] = useState(false);
   const [autoScheduleStatus, setAutoScheduleStatus] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   
   const [isEditing, setIsEditing] = useState(false);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     courseClassId: "",
+    courseClassName: "",
     roomId: "",
+    roomCode: "",
     timeSlotId: "",
+    slotCode: "",
     instructorId: "",
+    instructorName: "",
     date: "",
     numberOfPeriods: 2,
     semesterId: "",
     note: "",
     mode: "LT",
-    scheduleStatus: "CONFIRMED"
+    scheduleStatus: "PLANNED"
   });
 
   const calendarRef = useRef<FullCalendar>(null);
   const externalEventsRef = useRef<HTMLDivElement>(null);
   const { isOpen, openModal, closeModal } = useModal();
+
+  const buildCalendarEvent = (schedule: any, slots: any[] = timeSlots) => {
+    const slot = slots.find((ts: any) => timeSlotIdOf(ts) === String(schedule.timeSlotId));
+
+    let eventDate = schedule.date;
+    if (!eventDate) {
+      const today = new Date();
+      const currentDay = today.getDay() === 0 ? 7 : today.getDay();
+      const targetDay = schedule.dayOfWeek || 1;
+      const diff = targetDay - currentDay;
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() + diff);
+      eventDate = targetDate.toISOString().split('T')[0];
+    }
+
+    let start = eventDate;
+    let end = eventDate;
+    let allDay = true;
+
+    if (slot) {
+      start = `${eventDate}T${slot.startTime}`;
+      end = `${eventDate}T${slot.endTime}`;
+      allDay = false;
+    }
+
+    return {
+      id: schedule.scheduleId,
+      title: `${schedule.courseClassName || schedule.classCode || 'Lớp học'} - ${schedule.roomCode || 'Chưa xếp phòng'}`,
+      start,
+      end,
+      allDay,
+      extendedProps: {
+        calendar: schedule.mode === 'TH' ? 'Warning' : 'Primary',
+        instructorName: schedule.instructorName,
+        instructorId: schedule.instructorId,
+        roomCode: schedule.roomCode,
+        roomId: schedule.roomId,
+        courseClassName: schedule.courseClassName,
+        courseClassId: schedule.courseClassId,
+        timeSlotId: schedule.timeSlotId,
+        slotCode: schedule.slotCode,
+        numberOfPeriods: schedule.numberOfPeriods,
+        semesterId: schedule.semesterId,
+        mode: schedule.mode,
+        scheduleStatus: schedule.scheduleStatus,
+        note: schedule.note
+      }
+    };
+  };
+
+  const buildCalendarEventFromPayload = (scheduleId: string, payload: any) => {
+    const selectedClass = courseClasses.find((c: any) => courseClassIdOf(c) === String(payload.courseClassId));
+    const selectedRoom = rooms.find((r: any) => roomIdOf(r) === String(payload.roomId));
+    const selectedSlot = timeSlots.find((ts: any) => timeSlotIdOf(ts) === String(payload.timeSlotId));
+    const selectedLecturer = lecturers.find((l: any) => lecturerIdOf(l) === String(payload.instructorId));
+
+    return buildCalendarEvent({
+      ...payload,
+      scheduleId,
+      courseClassName: selectedClass?.classCode || selectedClass?.courseClassName || payload.courseClassName,
+      classCode: selectedClass?.classCode,
+      roomCode: selectedRoom?.code || selectedRoom?.roomCode || payload.roomCode,
+      slotCode: selectedSlot?.slotCode || payload.slotCode,
+      instructorName: selectedLecturer?.fullName || selectedLecturer?.name || payload.instructorName
+    });
+  };
 
   // Tải danh sách học kỳ khi component mount
   useEffect(() => {
@@ -65,7 +164,7 @@ export default function TimetableBuilder() {
         const semestersList = await semesterApi.getAll();
         setSemesters(semestersList || []);
         if (semestersList && semestersList.length > 0) {
-          const activeSem = semestersList.find((s: any) => s.isActive);
+          const activeSem = semestersList.find((s: any) => s.status || s.isActive);
           const defaultSemId = (activeSem ? activeSem.semesterId : semestersList[0].semesterId) || "";
           setSelectedSemesterId(defaultSemId);
           setFormData(prev => ({ ...prev, semesterId: defaultSemId }));
@@ -89,66 +188,24 @@ export default function TimetableBuilder() {
         lecturerApi.getAll()
       ]);
 
-      const listSlots = slotsRes.data || slotsRes || [];
-      const schedulesList = schedulesRes.data?.data || schedulesRes.data || [];
+      const listSlots = sortTimeSlots(toArray(slotsRes));
+      const schedulesList = toArray(schedulesRes);
+      let classesList = toArray(classesRes);
+
+      if (classesList.length === 0) {
+        classesList = toArray(await courseClassApi.getAll());
+      }
       
       // Lọc các lịch thuộc học kỳ hiện tại
       const semesterSchedules = schedulesList.filter((s: any) => s.semesterId === selectedSemesterId);
 
-      const scheduleEvents = semesterSchedules.map((s: any) => {
-        const slot = listSlots.find((ts: any) => ts.timeSlotId === s.timeSlotId);
-        
-        let eventDate = s.date;
-        if (!eventDate) {
-          const today = new Date();
-          const currentDay = today.getDay() === 0 ? 7 : today.getDay();
-          const targetDay = s.dayOfWeek || 1;
-          const diff = targetDay - currentDay;
-          const targetDate = new Date(today);
-          targetDate.setDate(today.getDate() + diff);
-          eventDate = targetDate.toISOString().split('T')[0];
-        }
-
-        let start = eventDate;
-        let end = eventDate;
-        let allDay = true;
-        
-        if (slot) {
-          start = `${eventDate}T${slot.startTime}`;
-          end = `${eventDate}T${slot.endTime}`;
-          allDay = false;
-        }
-
-        return {
-          id: s.scheduleId,
-          title: `${s.courseClassName || s.classCode || 'Lớp học'} - ${s.roomCode || 'Chưa xếp phòng'}`,
-          start,
-          end,
-          allDay, 
-          extendedProps: {
-            calendar: s.mode === 'TH' ? 'Warning' : 'Primary',
-            instructorName: s.instructorName,
-            instructorId: s.instructorId,
-            roomCode: s.roomCode,
-            roomId: s.roomId,
-            courseClassName: s.courseClassName,
-            courseClassId: s.courseClassId, 
-            timeSlotId: s.timeSlotId,
-            slotCode: s.slotCode,
-            numberOfPeriods: s.numberOfPeriods,
-            semesterId: s.semesterId,
-            mode: s.mode,
-            scheduleStatus: s.scheduleStatus,
-            note: s.note
-          }
-        };
-      });
+      const scheduleEvents = semesterSchedules.map((s: any) => buildCalendarEvent(s, listSlots));
 
       setEvents(scheduleEvents);
-      setCourseClasses(classesRes || []);
-      setRooms(roomsRes.data || roomsRes || []);
+      setCourseClasses(classesList);
+      setRooms(toArray(roomsRes));
       setTimeSlots(listSlots);
-      setLecturers(Array.isArray(lecturersRes) ? lecturersRes : []);
+      setLecturers(toArray(lecturersRes));
     } catch (error) {
       console.error("Failed to fetch calendar data", error);
       toast.error("Không thể tải dữ liệu thời khóa biểu");
@@ -172,7 +229,10 @@ export default function TimetableBuilder() {
           return {
             title: title,
             id: id,
-            create: false
+            duration: "01:00",
+            extendedProps: {
+              courseClassId: id
+            }
           };
         }
       });
@@ -204,15 +264,19 @@ export default function TimetableBuilder() {
   const resetModalFields = () => {
     setFormData({
       courseClassId: "",
+      courseClassName: "",
       roomId: "",
+      roomCode: "",
       timeSlotId: "",
+      slotCode: "",
       instructorId: "",
+      instructorName: "",
       date: "",
       numberOfPeriods: 2,
       semesterId: selectedSemesterId,
       note: "",
       mode: "LT",
-      scheduleStatus: "CONFIRMED"
+      scheduleStatus: "PLANNED"
     });
     setIsEditing(false);
     setEditingScheduleId(null);
@@ -225,13 +289,21 @@ export default function TimetableBuilder() {
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     resetModalFields();
-    setFormData(prev => ({ ...prev, date: selectInfo.startStr.split('T')[0] }));
+    const timePart = selectInfo.startStr.includes('T') ? selectInfo.startStr.split('T')[1].substring(0, 5) : "";
+    const matchedSlot = findMatchingTimeSlot(timePart, timeSlots);
+    setFormData(prev => ({
+      ...prev,
+      date: selectInfo.startStr.split('T')[0],
+      timeSlotId: matchedSlot?.timeSlotId || ""
+    }));
     openModal();
   };
 
   const handleEventReceive = (info: EventReceiveArg) => {
     const dateStr = info.event.startStr.split('T')[0];
-    const courseClassId = info.event.id;
+    const courseClassId = info.event.extendedProps.courseClassId || info.event.id;
+    const timePart = info.event.startStr.includes('T') ? info.event.startStr.split('T')[1].substring(0, 5) : "";
+    const matchedSlot = findMatchingTimeSlot(timePart, timeSlots);
     
     info.revert();
     
@@ -239,7 +311,8 @@ export default function TimetableBuilder() {
     setFormData(prev => ({ 
       ...prev, 
       date: dateStr,
-      courseClassId: courseClassId 
+      courseClassId: courseClassId,
+      timeSlotId: matchedSlot?.timeSlotId || ""
     }));
     openModal();
   };
@@ -249,15 +322,19 @@ export default function TimetableBuilder() {
     const props = event.extendedProps;
     setFormData({
       courseClassId: props.courseClassId || "",
+      courseClassName: props.courseClassName || "",
       roomId: props.roomId || "",
+      roomCode: props.roomCode || "",
       timeSlotId: props.timeSlotId || "",
+      slotCode: props.slotCode || "",
       instructorId: props.instructorId || "",
+      instructorName: props.instructorName || "",
       date: event.startStr.split('T')[0],
       numberOfPeriods: props.numberOfPeriods || 2,
       semesterId: props.semesterId || selectedSemesterId,
       note: props.note || "",
       mode: props.mode || "LT",
-      scheduleStatus: props.scheduleStatus || "CONFIRMED"
+      scheduleStatus: props.scheduleStatus || "PLANNED"
     });
     setEditingScheduleId(event.id);
     setIsEditing(true);
@@ -265,13 +342,15 @@ export default function TimetableBuilder() {
   };
 
   const handleAddSchedule = async () => {
-    if (!formData.courseClassId || !formData.roomId || !formData.timeSlotId || !formData.date) {
+    if (!formData.courseClassId || !formData.instructorId || !formData.roomId || !formData.timeSlotId || !formData.date) {
       toast.error("Vui lòng điền đầy đủ các trường bắt buộc");
       return;
     }
+    if (isSaving) return;
 
     try {
-      const selectedClass = courseClasses.find(c => (c.id || c.courseClassId) === formData.courseClassId);
+      setIsSaving(true);
+      const selectedClass = courseClasses.find(c => courseClassIdOf(c) === String(formData.courseClassId));
       const dateObj = new Date(formData.date);
       const jsDay = dateObj.getDay();
       const dayOfWeek = jsDay === 0 ? 7 : jsDay;
@@ -282,17 +361,36 @@ export default function TimetableBuilder() {
         semesterId: selectedClass?.semesterId || formData.semesterId
       };
 
+      let savedScheduleId = editingScheduleId || "";
+
       if (isEditing && editingScheduleId) {
-        await scheduleApi.update(editingScheduleId, payload);
+        const response = await scheduleApi.update(editingScheduleId, payload);
+        const saved = unwrapResponseData(response);
+        savedScheduleId = saved.scheduleId || editingScheduleId;
         toast.success("Cập nhật lịch học thành công!");
       } else {
-        await scheduleApi.create(payload);
+        const response = await scheduleApi.create(payload);
+        const saved = unwrapResponseData(response);
+        savedScheduleId = saved.scheduleId || "";
         toast.success("Sắp lịch học thành công!");
       }
+
+      if (savedScheduleId) {
+        const nextEvent = buildCalendarEventFromPayload(savedScheduleId, payload);
+        setEvents(prev => {
+          if (isEditing) {
+            return prev.map(event => event.id === savedScheduleId ? nextEvent : event);
+          }
+          return [...prev.filter(event => event.id !== savedScheduleId), nextEvent];
+        });
+      }
+
       handleCloseModal();
-      fetchInitialData();
+      void fetchInitialData();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Lỗi khi lưu lịch học. Có thể bị trùng lịch!");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -301,9 +399,10 @@ export default function TimetableBuilder() {
     if (!confirm("Bạn có chắc chắn muốn xóa lịch học này?")) return;
     try {
       await scheduleApi.delete(editingScheduleId);
+      setEvents(prev => prev.filter(event => event.id !== editingScheduleId));
       toast.success("Xóa lịch học thành công!");
       handleCloseModal();
-      fetchInitialData();
+      void fetchInitialData();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Lỗi khi xóa lịch học.");
     }
@@ -379,7 +478,7 @@ export default function TimetableBuilder() {
       numberOfPeriods: newPeriods,
       semesterId: originalEvent.extendedProps.semesterId || selectedSemesterId,
       mode: originalEvent.extendedProps.mode || "LT",
-      scheduleStatus: originalEvent.extendedProps.scheduleStatus || "CONFIRMED",
+      scheduleStatus: originalEvent.extendedProps.scheduleStatus || "PLANNED",
       note: originalEvent.extendedProps.note || ""
     };
     
@@ -479,7 +578,7 @@ export default function TimetableBuilder() {
             <SelectContent className="rounded-xl">
               <SelectItem value="ALL">Tất cả giảng viên</SelectItem>
               {lecturers.map(l => (
-                <SelectItem key={l.id || l.employeeId} value={l.id || l.employeeId}>
+                <SelectItem key={lecturerIdOf(l)} value={lecturerIdOf(l)}>
                   {l.fullName} ({l.instructorCode || l.employeeCode})
                 </SelectItem>
               ))}
@@ -495,7 +594,7 @@ export default function TimetableBuilder() {
             <SelectContent className="rounded-xl">
               <SelectItem value="ALL">Tất cả lớp học phần</SelectItem>
               {courseClasses.map(c => (
-                <SelectItem key={c.id || c.courseClassId} value={c.id || c.courseClassId}>
+                <SelectItem key={courseClassIdOf(c)} value={courseClassIdOf(c)}>
                   {c.classCode} - {c.courseName || 'Lớp học phần'}
                 </SelectItem>
               ))}
@@ -511,7 +610,7 @@ export default function TimetableBuilder() {
             <SelectContent className="rounded-xl">
               <SelectItem value="ALL">Tất cả phòng học</SelectItem>
               {rooms.map(r => (
-                <SelectItem key={r.id || r.roomId} value={r.id || r.roomId}>
+                <SelectItem key={roomIdOf(r)} value={roomIdOf(r)}>
                   {r.code || r.roomCode} ({r.type || r.roomType || 'Phòng'})
                 </SelectItem>
               ))}
@@ -568,6 +667,7 @@ export default function TimetableBuilder() {
           lecturers={lecturers}
           onSubmit={handleAddSchedule}
           isEditing={isEditing}
+          isSubmitting={isSaving}
           onDelete={handleDeleteSchedule}
         />
       </div>

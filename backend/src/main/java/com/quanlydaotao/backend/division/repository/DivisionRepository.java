@@ -16,7 +16,8 @@ public interface DivisionRepository extends JpaRepository<Division, UUID> {
     @Query("""
             SELECT d
             FROM Division d
-            WHERE (:keyword IS NULL OR LOWER(d.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+            WHERE d.deletedAt IS NULL
+              AND (:keyword IS NULL OR LOWER(d.code) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
                    OR LOWER(d.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
               AND (:isActive IS NULL OR d.isActive = :isActive)
             ORDER BY d.code ASC

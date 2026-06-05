@@ -1,7 +1,9 @@
 package com.quanlydaotao.backend.course.controller;
 
 import com.quanlydaotao.backend.course.dto.CourseClassDto;
+import com.quanlydaotao.backend.course.dto.CourseClassStudentResponse;
 import com.quanlydaotao.backend.course.dto.CourseDto;
+import com.quanlydaotao.backend.course.dto.CourseRegistrationTransferRequest;
 import com.quanlydaotao.backend.course.service.CourseClassService;
 import com.quanlydaotao.backend.course.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -98,6 +100,20 @@ public class CourseController {
     @Operation(summary = "Lớp học phần theo học kỳ", description = "Lấy danh sách các lớp học phần mở trong một học kỳ")
     public ResponseEntity<List<CourseClassDto>> getCourseClassesBySemester(@PathVariable UUID semesterId) {
         return ResponseEntity.ok(courseClassService.getCourseClassesBySemester(semesterId));
+    }
+
+    @GetMapping("/classes/{id}/students")
+    @Operation(summary = "Danh sách sinh viên của lớp học phần", description = "Lấy sinh viên đăng ký thật trong một lớp học phần")
+    public ResponseEntity<List<CourseClassStudentResponse>> getStudentsByCourseClass(@PathVariable UUID id) {
+        return ResponseEntity.ok(courseClassService.getStudentsByCourseClass(id));
+    }
+
+    @PutMapping("/classes/registrations/{registrationId}/transfer")
+    @Operation(summary = "Chuyển sinh viên sang lớp học phần khác", description = "Chuyển đăng ký học phần của sinh viên sang lớp cùng môn và cùng học kỳ")
+    public ResponseEntity<CourseClassStudentResponse> transferStudentCourseClass(
+            @PathVariable UUID registrationId,
+            @RequestBody CourseRegistrationTransferRequest request) {
+        return ResponseEntity.ok(courseClassService.transferStudentCourseClass(registrationId, request.getTargetCourseClassId()));
     }
 
     @PutMapping("/classes/{id}")

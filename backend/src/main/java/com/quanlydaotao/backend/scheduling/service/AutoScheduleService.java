@@ -204,8 +204,7 @@ public class AutoScheduleService {
     }
 
     private int toSystemDayOfWeek(LocalDate date) {
-        DayOfWeek day = date.getDayOfWeek();
-        return day == DayOfWeek.SUNDAY ? 1 : day.getValue() + 1;
+        return date.getDayOfWeek().getValue();
     }
 
     public SolverStatus getSolverStatus(UUID semesterId) {

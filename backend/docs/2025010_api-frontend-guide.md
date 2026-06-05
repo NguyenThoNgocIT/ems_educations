@@ -145,7 +145,7 @@ Với một số trường hợp sẽ nhận HTTP `401` và message ngắn dạn
 - `degreeId: uuid`
 - `isActive: boolean`
 
-### LecturerProfileDto
+### LecturerProfileDto  
 - `id: uuid`
 - `employeeId: uuid`
 - `instructorCode: string`

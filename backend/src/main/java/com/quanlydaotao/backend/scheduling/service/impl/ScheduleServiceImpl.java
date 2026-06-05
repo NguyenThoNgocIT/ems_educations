@@ -121,24 +121,46 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     private void validateSchedule(ScheduleDto dto, UUID currentScheduleId) {
-        // 1. Kiểm tra trùng phòng
+        if (dto.getDate() != null) {
+            validateScheduleByDate(dto, currentScheduleId);
+        } else {
+            validateScheduleByDayOfWeek(dto, currentScheduleId);
+        }
+        validateInstructorAssignmentAndLeave(dto);
+    }
+
+    private void validateScheduleByDate(ScheduleDto dto, UUID currentScheduleId) {
+        if (scheduleRepository.hasRoomConflictIgnoringSchedule(
+                dto.getRoomId(), dto.getDate(), dto.getTimeSlotId(), currentScheduleId)) {
+            throw new BusinessException("Phòng học này đã có lịch vào ngày " + dto.getDate() + " tại ca học này.");
+        }
+
+        if (scheduleRepository.hasCourseClassConflictIgnoringSchedule(
+                dto.getCourseClassId(), dto.getDate(), dto.getTimeSlotId(), currentScheduleId)) {
+            throw new BusinessException("Lớp học phần này đã có lịch vào ngày " + dto.getDate() + " tại ca học này.");
+        }
+
+        if (dto.getInstructorId() != null && scheduleRepository.hasInstructorConflictIgnoringSchedule(
+                dto.getInstructorId(), dto.getDate(), dto.getTimeSlotId(), currentScheduleId)) {
+            throw new BusinessException("Giảng viên này đã có lịch dạy vào ngày " + dto.getDate() + " tại ca học này.");
+        }
+    }
+
+    private void validateScheduleByDayOfWeek(ScheduleDto dto, UUID currentScheduleId) {
         if (scheduleRepository.existsByRoomRoomIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
                 dto.getRoomId(), dto.getSemesterId(), dto.getDayOfWeek(), dto.getTimeSlotId(), currentScheduleId)) {
             throw new BusinessException("Phòng học này đã có lịch vào Thứ " + dto.getDayOfWeek() + " tại ca học này.");
         }
 
-        // 2. Kiểm tra trùng lớp học phần
         if (scheduleRepository.existsByCourseClassCourseClassIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
                 dto.getCourseClassId(), dto.getSemesterId(), dto.getDayOfWeek(), dto.getTimeSlotId(), currentScheduleId)) {
             throw new BusinessException("Lớp học phần này đã có lịch vào Thứ " + dto.getDayOfWeek() + " tại ca học này.");
         }
 
-        // 3. Kiểm tra trùng giảng viên (nếu có gán giảng viên)
         if (dto.getInstructorId() != null && scheduleRepository.existsByInstructorEmployeeIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
                 dto.getInstructorId(), dto.getSemesterId(), dto.getDayOfWeek(), dto.getTimeSlotId(), currentScheduleId)) {
             throw new BusinessException("Giảng viên này đã có lịch dạy vào Thứ " + dto.getDayOfWeek() + " tại ca học này.");
         }
-        validateInstructorAssignmentAndLeave(dto);
     }
 
     private void validateInstructorAssignmentAndLeave(ScheduleDto dto) {

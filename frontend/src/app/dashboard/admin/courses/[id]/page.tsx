@@ -244,7 +244,7 @@ export default function CourseDetailPage() {
   const handleRemovePrerequisite = async (identifier: string | { courseId: string; prereqId: string }) => {
     try {
       const prereqId = typeof identifier === 'string' ? identifier : identifier.prereqId;
-      await coursePrerequisiteApi.delete(prereqId);
+      await coursePrerequisiteApi.delete(id, prereqId);
       toast.success('Đã gỡ bỏ môn liên kết thành công!');
       // Refresh list
       loadPrerequisites();

@@ -128,7 +128,6 @@ export const adminNavGroups: NavGroup[] = [
         path: "/dashboard/admin/password-reset-requests",
         badge: "BE",
       },
-      { name: "Danh mục trạng thái SV", icon: <CheckSquare className={iconClassName} />, path: "/dashboard/admin/student-status-catalog", badge: "NEW" },
     ],
   },
 ];

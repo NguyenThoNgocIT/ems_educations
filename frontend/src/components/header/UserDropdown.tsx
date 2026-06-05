@@ -4,12 +4,26 @@ import { useAuth } from "@/context/AuthContext";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { LogOut, UserRound } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
 interface UserDropdownProps {
   role?: string;
+}
+
+function getRoleAvatar(role: string) {
+  const avatars: Record<string, string> = {
+    admin: "/images/user/user-01.jpg",
+    super_admin: "/images/user/user-01.jpg",
+    lecturer: "/images/user/user-04.jpg",
+    teacher: "/images/user/user-04.jpg",
+    student: "/images/user/user-02.jpg",
+    consultant: "/images/user/user-06.jpg",
+    parents: "/images/user/user-08.jpg",
+    "branch-management": "/images/user/user-10.jpg",
+  };
+
+  return avatars[role] || "/images/user/user-03.jpg";
 }
 
 export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
@@ -19,17 +33,22 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
 
   const roleLabels: Record<string, string> = {
     admin: "Quản trị viên",
+    super_admin: "Quản trị viên cấp cao",
     "branch-management": "Quản lý chi nhánh",
     consultant: "Tư vấn viên",
     lecturer: "Giảng viên",
     student: "Sinh viên",
     parents: "Phụ huynh",
   };
-  const currentRoleLabel = roleLabels[role] || "Người dùng";
+  const normalizedRole = user?.role || role;
+  const currentRoleLabel = roleLabels[normalizedRole] || user?.roles?.[0]?.replace(/^ROLE_/, "") || "Người dùng";
+  const avatarUrl = user?.avatarUrl || getRoleAvatar(normalizedRole);
+  const displayName = user?.fullName || currentRoleLabel;
 
   const handleSignOut = () => {
     document.cookie = "user-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
     document.cookie = "user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    logout();
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
@@ -37,9 +56,9 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
     router.refresh();
   };
 
-  const profileHref = role === "lecturer"
+  const profileHref = normalizedRole === "lecturer"
     ? "/dashboard/lecturer/profile"
-    : role === "student"
+    : normalizedRole === "student"
       ? "/dashboard/student/profile"
       : "/profile";
 
@@ -54,7 +73,7 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
         className="flex items-center text-slate-700 transition hover:text-emerald-700 dark:text-slate-300"
       >
         <span className="mr-3 h-10 w-10 overflow-hidden rounded-full border-2 border-emerald-50 shadow-sm dark:border-emerald-950">
-          <Image width={40} height={40} src="/images/user/owner.jpg" alt="Người dùng" className="object-cover" />
+          <img width={40} height={40} src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
         </span>
         <span className="mr-1 hidden text-sm font-bold sm:block">{currentRoleLabel}</span>
         <span className={`text-xs text-slate-400 transition ${isOpen ? "rotate-180" : ""}`}>v</span>
@@ -66,8 +85,8 @@ export default function UserDropdown({ role = "admin" }: UserDropdownProps) {
         className="absolute right-0 mt-4 flex w-60 flex-col rounded-lg border border-slate-100 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-900"
       >
         <div className="mb-2 border-b border-slate-100 px-3 py-2 dark:border-slate-800">
-          <span className="block text-sm font-bold text-slate-950 dark:text-white">{currentRoleLabel}</span>
-          <span className="mt-0.5 block text-xs text-slate-400">Phiên đăng nhập hiện tại</span>
+          <span className="block text-sm font-bold text-slate-950 dark:text-white">{displayName}</span>
+          <span className="mt-0.5 block text-xs text-slate-400">{currentRoleLabel}</span>
         </div>
 
         <DropdownItem

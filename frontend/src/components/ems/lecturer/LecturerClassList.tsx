@@ -1,271 +1,400 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { scheduleApi } from '@/api/schedule';
-import { useAuth } from '@/context/AuthContext';
-import { Users, Clock, BookOpen, ChevronRight, Activity, Grid, List, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
+import React, { useEffect, useMemo, useState } from "react";
+import { scheduleApi } from "@/api/schedule";
+import { useAuth } from "@/context/AuthContext";
+import { request } from "@/utils/request";
+import {
+  AlertCircle,
+  BookOpen,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Grid2X2,
+  Layers3,
+  Loader2,
+  Search,
+  Table2,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type ViewMode = "cards" | "table";
+
+const toArray = (value: any) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  return [];
+};
+
+const normalizeDate = (value?: string) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+};
+
+const ALL_SEMESTERS = "all";
 
 export default function LecturerClassList() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const [employeeId, setEmployeeId] = useState<string | null>((user as any)?.id || null);
   const [classes, setClasses] = useState<any[]>([]);
+  const [selectedSemesterId, setSelectedSemesterId] = useState(ALL_SEMESTERS);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>("cards");
+  const [keyword, setKeyword] = useState("");
 
   useEffect(() => {
-    const fetchProgressReport = async () => {
+    if ((user as any)?.id) {
+      setEmployeeId((user as any).id);
+      return;
+    }
+
+    if (!user) return;
+
+    request.get("/api/auth/me")
+      .then((res: any) => {
+        const empId = res?.data?.employeeId || res?.data?.data?.employeeId || res?.employeeId;
+        if (empId) {
+          setEmployeeId(empId);
+          updateUser({ id: empId });
+        }
+      })
+      .catch(() => {});
+  }, [user, updateUser]);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      if (!employeeId) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const params = user?.role === 'lecturer' ? { instructorId: user.id } : undefined;
-        const res = await scheduleApi.getTeachingProgress(params);
-        setClasses(res.data?.data || res.data || []);
+        setLoading(true);
+        const res = await scheduleApi.getTeachingProgress({
+          instructorId: employeeId,
+        });
+        const rows = toArray(res);
+        setClasses(rows);
+        if (selectedSemesterId === ALL_SEMESTERS) {
+          const latestSemesterId = rows
+            .map((item: any) => item.semesterId)
+            .find(Boolean);
+          if (latestSemesterId) {
+            setSelectedSemesterId(String(latestSemesterId));
+          }
+        }
       } catch (error) {
         console.error(error);
-        toast.error("Không thể tải danh sách tiến độ giảng dạy");
+        toast.error("Khong the tai danh sach lop phu trach");
       } finally {
         setLoading(false);
       }
     };
 
-    if (user) {
-      fetchProgressReport();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
+    fetchClasses();
+  }, [employeeId]);
 
-  if (loading) {
+  const semesters = useMemo(() => {
+    const map = new Map<string, any>();
+    classes.forEach((item) => {
+      if (!item.semesterId || map.has(String(item.semesterId))) return;
+      map.set(String(item.semesterId), {
+        semesterId: String(item.semesterId),
+        semesterCode: item.semesterCode,
+        semesterName: item.semesterName,
+        startDate: item.semesterStartDate,
+        endDate: item.semesterEndDate,
+      });
+    });
+    return [...map.values()].sort((a, b) => {
+      return new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime();
+    });
+  }, [classes]);
+
+  const selectedSemester = semesters.find((semester: any) => String(semester.semesterId) === selectedSemesterId);
+
+  const filteredClasses = useMemo(() => {
+    const q = keyword.trim().toLowerCase();
+    const semesterFiltered = selectedSemesterId === ALL_SEMESTERS
+      ? classes
+      : classes.filter((item) => String(item.semesterId || "") === selectedSemesterId);
+    if (!q) return semesterFiltered;
+    return semesterFiltered.filter((item) => {
+      return [
+        item.courseClassCode,
+        item.courseName,
+        item.courseCode,
+        item.departmentName,
+      ].some((value) => String(value || "").toLowerCase().includes(q));
+    });
+  }, [classes, keyword, selectedSemesterId]);
+
+  const summary = useMemo(() => {
+    const total = filteredClasses.length;
+    const required = filteredClasses.reduce((sum, item) => sum + Number(item.requiredPeriods || 0), 0);
+    const taught = filteredClasses.reduce((sum, item) => sum + Number(item.taughtPeriods || 0), 0);
+    const remaining = filteredClasses.reduce((sum, item) => sum + Number(item.remainingPeriods || 0), 0);
+    return { total, required, taught, remaining };
+  }, [filteredClasses]);
+
+  const getProgressPercentage = (item: any) => {
+    const required = Number(item.requiredPeriods || 0);
+    if (!required) return 0;
+    return Math.min(100, Math.round((Number(item.taughtPeriods || 0) * 100) / required));
+  };
+
+  const getAlertBadge = (status?: string) => {
+    switch (status) {
+      case "ON_TRACK":
+        return (
+          <Badge className="w-fit border-emerald-200 bg-emerald-50 text-emerald-700">
+            <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+            Dung tien do
+          </Badge>
+        );
+      case "BEHIND":
+        return (
+          <Badge className="w-fit border-amber-200 bg-amber-50 text-amber-700">
+            <AlertCircle className="mr-1 h-3.5 w-3.5" />
+            Cham tien do
+          </Badge>
+        );
+      case "CRITICAL":
+        return (
+          <Badge className="w-fit border-rose-200 bg-rose-50 text-rose-700">
+            <AlertCircle className="mr-1 h-3.5 w-3.5" />
+            Can xu ly
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">Chua danh gia</Badge>;
+    }
+  };
+
+  if (!employeeId) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-slate-500">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-        <span>Đang tải dữ liệu tiến độ giảng dạy...</span>
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+        Chua lay duoc ma giang vien tu phien dang nhap. Hay dang xuat va dang nhap lai de dong bo lich va lop phu trach.
       </div>
     );
   }
 
-  const getProgressPercentage = (item: any) => {
-    if (!item.requiredPeriods) return 0;
-    return Math.min(100, Math.round((item.taughtPeriods * 100) / item.requiredPeriods));
-  };
-
-  const getAlertBadge = (status: string) => {
-    switch (status) {
-      case 'ON_TRACK':
-        return (
-          <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800/30 flex items-center gap-1 w-fit">
-            <CheckCircle className="w-3.5 h-3.5" />
-            Đúng tiến độ
-          </Badge>
-        );
-      case 'BEHIND':
-        return (
-          <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800/30 flex items-center gap-1 w-fit">
-            <AlertCircle className="w-3.5 h-3.5" />
-            Chậm tiến độ
-          </Badge>
-        );
-      case 'CRITICAL':
-        return (
-          <Badge className="bg-rose-500/10 text-rose-600 border-rose-200 dark:border-rose-800/30 flex items-center gap-1 w-fit animate-pulse">
-            <AlertCircle className="w-3.5 h-3.5" />
-            Cảnh báo trễ
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Tab Switcher Toolbar */}
-      <div className="flex items-center justify-between p-2 bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-800 rounded-2xl w-fit">
-        <button
-          onClick={() => setActiveTab('grid')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all ${
-            activeTab === 'grid'
-              ? 'bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-sm'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-        >
-          <Grid className="w-4 h-4" />
-          <span>Dạng lưới</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('table')}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all ${
-            activeTab === 'table'
-              ? 'bg-white dark:bg-slate-900 text-brand-600 dark:text-brand-400 shadow-sm'
-              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-        >
-          <List className="w-4 h-4" />
-          <span>Báo cáo tiến độ (9 cột)</span>
-        </button>
-      </div>
-
-      {classes.length === 0 ? (
-        <div className="text-center text-slate-500 py-16 bg-white/40 dark:bg-gray-900/40 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
-          <BookOpen className="w-12 h-12 opacity-25 mx-auto mb-3 text-slate-400" />
-          <p className="font-semibold text-lg">Chưa phân công lớp học phần</p>
-          <p className="text-sm mt-1 text-slate-400">Bạn chưa được phân công lớp học phần nào trong học kỳ này.</p>
-        </div>
-      ) : activeTab === 'grid' ? (
-        /* GRID VIEW (CARDS) */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {classes.map((c, idx) => {
-            const progress = getProgressPercentage(c);
-
-            return (
-              <div
-                key={c.courseClassId || idx}
-                className="group flex flex-col bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-3xl shadow-sm hover:shadow-xl hover:border-brand-300 dark:hover:border-brand-500/50 transition-all duration-300 overflow-hidden relative"
-              >
-                <div className="absolute top-0 right-0 p-4">
-                  {getAlertBadge(c.alertStatus)}
-                </div>
-                
-                <div className="p-6 pb-5 flex-1">
-                  <div className="flex items-center gap-3 mb-4 pr-24">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-800/20 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
-                      <BookOpen size={24} strokeWidth={1.5} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 dark:text-white text-lg line-clamp-1 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
-                        {c.courseName}
-                      </h3>
-                      <div className="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-0.5">
-                        {c.courseClassCode}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-6">
-                    <div className="flex flex-col gap-1">
-                      <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <Users size={12} /> Tiết yêu cầu
-                      </div>
-                      <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                        {c.requiredPeriods} tiết
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <Clock size={12} /> Số tín chỉ
-                      </div>
-                      <div className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                        {c.credits} TC
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="px-6 py-4 bg-gray-50/50 dark:bg-gray-800/30 border-t border-gray-100/50 dark:border-gray-800/50 flex flex-col gap-3">
-                  <div>
-                    <div className="flex justify-between text-[11px] font-medium mb-1.5">
-                      <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                        <Activity size={12}/> Tiến độ giảng dạy
-                      </span>
-                      <span className="text-brand-600 dark:text-brand-400 font-bold">{progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-brand-500 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${progress}%` }} />
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2 flex items-center justify-between">
-                    <div className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <Calendar size={12} /> {c.startDate} ~ {c.endDate}
-                    </div>
-                    <button className="text-sm font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 flex items-center gap-1 group/btn">
-                      Chi tiết <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* TABLE VIEW (9 COLUMNS REPORT) */
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="px-6 py-4">Mã lớp</th>
-                  <th className="px-6 py-4">Tên học phần</th>
-                  <th className="px-6 py-4 text-center">Tín chỉ</th>
-                  <th className="px-6 py-4">Ngày bắt đầu</th>
-                  <th className="px-6 py-4">Ngày kết thúc</th>
-                  <th className="px-6 py-4 text-center">Tiết yêu cầu</th>
-                  <th className="px-6 py-4 text-center">Tiết đã dạy</th>
-                  <th className="px-6 py-4 text-center">Tiết còn lại</th>
-                  <th className="px-6 py-4">Tiến độ & Cảnh báo</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-                {classes.map((c, idx) => {
-                  const progress = getProgressPercentage(c);
-
-                  return (
-                    <tr
-                      key={c.courseClassId || idx}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors"
-                    >
-                      {/* 1. Mã lớp */}
-                      <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">
-                        {c.courseClassCode}
-                      </td>
-                      {/* 2. Tên học phần */}
-                      <td className="px-6 py-4 font-medium max-w-[200px] truncate" title={c.courseName}>
-                        {c.courseName}
-                      </td>
-                      {/* 3. Tín chỉ */}
-                      <td className="px-6 py-4 text-center font-medium">
-                        {c.credits}
-                      </td>
-                      {/* 4. Ngày bắt đầu */}
-                      <td className="px-6 py-4 text-slate-500 text-xs">
-                        {c.startDate}
-                      </td>
-                      {/* 5. Ngày kết thúc */}
-                      <td className="px-6 py-4 text-slate-500 text-xs">
-                        {c.endDate}
-                      </td>
-                      {/* 6. Tiết yêu cầu */}
-                      <td className="px-6 py-4 text-center font-semibold text-slate-600 dark:text-slate-400">
-                        {c.requiredPeriods}
-                      </td>
-                      {/* 7. Tiết đã dạy */}
-                      <td className="px-6 py-4 text-center font-semibold text-emerald-600 dark:text-emerald-400">
-                        {c.taughtPeriods}
-                      </td>
-                      {/* 8. Tiết còn lại */}
-                      <td className="px-6 py-4 text-center font-semibold text-slate-500">
-                        {c.remainingPeriods}
-                      </td>
-                      {/* 9. Tiến độ & Cảnh báo */}
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center justify-between text-[11px] font-semibold w-[150px]">
-                            <span className="text-slate-400">Đã dạy:</span>
-                            <span className="text-brand-600 dark:text-brand-400">{progress}%</span>
-                          </div>
-                          <div className="w-[150px] bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                            <div className="bg-brand-500 h-full rounded-full" style={{ width: `${progress}%` }} />
-                          </div>
-                          {getAlertBadge(c.alertStatus)}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/60 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+            <Layers3 className="h-4 w-4" />
+            {selectedSemester?.semesterName || selectedSemester?.semesterCode || "Tat ca hoc ky"}
+          </div>
+          <div className="text-xs text-slate-500">
+            {selectedSemester
+              ? `${normalizeDate(selectedSemester.startDate)} - ${normalizeDate(selectedSemester.endDate)}`
+              : "Tat ca lop duoc phan cong"}
           </div>
         </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="Tim ma lop, ten hoc phan..."
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 sm:w-64"
+            />
+          </div>
+
+          <Select value={selectedSemesterId} onValueChange={setSelectedSemesterId}>
+            <SelectTrigger className="h-10 w-full rounded-xl bg-white dark:bg-slate-950 sm:w-56">
+              <SelectValue placeholder="Chon hoc ky" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_SEMESTERS}>Tat ca hoc ky</SelectItem>
+              {semesters.map((semester: any) => (
+                <SelectItem key={semester.semesterId} value={semester.semesterId}>
+                  {semester.semesterName || semester.semesterCode || "Hoc ky"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex h-10 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+            <button
+              onClick={() => setViewMode("cards")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition ${
+                viewMode === "cards" ? "bg-white text-emerald-700 shadow-sm dark:bg-slate-950" : "text-slate-500"
+              }`}
+            >
+              <Grid2X2 className="h-4 w-4" />
+              The
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition ${
+                viewMode === "table" ? "bg-white text-emerald-700 shadow-sm dark:bg-slate-950" : "text-slate-500"
+              }`}
+            >
+              <Table2 className="h-4 w-4" />
+              Bang
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <SummaryTile icon={BookOpen} label="Lop phu trach" value={summary.total} tone="emerald" />
+        <SummaryTile icon={Clock} label="Tiet yeu cau" value={summary.required} tone="slate" />
+        <SummaryTile icon={CheckCircle2} label="Da day" value={summary.taught} tone="blue" />
+        <SummaryTile icon={AlertCircle} label="Con lai" value={summary.remaining} tone="amber" />
+      </div>
+
+      {loading ? (
+        <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white/60 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50">
+          <Loader2 className="mb-3 h-8 w-8 animate-spin text-emerald-600" />
+          Dang tai lop phu trach...
+        </div>
+      ) : filteredClasses.length === 0 ? (
+        <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/50 text-center dark:border-slate-800 dark:bg-slate-900/40">
+          <BookOpen className="mb-3 h-12 w-12 text-slate-300" />
+          <div className="text-base font-bold text-slate-800 dark:text-slate-100">Chua co lop trong hoc ky nay</div>
+          <div className="mt-1 text-sm text-slate-500">Hay chon hoc ky khac hoac kiem tra phan cong giang day.</div>
+        </div>
+      ) : viewMode === "cards" ? (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {filteredClasses.map((item, index) => (
+            <ClassCard key={item.courseClassId || index} item={item} progress={getProgressPercentage(item)} badge={getAlertBadge(item.alertStatus)} />
+          ))}
+        </div>
+      ) : (
+        <ClassTable classes={filteredClasses} getProgressPercentage={getProgressPercentage} getAlertBadge={getAlertBadge} />
       )}
+    </div>
+  );
+}
+
+function SummaryTile({ icon: Icon, label, value, tone }: { icon: any; label: string; value: number; tone: "emerald" | "slate" | "blue" | "amber" }) {
+  const toneClass = {
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    slate: "bg-slate-50 text-slate-700 border-slate-100",
+    blue: "bg-sky-50 text-sky-700 border-sky-100",
+    amber: "bg-amber-50 text-amber-700 border-amber-100",
+  }[tone];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
+      <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl border ${toneClass}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="text-2xl font-bold text-slate-900 dark:text-white">{value}</div>
+      <div className="mt-1 text-xs font-semibold uppercase text-slate-400">{label}</div>
+    </div>
+  );
+}
+
+function ClassCard({ item, progress, badge }: { item: any; progress: number; badge: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+      <div className="border-b border-slate-100 p-5 dark:border-slate-800">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">{item.courseClassCode || "Chua co ma lop"}</Badge>
+              {badge}
+            </div>
+            <h3 className="line-clamp-2 text-lg font-bold text-slate-900 dark:text-white">{item.courseName || "Chua co ten hoc phan"}</h3>
+            <div className="mt-1 text-sm text-slate-500">{item.courseCode || "Hoc phan"} · {item.credits || 0} tin chi</div>
+          </div>
+          <button className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-slate-700">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
+        <InfoPill icon={CalendarDays} label="Bat dau" value={normalizeDate(item.startDate)} />
+        <InfoPill icon={CalendarDays} label="Ket thuc" value={normalizeDate(item.endDate)} />
+        <InfoPill icon={Clock} label="Da day" value={`${item.taughtPeriods || 0}/${item.requiredPeriods || 0}`} />
+        <InfoPill icon={Users} label="Con lai" value={`${item.remainingPeriods || 0} tiet`} />
+      </div>
+
+      <div className="px-5 pb-5">
+        <div className="mb-2 flex items-center justify-between text-xs font-semibold">
+          <span className="text-slate-500">Tien do giang day</span>
+          <span className="text-emerald-700">{progress}%</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoPill({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+      <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase text-slate-400">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </div>
+      <div className="text-sm font-bold text-slate-800 dark:text-slate-100">{value}</div>
+    </div>
+  );
+}
+
+function ClassTable({ classes, getProgressPercentage, getAlertBadge }: { classes: any[]; getProgressPercentage: (item: any) => number; getAlertBadge: (status?: string) => React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase text-slate-500 dark:border-slate-800 dark:bg-slate-800/60">
+            <tr>
+              <th className="px-5 py-4">Lop hoc phan</th>
+              <th className="px-5 py-4">Hoc phan</th>
+              <th className="px-5 py-4 text-center">Tin chi</th>
+              <th className="px-5 py-4">Thoi gian</th>
+              <th className="px-5 py-4 text-center">Tien do</th>
+              <th className="px-5 py-4">Trang thai</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {classes.map((item, index) => {
+              const progress = getProgressPercentage(item);
+              return (
+                <tr key={item.courseClassId || index} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                  <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{item.courseClassCode || "-"}</td>
+                  <td className="px-5 py-4">
+                    <div className="font-semibold text-slate-800 dark:text-slate-100">{item.courseName || "-"}</div>
+                    <div className="text-xs text-slate-400">{item.courseCode || "Hoc phan"}</div>
+                  </td>
+                  <td className="px-5 py-4 text-center font-semibold">{item.credits || 0}</td>
+                  <td className="px-5 py-4 text-xs text-slate-500">{normalizeDate(item.startDate)} - {normalizeDate(item.endDate)}</td>
+                  <td className="px-5 py-4">
+                    <div className="mx-auto w-36">
+                      <div className="mb-1 flex justify-between text-[11px] font-semibold">
+                        <span>{item.taughtPeriods || 0}/{item.requiredPeriods || 0}</span>
+                        <span className="text-emerald-700">{progress}%</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${progress}%` }} />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">{getAlertBadge(item.alertStatus)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

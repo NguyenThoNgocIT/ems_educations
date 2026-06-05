@@ -83,7 +83,7 @@ public class AuthService {
         String refreshToken = UUID.randomUUID().toString();
 
         User user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow();
-        String fullName = user.getPerson().getFullName();
+        String fullName = user.getPerson() != null ? user.getPerson().getFullName() : user.getUsername();
 
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
@@ -114,7 +114,9 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .username(user.getUsername())
+                .employeeId(resolveEmployeeId(user))
                 .fullName(fullName)
+                .avatarUrl(user.getPerson() != null ? user.getPerson().getAvatarUrl() : null)
                 .roles(roles)
                 .permissions(rolePermissionRepository.findActivePermissionCodesByUserId(user.getUserId()))
                 .requirePasswordChange(requirePassChange)
@@ -171,8 +173,10 @@ public class AuthService {
 
         return AuthMeResponse.builder()
                 .username(user.getUsername())
+                .employeeId(resolveEmployeeId(user))
                 .email(user.getEmail())
-                .fullName(user.getPerson().getFullName())
+                .fullName(user.getPerson() != null ? user.getPerson().getFullName() : user.getUsername())
+                .avatarUrl(user.getPerson() != null ? user.getPerson().getAvatarUrl() : null)
                 .roles(findRoleCodes(user.getUserId()))
                 .permissions(rolePermissionRepository.findActivePermissionCodesByUserId(user.getUserId()))
                 .requirePasswordChange(requirePassChange)
@@ -335,6 +339,15 @@ public class AuthService {
                 .map(UserRole::getRole)
                 .map(role -> "ROLE_" + role.getCode())
                 .toList();
+    }
+
+    private UUID resolveEmployeeId(User user) {
+        if (user.getPerson() == null || user.getPerson().getPersonId() == null) {
+            return null;
+        }
+        return employeeRepository.findByPersonPersonId(user.getPerson().getPersonId())
+                .map(Employee::getEmployeeId)
+                .orElse(null);
     }
 
     private PasswordResetRequestResponse toPasswordResetRequestResponse(PasswordResetRequest request) {
