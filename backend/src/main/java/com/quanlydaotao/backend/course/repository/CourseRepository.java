@@ -5,10 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
 public interface CourseRepository extends JpaRepository<Course, UUID> {
-    Optional<Course> findByCode(String code);
-    Optional<Course> findByCodeAndCourseIdNot(String code, UUID courseId);
+    List<Course> findByDeletedAtIsNull();
+    Optional<Course> findByCourseIdAndDeletedAtIsNull(UUID courseId);
+    Optional<Course> findByCodeAndDeletedAtIsNull(String code);
+    Optional<Course> findByCodeAndCourseIdNotAndDeletedAtIsNull(String code, UUID courseId);
 }

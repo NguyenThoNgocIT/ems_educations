@@ -40,7 +40,7 @@ public class CourseServiceImpl implements CourseService {
         }
 
         // 3. Check if code already exists
-        if (courseRepository.findByCode(courseDto.getCode()).isPresent()) {
+        if (courseRepository.findByCodeAndDeletedAtIsNull(courseDto.getCode()).isPresent()) {
             throw new BusinessException("Mã môn học đã tồn tại: " + courseDto.getCode());
         }
 
@@ -60,7 +60,7 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional(readOnly = true)
     public CourseDto getCourseById(UUID id) {
-        Course course = courseRepository.findById(id)
+        Course course = courseRepository.findByCourseIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
         return courseMapper.toDto(course);
     }
@@ -68,7 +68,7 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional(readOnly = true)
     public CourseDto getCourseByCode(String code) {
-        Course course = courseRepository.findByCode(code)
+        Course course = courseRepository.findByCodeAndDeletedAtIsNull(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with code: " + code));
         return courseMapper.toDto(course);
     }
@@ -76,13 +76,13 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional(readOnly = true)
     public List<CourseDto> getAllCourses() {
-        return courseMapper.toDtoList(courseRepository.findAll());
+        return courseMapper.toDtoList(courseRepository.findByDeletedAtIsNull());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseDto> getCoursesByDepartment(UUID departmentId) {
-        return courseRepository.findAll().stream()
+        return courseRepository.findByDeletedAtIsNull().stream()
                 .filter(course -> departmentId.equals(course.getDepartmentId()))
                 .map(courseMapper::toDto)
                 .toList();
@@ -91,7 +91,7 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional
     public CourseDto updateCourse(UUID id, CourseDto courseDto) {
-        Course course = courseRepository.findById(id)
+        Course course = courseRepository.findByCourseIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy môn học với ID: " + id));
 
         // 1. Kiểm tra xem môn học đã được mở lớp chưa
@@ -111,7 +111,7 @@ public class CourseServiceImpl implements CourseService {
         } else {
             // Nếu chưa có lớp, cho phép sửa mã và kiểm tra trùng
             if (!course.getCode().equals(courseDto.getCode()) &&
-                courseRepository.findByCodeAndCourseIdNot(courseDto.getCode(), id).isPresent()) {
+                courseRepository.findByCodeAndCourseIdNotAndDeletedAtIsNull(courseDto.getCode(), id).isPresent()) {
                 throw new BusinessException("Mã môn học đã tồn tại: " + courseDto.getCode());
             }
             course.setCode(courseDto.getCode());
@@ -142,23 +142,12 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional
     public void deleteCourse(UUID id) {
-        Course course = courseRepository.findById(id)
+        Course course = courseRepository.findByCourseIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy môn học với ID: " + id));
         
-        // 2. Kiểm tra logic xóa
-        boolean hasClasses = !courseClassRepository.findByCourseId(id).isEmpty();
-        
-        if (hasClasses) {
-            // Nếu đã có lớp học phần, chỉ được chuyển trạng thái isActive = false (Xóa logic)
-            course.setIsActive(false);
-            courseRepository.save(course);
-            // Có thể log lại hoặc thông báo người dùng là chỉ deactivate chứ không xóa hẳn
-        } else {
-            // Nếu chưa có lớp, thực hiện soft delete bằng cách set deletedAt
-            course.setIsActive(false);
-            course.setDeletedAt(LocalDateTime.now());
-            courseRepository.save(course);
-        }
+        course.setIsActive(false);
+        course.setDeletedAt(LocalDateTime.now());
+        courseRepository.save(course);
     }
 
 }
