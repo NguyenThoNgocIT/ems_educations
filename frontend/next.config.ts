@@ -5,8 +5,17 @@ const apiBaseUrl = (
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "http://localhost:8081"
 ).replace(/\/$/, "");
+const isStaticExport = process.env.STATIC_EXPORT === "true";
 
 const nextConfig: NextConfig = {
+  ...(isStaticExport
+    ? {
+        output: "export" as const,
+        images: {
+          unoptimized: true,
+        },
+      }
+    : {}),
   /* config options here */
   webpack(config: any) {
     config.module.rules.push({
@@ -32,6 +41,9 @@ const nextConfig: NextConfig = {
 
   /* 4. REWRITES (Kết nối API tới backend dev ở localhost:8081) */
   async rewrites() {
+    if (isStaticExport) {
+      return [];
+    }
     return [
       {
         source: "/api/:path*",

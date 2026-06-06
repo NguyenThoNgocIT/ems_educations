@@ -9,8 +9,8 @@ binding = "ASSETS"
 
 [vars]
 NEXTJS_ENV = "production"
-NEXT_PUBLIC_API_BASE_URL = ""
-BACKEND_API_BASE_URL = "http://uems-backend.us-east-1.elasticbeanstalk.com"
+NEXT_PUBLIC_API_BASE_URL = "https://apiems.ryon.website"
+BACKEND_API_BASE_URL = "https://apiems.ryon.website"
 
 [observability]
 enabled = true
