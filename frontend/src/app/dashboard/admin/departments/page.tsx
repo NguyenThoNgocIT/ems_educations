@@ -125,9 +125,10 @@ export default function DepartmentsPage() {
     if (confirm(`Bạn có chắc muốn xóa khoa ${name}?`)) {
       try {
         await request.delete(`/api/v1/departments/admin/${id}`);
+        setDepartments(prev => prev.filter(dept => dept.departmentId !== id));
         toast.success(`Đã xóa khoa ${name}`);
-        fetchDepartments();
-      } catch (error) {
+        void fetchDepartments();
+      } catch (error: any) {
         toast.error('Xóa thất bại');
       }
     }

@@ -166,7 +166,7 @@ export default function MajorsPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="mb-2 text-3xl font-bold">Quản lý ngành học</h1>
-          <p className="text-muted-foreground">Nganh dao tao duoc lien ket truc tiep voi khoa</p>
+          <p className="text-muted-foreground">Ngành đào tạo được liên kết trực tiếp với khoa</p>
         </div>
         <Button onClick={() => handleOpenModal()} className="bg-primary">
           <Plus className="mr-2 h-4 w-4" />
@@ -280,21 +280,21 @@ export default function MajorsPage() {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingMajor ? "Chinh sua nganh hoc" : "Them nganh hoc moi"}</DialogTitle>
+            <DialogTitle>{editingMajor ? "Chỉnh sửa ngành học" : "Thêm ngành học mới"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="code">Ma nganh *</Label>
+              <Label htmlFor="code">Mã ngành *</Label>
               <Input id="code" value={formData.code} onChange={(event) => setFormData({ ...formData, code: event.target.value })} placeholder="VD: CNTT" />
             </div>
             <div>
-              <Label htmlFor="name">Ten nganh *</Label>
+              <Label htmlFor="name">Tên ngành *</Label>
               <Input id="name" value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value, code: formData.code || generateCode(event.target.value) })} />
             </div>
             <div>
               <Label htmlFor="departmentId">Khoa *</Label>
               <select id="departmentId" value={formData.departmentId} onChange={(event) => setFormData({ ...formData, departmentId: event.target.value })} className="w-full rounded-md border px-3 py-2 text-sm">
-                <option value="">-- Chon khoa --</option>
+                <option value="">-- Chọn khoa --</option>
                 {departments.map((department) => {
                   const id = getDepartmentId(department);
                   return (
@@ -306,17 +306,17 @@ export default function MajorsPage() {
               </select>
             </div>
             <div>
-              <Label htmlFor="description">Mo ta</Label>
+              <Label htmlFor="description">Mô tả</Label>
               <Textarea id="description" value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} rows={3} />
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={formData.isActive} onChange={(event) => setFormData({ ...formData, isActive: event.target.checked })} />
-              Dang hoat dong
+              Đang hoạt động
             </label>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Huy</Button>
-            <Button onClick={handleSave} className="bg-primary">Luu</Button>
+            <Button variant="outline" onClick={() => setModalOpen(false)}>Hủy</Button>
+            <Button onClick={handleSave} className="bg-primary">Lưu</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

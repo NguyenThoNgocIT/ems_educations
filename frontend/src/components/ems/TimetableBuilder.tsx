@@ -532,15 +532,15 @@ export default function TimetableBuilder() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] min-h-[700px] gap-5">
+    <div className="flex h-[calc(100vh-140px)] min-h-[680px] w-full max-w-full flex-col gap-4 overflow-hidden text-[14px]">
       {/* TOOLBAR */}
-      <div className="flex-shrink-0 flex flex-wrap items-center gap-4 p-3.5 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl shadow-sm transition-all">
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-3 p-3.5 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl shadow-sm transition-all">
         {/* Semester Selector */}
-        <div className="flex items-center gap-2 px-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-r border-gray-200 dark:border-gray-800 pr-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 px-2 text-[14px] font-semibold text-indigo-600 dark:text-indigo-400 md:border-r border-gray-200 dark:border-gray-800 pr-4">
           <CalendarRange className="w-4 h-4" />
           <span>Học kỳ:</span>
           <Select value={selectedSemesterId} onValueChange={(val) => { setSelectedSemesterId(val); setFormData(prev => ({ ...prev, semesterId: val })); }}>
-            <SelectTrigger className="w-[180px] h-9 bg-white dark:bg-gray-900 rounded-lg border-gray-200 dark:border-gray-700 ml-2">
+            <SelectTrigger className="ml-0 h-9 w-[min(180px,calc(100vw-3rem))] bg-white dark:bg-gray-900 rounded-lg border-gray-200 dark:border-gray-700 md:ml-2">
               <SelectValue placeholder="Chọn học kỳ" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -553,13 +553,13 @@ export default function TimetableBuilder() {
           </Select>
         </div>
 
-        <div className="flex items-center gap-2 text-sm font-semibold text-brand-600 dark:text-brand-400">
+        <div className="flex items-center gap-2 text-[14px] font-semibold text-brand-600 dark:text-brand-400">
           <Filter className="w-4 h-4" />
           <span>Lọc theo:</span>
         </div>
         
         <Select value={viewMode} onValueChange={handleViewModeChange}>
-          <SelectTrigger className="w-[200px] h-10 bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
+          <SelectTrigger className="h-10 w-[min(200px,calc(100vw-3rem))] bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
             <SelectValue placeholder="Chọn chế độ xem" />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
@@ -572,7 +572,7 @@ export default function TimetableBuilder() {
 
         {viewMode === "LECTURER" && (
           <Select value={filterId} onValueChange={setFilterId}>
-            <SelectTrigger className="w-[300px] h-10 bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
+            <SelectTrigger className="h-10 w-[min(300px,calc(100vw-3rem))] bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
               <SelectValue placeholder="-- Chọn giảng viên --" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -588,7 +588,7 @@ export default function TimetableBuilder() {
 
         {viewMode === "COURSE_CLASS" && (
           <Select value={filterId} onValueChange={setFilterId}>
-            <SelectTrigger className="w-[300px] h-10 bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
+            <SelectTrigger className="h-10 w-[min(300px,calc(100vw-3rem))] bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
               <SelectValue placeholder="-- Chọn lớp học phần --" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -604,7 +604,7 @@ export default function TimetableBuilder() {
 
         {viewMode === "ROOM" && (
           <Select value={filterId} onValueChange={setFilterId}>
-            <SelectTrigger className="w-[300px] h-10 bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
+            <SelectTrigger className="h-10 w-[min(300px,calc(100vw-3rem))] bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
               <SelectValue placeholder="-- Chọn phòng học --" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -618,7 +618,7 @@ export default function TimetableBuilder() {
           </Select>
         )}
 
-        <div className="ml-auto">
+        <div className="ml-auto min-w-fit">
           <button
             onClick={handleAutoSchedule}
             disabled={isAutoScheduling}
@@ -640,7 +640,7 @@ export default function TimetableBuilder() {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="flex flex-1 gap-6 overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden xl:grid-cols-[clamp(220px,20vw,300px)_minmax(0,1fr)]">
         <TimetableSidebar 
           courseClasses={courseClasses}
           searchTerm={searchTerm}
