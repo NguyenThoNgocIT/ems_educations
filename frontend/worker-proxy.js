@@ -1,5 +1,5 @@
-const PAGES_ORIGIN = "https://vothecong.education-ems.pages.dev";
-const API_ORIGIN = "http://uems-backend.us-east-1.elasticbeanstalk.com";
+const PAGES_ORIGIN = "https://production.education-ems.pages.dev";
+const API_ORIGIN = "https://apiems.ryon.website";
 const INSECURE_API_ORIGIN = "http://uems-backend.us-east-1.elasticbeanstalk.com";
 
 export default {
