@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Profile;
 import java.util.List;
 
 @Configuration
-@Profile({"dev", "test", "postgresql"})
+@Profile({"dev", "test", "postgresql", "prod"})
 public class OpenApiConfig {
     @Bean
         // Provide defaults so OpenAPI bean can be created even if properties are not set for the active profile
@@ -22,7 +22,7 @@ public class OpenApiConfig {
                                                    @Value("${open.api.description:}") String description,
                                                    @Value("${open.api.version:v1}") String version,
                                                    @Value("${open.api.serverName:local}") String serverName,
-                                                   @Value("${open.api.serverUrl:http://localhost:8081}") String serverUrl) {
+                                                   @Value("${open.api.serverUrl:/}") String serverUrl) {
         return new OpenAPI()
                 .info(new Info().title(title)
                         .description(description)
