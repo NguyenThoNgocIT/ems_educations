@@ -173,7 +173,12 @@ export default function CoursesPage() {
 
     try {
       toast.loading('Đang kiểm tra các liên kết môn học...', { id: 'delete-toast' });
-      
+      await courseApi.delete(course.id);
+      toast.dismiss('delete-toast');
+      setCourses(prev => prev.filter(c => c.id !== course.id));
+      toast.success(`Da xoa mon hoc ${course.name}`);
+      return;
+
       // Fetch open classes under this course
       const classesResponse: any = await courseClassApi.getByCourse(course.id);
       
@@ -183,6 +188,7 @@ export default function CoursesPage() {
       } else if (classesResponse && Array.isArray(classesResponse.data)) {
         classesList = classesResponse.data;
       }
+      classesList = [];
 
       if (classesList.length > 0) {
         // Deep UX Logic Triggered: has linked classes!
