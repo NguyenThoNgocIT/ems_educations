@@ -31,7 +31,7 @@ export default function DashboardLayout({
       >
         <AppHeader />
 
-        <main className="mx-auto w-full max-w-[1600px] p-4 md:p-6">
+        <main className="mx-auto w-full max-w-none p-4 md:p-6">
           {children}
         </main>
       </div>

@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8081}
+  port: ${PORT:8080}
   tomcat:
     threads:
       max: 20
@@ -19,6 +19,14 @@ spring:
   jpa:
     open-in-view: false
     show-sql: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
 springdoc:
   api-docs:
     enabled: false
@@ -31,3 +39,4 @@ open:
     version: 1.0.0
     serverName: Local Server
     serverUrl: http://localhost:${server.port}
+

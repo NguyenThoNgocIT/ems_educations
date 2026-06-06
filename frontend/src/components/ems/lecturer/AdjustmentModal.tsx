@@ -59,10 +59,10 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
         setAbsentPeriods(3);
       }
       
-      setType('ABSENT_MAKEUP');
-      setProposedDate('');
-      setProposedTimeSlotId('');
-      setProposedRoomId('');
+      setType(eventData?.requestType || 'ABSENT_MAKEUP');
+      setProposedDate(eventData?.proposedDate || '');
+      setProposedTimeSlotId(eventData?.proposedTimeSlotId || '');
+      setProposedRoomId(eventData?.proposedRoomId || '');
       setReason('');
     }
   }, [isOpen]);

@@ -1,0 +1,1 @@
+web: java -Xmx512m -Xms256m -XX:MaxMetaspaceSize=200m -XX:+UseG1GC -XX:+UseContainerSupport -Dserver.port=5000 -Dspring.profiles.active=prod -jar app.jar

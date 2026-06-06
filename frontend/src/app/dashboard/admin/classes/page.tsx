@@ -18,7 +18,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Copy, Users } from "lucide-react";
+import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { toast } from "sonner";
 import { administrativeClassApi } from "@/api/administrative-class";
 import { academicCohortApi } from "@/api/academic-cohort";
@@ -306,11 +306,6 @@ export default function ClassesPage() {
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    toast.success(`Đã copy ID: ${text.substring(0, 8)}...`);
-  };
-
   const renderRelation = (label?: string) => label || "Chưa liên kết";
 
   if (loading) {
@@ -418,21 +413,20 @@ export default function ClassesPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="px-4 py-3 text-left text-sm font-semibold">ID lớp</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Mã lớp</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Tên lớp</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Khoa</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Ngành</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Khóa</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Sĩ số</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Trạng thái</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">Sĩ số</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">Trạng thái</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedClasses.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="py-8 text-center text-muted-foreground">
                       Chưa có dữ liệu lớp phù hợp.
                     </td>
                   </tr>
@@ -448,18 +442,12 @@ export default function ClassesPage() {
 
                     return (
                       <tr key={id} className="border-b hover:bg-muted/50">
-                        <td className="px-4 py-3 text-sm">
-                          <button className="flex items-center gap-2 font-mono text-xs text-blue-600" onClick={() => copyToClipboard(id)}>
-                            {id.substring(0, 8)}...
-                            <Copy className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
                         <td className="px-4 py-3 text-sm font-medium">{item.classCode}</td>
                         <td className="px-4 py-3 text-sm">{item.className}</td>
                         <td className="px-4 py-3 text-sm">{renderRelation(departmentLabel)}</td>
                         <td className="px-4 py-3 text-sm">{renderRelation(majorLabel)}</td>
                         <td className="px-4 py-3 text-sm">{renderRelation(cohortLabel)}</td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-3 text-sm whitespace-nowrap">
                           <button
                             type="button"
                             onClick={() => openStudentDialog(item)}
@@ -469,7 +457,7 @@ export default function ClassesPage() {
                           </button>
                           <span className="text-muted-foreground"> / {item.maxSize || "-"}</span>
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-3 text-sm whitespace-nowrap">
                           <span className={`rounded-full px-2 py-1 text-xs ${item.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                             {item.isActive ? "Hoạt động" : "Không hoạt động"}
                           </span>
@@ -595,17 +583,6 @@ export default function ClassesPage() {
             <DialogTitle>{editingClass ? "Chỉnh sửa lớp" : "Thêm lớp mới"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4 sm:grid-cols-2">
-            {editingClass && (
-              <div className="sm:col-span-2">
-                <Label>ID lớp</Label>
-                <div className="mt-1 flex items-center gap-2">
-                  <Input value={getClassId(editingClass)} disabled className="bg-gray-100 font-mono text-sm" />
-                  <Button type="button" size="sm" variant="outline" onClick={() => copyToClipboard(getClassId(editingClass))}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label>Mã lớp *</Label>

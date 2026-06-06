@@ -17,9 +17,9 @@ export default function TimetableSidebar({ courseClasses, searchTerm, setSearchT
   );
 
   return (
-    <div className="w-80 flex-shrink-0 flex flex-col bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-border rounded-2xl shadow-sm overflow-hidden">
+    <div className="flex min-h-[220px] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-white/60 text-[14px] shadow-sm backdrop-blur-xl dark:bg-gray-900/40 xl:min-h-0">
       <div className="p-4 border-b border-border bg-white/40 dark:bg-gray-900/40">
-        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+        <h2 className="flex items-center gap-2 text-[14px] font-bold text-foreground">
           <CalendarDays className="text-brand-500" size={20} />
           Lớp chưa có lịch
         </h2>
@@ -29,7 +29,7 @@ export default function TimetableSidebar({ courseClasses, searchTerm, setSearchT
           <Input
             type="text"
             placeholder="Tìm môn học, mã lớp..."
-            className="pl-9 h-10 bg-background/50"
+            className="h-10 bg-background/50 pl-9 text-[14px]"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -37,11 +37,11 @@ export default function TimetableSidebar({ courseClasses, searchTerm, setSearchT
       </div>
       
       <div 
-        className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar"
+        className="flex-1 space-y-3 overflow-y-auto p-4 custom-scrollbar"
         ref={externalEventsRef}
       >
         {filteredClasses.length === 0 ? (
-          <div className="text-center text-muted-foreground py-10 text-sm">
+          <div className="py-10 text-center text-[14px] text-muted-foreground">
             Không tìm thấy lớp học nào.
           </div>
         ) : (
@@ -53,17 +53,17 @@ export default function TimetableSidebar({ courseClasses, searchTerm, setSearchT
               data-title={`${c.classCode} - ${c.courseName}`}
             >
               <div className="flex justify-between items-start mb-1">
-                <span className="text-xs font-bold px-2 py-0.5 rounded bg-brand-50 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
+                <span className="rounded bg-brand-50 px-2 py-0.5 text-[13px] font-bold text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
                   {c.classCode}
                 </span>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
                   <Clock size={12} /> {c.credits || 3} TC
                 </span>
               </div>
-              <h3 className="text-sm font-semibold text-foreground line-clamp-2 mt-2">
+              <h3 className="mt-2 line-clamp-2 text-[14px] font-semibold text-foreground">
                 {c.courseName}
               </h3>
-              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5">
+              <div className="mt-2 flex items-center gap-1.5 text-[13px] text-muted-foreground">
                 <Users size={13} /> {c.currentStudents || 0}/{c.maxStudents || 40} Sinh viên
               </div>
             </div>
