@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Link from "next/link";
 
 type ViewMode = "cards" | "table";
 
@@ -312,9 +313,12 @@ function ClassCard({ item, progress, badge }: { item: any; progress: number; bad
             <h3 className="line-clamp-2 text-lg font-bold text-slate-900 dark:text-white">{item.courseName || "Chua co ten hoc phan"}</h3>
             <div className="mt-1 text-sm text-slate-500">{item.courseCode || "Hoc phan"} · {item.credits || 0} tin chi</div>
           </div>
-          <button className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-slate-700">
+          <Link 
+            href={`/dashboard/lecturer/attendance?classId=${item.courseClassId}`}
+            className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-slate-700"
+          >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Link>
         </div>
       </div>
 
