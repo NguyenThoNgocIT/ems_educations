@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Save, UserCheck, CalendarDays, Activity, Check, X } from 'lucide-react';
@@ -8,8 +9,12 @@ import { courseClassApi } from '@/api/course';
 import { attendanceApi } from '@/api/attendance';
 
 export default function LecturerAttendance() {
+  const searchParams = useSearchParams();
+  const classIdFromUrl = searchParams.get('classId');
+  const dateFromUrl = searchParams.get('date');
+  
   const [courseClasses, setCourseClasses] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState<string>('all');
+  const [selectedClass, setSelectedClass] = useState<string>(classIdFromUrl || 'all');
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -17,7 +22,7 @@ export default function LecturerAttendance() {
   // States for attendance
   const [attendanceData, setAttendanceData] = useState<Record<string, boolean>>({});
   const [lessonContent, setLessonContent] = useState('');
-  const [sessionDate, setSessionDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [sessionDate, setSessionDate] = useState<string>(dateFromUrl || new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -108,7 +113,7 @@ export default function LecturerAttendance() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">-- Chọn lớp học phần --</SelectItem>
-                  {courseClasses.slice(0, 5).map(c => (
+                  {courseClasses.map(c => (
                     <SelectItem key={c.id} value={c.id}>{c.classCode} - {c.courseName}</SelectItem>
                   ))}
                 </SelectContent>
@@ -135,9 +140,21 @@ export default function LecturerAttendance() {
                 className="w-full p-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none resize-none"
               ></textarea>
             </div>
+
+            <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-100 dark:border-amber-900/30">
+              <input 
+                type="checkbox" 
+                id="confirm-taught" 
+                className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"
+                defaultChecked={true}
+              />
+              <label htmlFor="confirm-taught" className="text-xs font-semibold text-amber-800 dark:text-amber-200 cursor-pointer">
+                Tôi xác nhận đã dạy buổi này thực tế
+              </label>
+            </div>
             
             <Button className="w-full gap-2 bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/20" onClick={handleSave} disabled={saving || selectedClass === 'all'}>
-              <Save size={18} /> {saving ? "Đang lưu..." : "Lưu báo cáo buổi dạy"}
+              <Save size={18} /> {saving ? "Đang lưu..." : "Xác nhận & Lưu báo cáo"}
             </Button>
           </div>
 

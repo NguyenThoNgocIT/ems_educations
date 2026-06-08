@@ -10,6 +10,7 @@ import { scheduleApi } from "@/api/schedule";
 import { BookOpen, Clock, MapPin } from 'lucide-react';
 import { toast } from "sonner";
 import AdjustmentModal from './AdjustmentModal';
+import SessionActionModal from './SessionActionModal';
 import { useAuth } from '@/context/AuthContext';
 import { request } from '@/utils/request';
 
@@ -17,6 +18,8 @@ export default function LecturerSchedule() {
   const { user, updateUser } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [currentRange, setCurrentRange] = useState<{ start: Date; end: Date } | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(user?.id || null);
   const calendarRef = useRef<FullCalendar>(null);
@@ -208,6 +211,7 @@ export default function LecturerSchedule() {
             setSelectedEvent({
               originalScheduleId: info.event.id,
               courseClassId: props.courseClassId,
+              courseClassCode: props.courseClassCode,
               courseClassName: props.courseClassName,
               date: props.date,
               timeSlotId: props.timeSlotId,
@@ -218,6 +222,7 @@ export default function LecturerSchedule() {
               proposedTimeSlotId: props.timeSlotId,
               proposedRoomId: props.roomId,
             });
+            setShowAdjustmentModal(true);
             toast.info('Đã chọn ngày mới, vui lòng nhập lý do để gửi yêu cầu đổi lịch');
           }}
           slotMinTime="07:00:00"
@@ -246,12 +251,15 @@ export default function LecturerSchedule() {
             setSelectedEvent({
               originalScheduleId: info.event.id,
               courseClassId: props.courseClassId,
+              courseClassCode: props.courseClassCode,
               courseClassName: props.courseClassName,
+              courseName: props.courseName,
               date: info.event.startStr.split('T')[0],
               timeSlotId: props.timeSlotId,
               periods: props.periods || 3,
               roomCode: props.roomCode
             });
+            setShowActionModal(true);
           }}
         />
       </div>
@@ -437,9 +445,24 @@ export default function LecturerSchedule() {
           }
         }
       `}</style>
+      <SessionActionModal 
+        isOpen={showActionModal}
+        onClose={() => {
+          setShowActionModal(false);
+          setSelectedEvent(null);
+        }}
+        eventData={selectedEvent}
+        onAdjust={() => {
+          setShowActionModal(false);
+          setShowAdjustmentModal(true);
+        }}
+      />
       <AdjustmentModal
-        isOpen={!!selectedEvent}
-        onClose={() => setSelectedEvent(null)}
+        isOpen={showAdjustmentModal}
+        onClose={() => {
+          setShowAdjustmentModal(false);
+          setSelectedEvent(null);
+        }}
         eventData={selectedEvent}
         onSuccess={() => {
           if (currentRange) fetchScheduleForRange(currentRange.start, currentRange.end);

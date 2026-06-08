@@ -60,6 +60,10 @@ next-env.d.ts
 .open-next
 
 
+# Cloudflare Wrangler
+wrangler.toml
+wrangler.proxy.toml
+
 # asdf version management
 .tool-versions
 
