@@ -206,7 +206,7 @@ export function RolesTab({ onNavigateToUsers }: { onNavigateToUsers?: (roleCode:
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowImport(true)} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition shadow-sm">
-            <UploadCloud size={15} /> Import Excel
+            <UploadCloud size={15} /> Nhập Excel
           </button>
           <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm">
             <Plus size={15} />
@@ -267,7 +267,7 @@ export function RolesTab({ onNavigateToUsers }: { onNavigateToUsers?: (roleCode:
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-emerald-50 hover:text-emerald-700 transition"
                       >
                         <Users size={11} />
-                        {role.userCount ?? 0} user
+                        {role.userCount ?? 0} người dùng
                       </button>
                     </td>
                     <td className="py-3 px-4 text-center">

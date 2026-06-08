@@ -13,5 +13,7 @@ public class RoleDto {
     private Integer displayOrder;
     private String color;
     private Boolean isActive;
+    private Long userCount;
+    private Long permissionCount;
     private List<PermissionDto> permissions;
 }

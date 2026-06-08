@@ -124,7 +124,7 @@ public class ScheduleAdjustmentController {
     }
 
     @GetMapping("/admin/instructor/{instructorId}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xem yêu cầu điều chỉnh lịch của một giảng viên")
     public ResponseEntity<ApiResponse<List<ScheduleAdjustmentResponse>>> getByInstructor(@PathVariable UUID instructorId) {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách yêu cầu điều chỉnh lịch thành công",
@@ -132,7 +132,7 @@ public class ScheduleAdjustmentController {
     }
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tra cứu toàn bộ yêu cầu điều chỉnh lịch")
     public ResponseEntity<ApiResponse<List<ScheduleAdjustmentResponse>>> searchAdmin(
             @RequestParam(required = false) String status,
@@ -143,7 +143,7 @@ public class ScheduleAdjustmentController {
     }
 
     @PostMapping("/admin/{requestId}/approve")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin duyệt yêu cầu điều chỉnh lịch")
     public ResponseEntity<ApiResponse<ScheduleAdjustmentResponse>> approve(
             @PathVariable UUID requestId,
@@ -152,7 +152,7 @@ public class ScheduleAdjustmentController {
     }
 
     @PostMapping("/admin/{requestId}/reject")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin từ chối yêu cầu điều chỉnh lịch")
     public ResponseEntity<ApiResponse<ScheduleAdjustmentResponse>> reject(
             @PathVariable UUID requestId,
@@ -161,7 +161,7 @@ public class ScheduleAdjustmentController {
     }
 
     @PostMapping("/admin/{requestId}/return")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin trả yêu cầu điều chỉnh lịch về cho giảng viên bổ sung")
     public ResponseEntity<ApiResponse<ScheduleAdjustmentResponse>> returnToInstructor(
             @PathVariable UUID requestId,
@@ -170,7 +170,7 @@ public class ScheduleAdjustmentController {
     }
 
     @PostMapping("/admin/batch-approve")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin duyệt hàng loạt yêu cầu điều chỉnh lịch")
     public ResponseEntity<ApiResponse<ScheduleAdjustmentBatchApproveResponse>> batchApprove(
             @Valid @RequestBody ScheduleAdjustmentBatchApproveRequest request) {

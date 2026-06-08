@@ -26,7 +26,7 @@ public class PersonController {
     private final PersonService personService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách thông tin cá nhân")
     public ResponseEntity<ApiResponse<Page<PersonAdminResponse>>> getPersonsForAdmin(
             @RequestParam(required = false) String keyword,
@@ -35,7 +35,7 @@ public class PersonController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết thông tin cá nhân")
     public ResponseEntity<ApiResponse<PersonAdminResponse>> getPersonForAdmin(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin cá nhân thành công", personService.getPersonForAdmin(id)));

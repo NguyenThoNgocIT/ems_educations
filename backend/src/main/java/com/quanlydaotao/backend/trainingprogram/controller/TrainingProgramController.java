@@ -22,7 +22,7 @@ public class TrainingProgramController {
     private final TrainingProgramService trainingProgramService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách chương trình đào tạo")
     public ResponseEntity<ApiResponse<List<TrainingProgramResponse>>> getAllPrograms(
             @RequestParam(required = false) String keyword,
@@ -37,7 +37,7 @@ public class TrainingProgramController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết chương trình đào tạo")
     public ResponseEntity<ApiResponse<TrainingProgramResponse>> getProgramById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy chương trình đào tạo thành công",
@@ -45,7 +45,7 @@ public class TrainingProgramController {
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo chương trình đào tạo")
     public ResponseEntity<ApiResponse<TrainingProgramResponse>> createProgram(@RequestBody TrainingProgramRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo chương trình đào tạo thành công",
@@ -53,7 +53,7 @@ public class TrainingProgramController {
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật chương trình đào tạo")
     public ResponseEntity<ApiResponse<TrainingProgramResponse>> updateProgram(@PathVariable UUID id,
                                                                          @RequestBody TrainingProgramRequest request) {
@@ -62,7 +62,7 @@ public class TrainingProgramController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm chương trình đào tạo")
     public ResponseEntity<ApiResponse<Void>> deleteProgram(@PathVariable UUID id) {
         trainingProgramService.deleteProgram(id);

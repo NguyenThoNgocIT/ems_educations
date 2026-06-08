@@ -31,7 +31,7 @@ public class StudentClassController {
     private final StudentClassService studentClassService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách lớp hành chính của sinh viên")
     public ResponseEntity<ApiResponse<List<StudentClassResponse>>> search(
             @RequestParam(required = false) UUID studentId,
@@ -43,21 +43,21 @@ public class StudentClassController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết lớp hành chính của sinh viên")
     public ResponseEntity<ApiResponse<StudentClassResponse>> get(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy lớp hành chính của sinh viên thành công", studentClassService.getStudentClass(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin gán sinh viên vào lớp hành chính theo học kỳ")
     public ResponseEntity<ApiResponse<StudentClassResponse>> create(@Valid @RequestBody StudentClassRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Gán sinh viên vào lớp hành chính thành công", studentClassService.createStudentClass(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật lớp hành chính của sinh viên")
     public ResponseEntity<ApiResponse<StudentClassResponse>> update(@PathVariable UUID id,
                                                                     @RequestBody StudentClassRequest request) {
@@ -66,7 +66,7 @@ public class StudentClassController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm lớp hành chính của sinh viên")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         studentClassService.deleteStudentClass(id);

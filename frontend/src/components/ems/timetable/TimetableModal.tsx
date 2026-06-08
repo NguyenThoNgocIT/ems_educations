@@ -35,23 +35,23 @@ const lecturerIdOf = (lecturer: any) => String(lecturer?.employeeId || lecturer?
 
 const courseClassLabel = (courseClass: any) => {
   if (!courseClass) return "";
-  return `${courseClass.classCode || courseClass.courseClassName || "Chua ro ma lop"} - ${courseClass.courseName || "Mon hoc"}`;
+  return `${courseClass.classCode || courseClass.courseClassName || "Chưa rõ mã lớp"} - ${courseClass.courseName || "Môn học"}`;
 };
 
 const lecturerLabel = (lecturer: any) => {
   if (!lecturer) return "";
   const code = lecturer.instructorCode || lecturer.employeeCode || "";
-  return `${lecturer.fullName || lecturer.name || "Chua ro giang vien"}${code ? ` (${code})` : ""}`;
+  return `${lecturer.fullName || lecturer.name || "Chưa rõ giảng viên"}${code ? ` (${code})` : ""}`;
 };
 
 const roomLabel = (room: any) => {
   if (!room) return "";
-  return `${room.code || room.roomCode || "Khong ro ma phong"} (${room.type || room.roomType || "Phong hoc"})`;
+  return `${room.code || room.roomCode || "Không rõ mã phòng"} (${room.type || room.roomType || "Phòng học"})`;
 };
 
 const timeSlotLabel = (timeSlot: any) => {
   if (!timeSlot) return "";
-  return `${timeSlot.slotCode || "Ca hoc"}: ${timeSlot.startTime || ""} - ${timeSlot.endTime || ""}`;
+  return `${timeSlot.slotCode || "Ca học"}: ${timeSlot.startTime || ""} - ${timeSlot.endTime || ""}`;
 };
 
 export default function TimetableModal({ isOpen, onClose, formData, setFormData, courseClasses, rooms, timeSlots, lecturers, onSubmit, isEditing = false, isSubmitting = false, onDelete }: Props) {

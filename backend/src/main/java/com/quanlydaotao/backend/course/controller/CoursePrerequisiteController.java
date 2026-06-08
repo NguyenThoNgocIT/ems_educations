@@ -24,7 +24,7 @@ public class CoursePrerequisiteController {
     private final CoursePrerequisiteService prerequisiteService;
 
     @GetMapping("/admin/course/{courseId}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách môn liên quan của một môn học")
     public ResponseEntity<ApiResponse<List<PrerequisiteDto>>> getByCourse(@PathVariable UUID courseId) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -33,7 +33,7 @@ public class CoursePrerequisiteController {
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin thêm môn tiên quyết, song hành hoặc đồng điều kiện")
     public ResponseEntity<ApiResponse<PrerequisiteDto>> add(@Valid @RequestBody CreatePrerequisiteRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
@@ -42,7 +42,7 @@ public class CoursePrerequisiteController {
     }
 
     @DeleteMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm quan hệ môn học")
     public ResponseEntity<ApiResponse<Void>> delete(@RequestParam UUID courseId, @RequestParam UUID prereqId) {
         prerequisiteService.deletePrerequisite(courseId, prereqId);
@@ -50,7 +50,7 @@ public class CoursePrerequisiteController {
     }
 
     @GetMapping("/admin/check")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin kiểm tra quan hệ môn học đã tồn tại chưa")
     public ResponseEntity<ApiResponse<Boolean>> check(@RequestParam UUID courseId, @RequestParam UUID prereqId) {
         return ResponseEntity.ok(ApiResponse.success(

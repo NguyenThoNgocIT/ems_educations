@@ -23,7 +23,7 @@ public class SpecializationController {
     private final SpecializationService specializationService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách chuyên ngành")
     public ResponseEntity<ApiResponse<List<SpecializationResponse>>> search(
             @RequestParam(required = false) String keyword,
@@ -35,21 +35,21 @@ public class SpecializationController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết chuyên ngành")
     public ResponseEntity<ApiResponse<SpecializationResponse>> get(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy chuyên ngành thành công", specializationService.getSpecialization(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo chuyên ngành")
     public ResponseEntity<ApiResponse<SpecializationResponse>> create(@Valid @RequestBody SpecializationRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo chuyên ngành thành công", specializationService.createSpecialization(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật chuyên ngành")
     public ResponseEntity<ApiResponse<SpecializationResponse>> update(@PathVariable UUID id,
                                                                       @RequestBody SpecializationRequest request) {
@@ -58,7 +58,7 @@ public class SpecializationController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm chuyên ngành")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         specializationService.deleteSpecialization(id);

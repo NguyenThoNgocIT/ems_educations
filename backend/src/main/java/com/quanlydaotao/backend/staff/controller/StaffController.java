@@ -35,7 +35,7 @@ public class StaffController {
     private final StaffService staffService;
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo nhân viên hành chính và tài khoản đăng nhập")
     public ResponseEntity<ApiResponse<AccountCreationResponse>> createStaffForAdmin(
             @Valid @RequestBody StaffAdminCreateRequest request) {
@@ -43,21 +43,21 @@ public class StaffController {
     }
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách nhân viên hành chính")
     public ResponseEntity<ApiResponse<List<StaffAdminResponse>>> getAllStaffsForAdmin() {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách nhân viên hành chính thành công", staffService.getAllStaffsForAdmin()));
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết nhân viên hành chính")
     public ResponseEntity<ApiResponse<StaffAdminResponse>> getStaffForAdmin(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin nhân viên hành chính thành công", staffService.getStaffForAdmin(id)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật toàn bộ thông tin nhân viên hành chính")
     public ResponseEntity<ApiResponse<StaffAdminResponse>> updateStaffForAdmin(
             @PathVariable UUID id,
@@ -66,7 +66,7 @@ public class StaffController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm nhân viên hành chính")
     public ResponseEntity<ApiResponse<Void>> deleteStaffForAdmin(@PathVariable UUID id) {
         staffService.deleteStaffForAdmin(id);

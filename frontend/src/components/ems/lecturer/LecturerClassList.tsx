@@ -93,7 +93,7 @@ export default function LecturerClassList() {
         }
       } catch (error) {
         console.error(error);
-        toast.error("Khong the tai danh sach lop phu trach");
+        toast.error("Không thể tải danh sách lớp phụ trách");
       } finally {
         setLoading(false);
       }
@@ -157,32 +157,32 @@ export default function LecturerClassList() {
         return (
           <Badge className="w-fit border-emerald-200 bg-emerald-50 text-emerald-700">
             <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-            Dung tien do
+            Đúng tiến độ
           </Badge>
         );
       case "BEHIND":
         return (
           <Badge className="w-fit border-amber-200 bg-amber-50 text-amber-700">
             <AlertCircle className="mr-1 h-3.5 w-3.5" />
-            Cham tien do
+            Chậm tiến độ
           </Badge>
         );
       case "CRITICAL":
         return (
           <Badge className="w-fit border-rose-200 bg-rose-50 text-rose-700">
             <AlertCircle className="mr-1 h-3.5 w-3.5" />
-            Can xu ly
+            Cần xử lý
           </Badge>
         );
       default:
-        return <Badge variant="outline">Chua danh gia</Badge>;
+        return <Badge variant="outline">Chưa đánh giá</Badge>;
     }
   };
 
   if (!employeeId) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-        Chua lay duoc ma giang vien tu phien dang nhap. Hay dang xuat va dang nhap lai de dong bo lich va lop phu trach.
+        Chưa lấy được mã giảng viên từ phiên đăng nhập. Hãy đăng xuất và đăng nhập lại để đồng bộ lịch và lớp phụ trách.
       </div>
     );
   }
@@ -193,12 +193,12 @@ export default function LecturerClassList() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
             <Layers3 className="h-4 w-4" />
-            {selectedSemester?.semesterName || selectedSemester?.semesterCode || "Tat ca hoc ky"}
+            {selectedSemester?.semesterName || selectedSemester?.semesterCode || "Tất cả học kỳ"}
           </div>
           <div className="text-xs text-slate-500">
             {selectedSemester
               ? `${normalizeDate(selectedSemester.startDate)} - ${normalizeDate(selectedSemester.endDate)}`
-              : "Tat ca lop duoc phan cong"}
+              : "Tất cả lớp được phân công"}
           </div>
         </div>
 
@@ -208,20 +208,20 @@ export default function LecturerClassList() {
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="Tim ma lop, ten hoc phan..."
+              placeholder="Tìm mã lớp, tên học phần..."
               className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-emerald-400 dark:border-slate-700 dark:bg-slate-950 sm:w-64"
             />
           </div>
 
           <Select value={selectedSemesterId} onValueChange={setSelectedSemesterId}>
             <SelectTrigger className="h-10 w-full rounded-xl bg-white dark:bg-slate-950 sm:w-56">
-              <SelectValue placeholder="Chon hoc ky" />
+              <SelectValue placeholder="Chọn học kỳ" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_SEMESTERS}>Tat ca hoc ky</SelectItem>
+              <SelectItem value={ALL_SEMESTERS}>Tất cả học kỳ</SelectItem>
               {semesters.map((semester: any) => (
                 <SelectItem key={semester.semesterId} value={semester.semesterId}>
-                  {semester.semesterName || semester.semesterCode || "Hoc ky"}
+                  {semester.semesterName || semester.semesterCode || "Học kỳ"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -235,7 +235,7 @@ export default function LecturerClassList() {
               }`}
             >
               <Grid2X2 className="h-4 w-4" />
-              The
+              Thẻ
             </button>
             <button
               onClick={() => setViewMode("table")}
@@ -244,29 +244,29 @@ export default function LecturerClassList() {
               }`}
             >
               <Table2 className="h-4 w-4" />
-              Bang
+              Bảng
             </button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <SummaryTile icon={BookOpen} label="Lop phu trach" value={summary.total} tone="emerald" />
-        <SummaryTile icon={Clock} label="Tiet yeu cau" value={summary.required} tone="slate" />
-        <SummaryTile icon={CheckCircle2} label="Da day" value={summary.taught} tone="blue" />
-        <SummaryTile icon={AlertCircle} label="Con lai" value={summary.remaining} tone="amber" />
+        <SummaryTile icon={BookOpen} label="Lớp phụ trách" value={summary.total} tone="emerald" />
+        <SummaryTile icon={Clock} label="Tiết yêu cầu" value={summary.required} tone="slate" />
+        <SummaryTile icon={CheckCircle2} label="Đã dạy" value={summary.taught} tone="blue" />
+        <SummaryTile icon={AlertCircle} label="Còn lại" value={summary.remaining} tone="amber" />
       </div>
 
       {loading ? (
         <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white/60 text-slate-500 dark:border-slate-800 dark:bg-slate-900/50">
           <Loader2 className="mb-3 h-8 w-8 animate-spin text-emerald-600" />
-          Dang tai lop phu trach...
+          Đang tải lớp phụ trách...
         </div>
       ) : filteredClasses.length === 0 ? (
         <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/50 text-center dark:border-slate-800 dark:bg-slate-900/40">
           <BookOpen className="mb-3 h-12 w-12 text-slate-300" />
-          <div className="text-base font-bold text-slate-800 dark:text-slate-100">Chua co lop trong hoc ky nay</div>
-          <div className="mt-1 text-sm text-slate-500">Hay chon hoc ky khac hoac kiem tra phan cong giang day.</div>
+          <div className="text-base font-bold text-slate-800 dark:text-slate-100">Chưa có lớp trong học kỳ này</div>
+          <div className="mt-1 text-sm text-slate-500">Hãy chọn học kỳ khác hoặc kiểm tra phân công giảng dạy.</div>
         </div>
       ) : viewMode === "cards" ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -307,11 +307,11 @@ function ClassCard({ item, progress, badge }: { item: any; progress: number; bad
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">{item.courseClassCode || "Chua co ma lop"}</Badge>
+              <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">{item.courseClassCode || "Chưa có mã lớp"}</Badge>
               {badge}
             </div>
-            <h3 className="line-clamp-2 text-lg font-bold text-slate-900 dark:text-white">{item.courseName || "Chua co ten hoc phan"}</h3>
-            <div className="mt-1 text-sm text-slate-500">{item.courseCode || "Hoc phan"} · {item.credits || 0} tin chi</div>
+            <h3 className="line-clamp-2 text-lg font-bold text-slate-900 dark:text-white">{item.courseName || "Chưa có tên học phần"}</h3>
+            <div className="mt-1 text-sm text-slate-500">{item.courseCode || "Học phần"} · {item.credits || 0} tín chỉ</div>
           </div>
           <Link 
             href={`/dashboard/lecturer/attendance?classId=${item.courseClassId}`}
@@ -323,15 +323,15 @@ function ClassCard({ item, progress, badge }: { item: any; progress: number; bad
       </div>
 
       <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
-        <InfoPill icon={CalendarDays} label="Bat dau" value={normalizeDate(item.startDate)} />
-        <InfoPill icon={CalendarDays} label="Ket thuc" value={normalizeDate(item.endDate)} />
-        <InfoPill icon={Clock} label="Da day" value={`${item.taughtPeriods || 0}/${item.requiredPeriods || 0}`} />
-        <InfoPill icon={Users} label="Con lai" value={`${item.remainingPeriods || 0} tiet`} />
+        <InfoPill icon={CalendarDays} label="Bắt đầu" value={normalizeDate(item.startDate)} />
+        <InfoPill icon={CalendarDays} label="Kết thúc" value={normalizeDate(item.endDate)} />
+        <InfoPill icon={Clock} label="Đã dạy" value={`${item.taughtPeriods || 0}/${item.requiredPeriods || 0}`} />
+        <InfoPill icon={Users} label="Còn lại" value={`${item.remainingPeriods || 0} tiết`} />
       </div>
 
       <div className="px-5 pb-5">
         <div className="mb-2 flex items-center justify-between text-xs font-semibold">
-          <span className="text-slate-500">Tien do giang day</span>
+          <span className="text-slate-500">Tiến độ giảng dạy</span>
           <span className="text-emerald-700">{progress}%</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
@@ -361,12 +361,12 @@ function ClassTable({ classes, getProgressPercentage, getAlertBadge }: { classes
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase text-slate-500 dark:border-slate-800 dark:bg-slate-800/60">
             <tr>
-              <th className="px-5 py-4">Lop hoc phan</th>
-              <th className="px-5 py-4">Hoc phan</th>
-              <th className="px-5 py-4 text-center">Tin chi</th>
-              <th className="px-5 py-4">Thoi gian</th>
-              <th className="px-5 py-4 text-center">Tien do</th>
-              <th className="px-5 py-4">Trang thai</th>
+              <th className="px-5 py-4">Lớp học phần</th>
+              <th className="px-5 py-4">Học phần</th>
+              <th className="px-5 py-4 text-center">Tín chỉ</th>
+              <th className="px-5 py-4">Thời gian</th>
+              <th className="px-5 py-4 text-center">Tiến độ</th>
+              <th className="px-5 py-4">Trạng thái</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -377,7 +377,7 @@ function ClassTable({ classes, getProgressPercentage, getAlertBadge }: { classes
                   <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{item.courseClassCode || "-"}</td>
                   <td className="px-5 py-4">
                     <div className="font-semibold text-slate-800 dark:text-slate-100">{item.courseName || "-"}</div>
-                    <div className="text-xs text-slate-400">{item.courseCode || "Hoc phan"}</div>
+                    <div className="text-xs text-slate-400">{item.courseCode || "Học phần"}</div>
                   </td>
                   <td className="px-5 py-4 text-center font-semibold">{item.credits || 0}</td>
                   <td className="px-5 py-4 text-xs text-slate-500">{normalizeDate(item.startDate)} - {normalizeDate(item.endDate)}</td>

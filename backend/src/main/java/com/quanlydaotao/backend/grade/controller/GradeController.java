@@ -28,7 +28,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin/grades")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
 @Tag(name = "Quản lý điểm học phần", description = "API cấu hình cột điểm, nhập điểm thành phần và chốt kết quả học phần")
 public class GradeController {
     private final GradeService gradeService;

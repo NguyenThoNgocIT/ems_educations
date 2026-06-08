@@ -50,7 +50,7 @@ public class StudentController {
     private final StudentImportService studentImportService;
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo sinh viên và tài khoản đăng nhập")
     public ResponseEntity<ApiResponse<AccountCreationResponse>> createStudentForAdmin(
             @Valid @RequestBody StudentAdminCreateRequest request) {
@@ -58,7 +58,7 @@ public class StudentController {
     }
 
     @PostMapping(value = "/admin/import-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin import danh sÃ¡ch sinh viÃªn báº±ng file Excel")
     public ResponseEntity<ApiResponse<StudentImportResponse>> importStudentsFromExcel(
             @RequestParam("file") MultipartFile file) {
@@ -67,21 +67,21 @@ public class StudentController {
     }
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách sinh viên")
     public ResponseEntity<ApiResponse<List<StudentAdminResponse>>> getAllStudentsForAdmin() {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách sinh viên thành công", studentService.getAllStudentsForAdmin()));
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết sinh viên")
     public ResponseEntity<ApiResponse<StudentAdminResponse>> getStudentForAdmin(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin sinh viên thành công", studentService.getStudentForAdmin(id)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật toàn bộ thông tin sinh viên")
     public ResponseEntity<ApiResponse<StudentAdminResponse>> updateStudentForAdmin(
             @PathVariable UUID id,
@@ -90,7 +90,7 @@ public class StudentController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm sinh viên")
     public ResponseEntity<ApiResponse<Void>> deleteStudentForAdmin(@PathVariable UUID id) {
         studentService.deleteStudentForAdmin(id);

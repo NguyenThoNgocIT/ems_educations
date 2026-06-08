@@ -73,12 +73,17 @@ export interface UpdateRoleDto {
 // ─── Menu ─────────────────────────────────────────────────────────────────────
 export interface MenuItem {
   id: string;
+  menuId?: string;
   name: string;
+  menuTitle?: string;
   path?: string;
+  menuUrl?: string;
   icon?: string;
+  menuIcon?: string;
   orderIndex: number;
   parentId?: string | null;
   permissionId?: string | null;
+  permissionCode?: string | null;
   permission?: Permission;
   children?: MenuItem[];
   createdAt?: string;

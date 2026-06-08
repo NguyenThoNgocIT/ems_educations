@@ -21,7 +21,7 @@ public class ContractController {
     private final ContractService contractService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách hợp đồng")
     public ResponseEntity<ApiResponse<List<ContractDto>>> searchContracts(
             @RequestParam(required = false) String keyword,
@@ -33,28 +33,28 @@ public class ContractController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết hợp đồng")
     public ResponseEntity<ApiResponse<ContractDto>> getContract(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy hợp đồng thành công", contractService.getContract(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo hợp đồng")
     public ResponseEntity<ApiResponse<ContractDto>> createContract(@RequestBody ContractDto request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo hợp đồng thành công", contractService.createContract(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật hợp đồng")
     public ResponseEntity<ApiResponse<ContractDto>> updateContract(@PathVariable UUID id, @RequestBody ContractDto request) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật hợp đồng thành công", contractService.updateContract(id, request)));
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm hợp đồng")
     public ResponseEntity<ApiResponse<Void>> deleteContract(@PathVariable UUID id) {
         contractService.deleteContract(id);

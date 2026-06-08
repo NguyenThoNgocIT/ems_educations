@@ -13,6 +13,7 @@ import com.quanlydaotao.backend.role.repository.PermissionRepository;
 import com.quanlydaotao.backend.role.repository.RolePermissionRepository;
 import com.quanlydaotao.backend.role.repository.RoleRepository;
 import com.quanlydaotao.backend.role.service.RoleService;
+import com.quanlydaotao.backend.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,11 +29,14 @@ public class RoleServiceImpl implements RoleService {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final UserRoleRepository userRoleRepository;
     private final RoleMapper roleMapper;
 
     @Override
     public List<RoleDto> getAllRoles() {
-        return roleMapper.toDtoList(roleRepository.findAll());
+        return roleRepository.findAll().stream()
+                .map(this::toDtoWithCounts)
+                .toList();
     }
 
     @Override
@@ -117,8 +121,15 @@ public class RoleServiceImpl implements RoleService {
     }
 
     private RoleDto toDtoWithPermissions(Role role) {
-        RoleDto dto = roleMapper.toDto(role);
+        RoleDto dto = toDtoWithCounts(role);
         dto.setPermissions(getRolePermissions(role.getRoleId()));
+        return dto;
+    }
+
+    private RoleDto toDtoWithCounts(Role role) {
+        RoleDto dto = roleMapper.toDto(role);
+        dto.setUserCount(userRoleRepository.countActiveUsersByRoleId(role.getRoleId()));
+        dto.setPermissionCount(rolePermissionRepository.countActiveByRoleId(role.getRoleId()));
         return dto;
     }
 

@@ -22,7 +22,7 @@ public class DepartmentController {
     private final DepartmentService departmentService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách khoa")
     public ResponseEntity<ApiResponse<List<DepartmentDto>>> searchDepartments(
             @RequestParam(required = false) String keyword,
@@ -31,28 +31,28 @@ public class DepartmentController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết khoa")
     public ResponseEntity<ApiResponse<DepartmentDto>> getDepartment(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy khoa thành công", departmentService.getDepartment(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo khoa")
     public ResponseEntity<ApiResponse<DepartmentDto>> createDepartment(@RequestBody DepartmentDto request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo khoa thành công", departmentService.createDepartment(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật khoa")
     public ResponseEntity<ApiResponse<DepartmentDto>> updateDepartment(@PathVariable UUID id, @RequestBody DepartmentDto request) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật khoa thành công", departmentService.updateDepartment(id, request)));
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm khoa")
     public ResponseEntity<ApiResponse<Void>> deleteDepartment(@PathVariable UUID id) {
         departmentService.deleteDepartment(id);

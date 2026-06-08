@@ -21,7 +21,7 @@ public class PermissionController {
     private final PermissionService permissionService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','PERMISSION_VIEW')")
     @Operation(summary = "Admin lấy danh sách quyền")
     public ResponseEntity<ApiResponse<List<PermissionDto>>> searchPermissions(
             @RequestParam(required = false) String module,
@@ -30,28 +30,28 @@ public class PermissionController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','PERMISSION_VIEW')")
     @Operation(summary = "Admin lấy chi tiết quyền")
     public ResponseEntity<ApiResponse<PermissionDto>> getPermission(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy quyền thành công", permissionService.getPermission(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','PERMISSION_CREATE')")
     @Operation(summary = "Admin tạo quyền")
     public ResponseEntity<ApiResponse<PermissionDto>> createPermission(@RequestBody PermissionDto request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo quyền thành công", permissionService.createPermission(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','PERMISSION_EDIT')")
     @Operation(summary = "Admin cập nhật quyền")
     public ResponseEntity<ApiResponse<PermissionDto>> updatePermission(@PathVariable UUID id, @RequestBody PermissionDto request) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật quyền thành công", permissionService.updatePermission(id, request)));
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','PERMISSION_DELETE')")
     @Operation(summary = "Admin xóa mềm quyền")
     public ResponseEntity<ApiResponse<Void>> deletePermission(@PathVariable UUID id) {
         permissionService.deletePermission(id);
@@ -59,21 +59,21 @@ public class PermissionController {
     }
 
     @GetMapping("/admin/{id}/apis")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','PERMISSION_VIEW','PERMISSION_API_VIEW')")
     @Operation(summary = "Admin xem mapping API của quyền")
     public ResponseEntity<ApiResponse<List<PermissionApiDto>>> getPermissionApis(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy mapping API của quyền thành công", permissionService.getPermissionApis(id)));
     }
 
     @PostMapping("/admin/apis")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','PERMISSION_EDIT','PERMISSION_API_EDIT')")
     @Operation(summary = "Admin tạo mapping quyền với API")
     public ResponseEntity<ApiResponse<PermissionApiDto>> createPermissionApi(@RequestBody PermissionApiDto request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo mapping quyền API thành công", permissionService.createPermissionApi(request)));
     }
 
     @DeleteMapping("/admin/{permissionId}/apis")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','PERMISSION_EDIT','PERMISSION_API_EDIT')")
     @Operation(summary = "Admin xóa mềm mapping quyền với API")
     public ResponseEntity<ApiResponse<Void>> deletePermissionApi(
             @PathVariable UUID permissionId,

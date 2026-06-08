@@ -23,7 +23,7 @@ public class StudentSpecializationController {
     private final StudentSpecializationService studentSpecializationService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy lịch sử phân chuyên ngành sinh viên")
     public ResponseEntity<ApiResponse<List<StudentSpecializationHistoryResponse>>> search(
             @RequestParam(required = false) UUID studentId,
@@ -36,7 +36,7 @@ public class StudentSpecializationController {
     }
 
     @PostMapping("/admin/assign")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin gán chuyên ngành cho sinh viên")
     public ResponseEntity<ApiResponse<StudentSpecializationHistoryResponse>> assign(@Valid @RequestBody StudentSpecializationAssignRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Gán chuyên ngành cho sinh viên thành công",

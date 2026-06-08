@@ -34,7 +34,7 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_VIEW')")
     @Operation(summary = "Admin tìm kiếm danh sách tài khoản")
     public ResponseEntity<ApiResponse<Page<UserAdminResponse>>> searchUsersForAdmin(
             @RequestParam(required = false) String keyword,
@@ -45,14 +45,14 @@ public class UserController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_VIEW')")
     @Operation(summary = "Admin lấy chi tiết tài khoản")
     public ResponseEntity<ApiResponse<UserAdminResponse>> getUserForAdmin(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin tài khoản thành công", userService.getUserForAdmin(id)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_EDIT')")
     @Operation(summary = "Admin cập nhật trạng thái và bảo mật tài khoản")
     public ResponseEntity<ApiResponse<UserAdminResponse>> updateUserForAdmin(
             @PathVariable UUID id,
@@ -61,7 +61,7 @@ public class UserController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_DELETE')")
     @Operation(summary = "Admin xóa mềm tài khoản")
     public ResponseEntity<ApiResponse<Void>> deleteUserForAdmin(@PathVariable UUID id) {
         userService.deleteUserForAdmin(id);
@@ -69,7 +69,7 @@ public class UserController {
     }
 
     @PutMapping("/admin/{id}/lock")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_EDIT')")
     @Operation(summary = "Admin khóa tài khoản")
     public ResponseEntity<ApiResponse<Void>> lockUser(@PathVariable UUID id, @RequestBody LockUserAdminRequest request) {
         userService.lockUser(id, request);
@@ -77,7 +77,7 @@ public class UserController {
     }
 
     @PutMapping("/admin/{id}/unlock")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_EDIT')")
     @Operation(summary = "Admin mở khóa tài khoản")
     public ResponseEntity<ApiResponse<Void>> unlockUser(@PathVariable UUID id) {
         userService.unlockUser(id);
@@ -85,7 +85,7 @@ public class UserController {
     }
 
     @PutMapping("/admin/{id}/restore")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_EDIT')")
     @Operation(summary = "Admin khôi phục tài khoản đã xóa mềm")
     public ResponseEntity<ApiResponse<Void>> restoreUser(@PathVariable UUID id) {
         userService.restoreUser(id);
@@ -93,14 +93,14 @@ public class UserController {
     }
 
     @GetMapping("/admin/{id}/sessions")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_VIEW')")
     @Operation(summary = "Admin lấy danh sách phiên đăng nhập của tài khoản")
     public ResponseEntity<ApiResponse<List<UserSession>>> getUserSessions(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách phiên đăng nhập thành công", userService.getUserSessions(id)));
     }
 
     @DeleteMapping("/admin/{id}/sessions")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_DELETE')")
     @Operation(summary = "Admin thu hồi toàn bộ phiên đăng nhập của tài khoản")
     public ResponseEntity<ApiResponse<Void>> revokeAllUserSessions(@PathVariable UUID id) {
         userService.revokeAllUserSessions(id);
@@ -108,14 +108,14 @@ public class UserController {
     }
 
     @GetMapping("/admin/{id}/roles")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_VIEW','ROLE_VIEW')")
     @Operation(summary = "Admin lấy danh sách vai trò của tài khoản")
     public ResponseEntity<ApiResponse<List<String>>> getUserRoles(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy vai trò của tài khoản thành công", userService.getUserRoles(id)));
     }
 
     @PutMapping("/admin/{id}/roles")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','USER_EDIT','ROLE_EDIT')")
     @Operation(summary = "Admin gán vai trò cho tài khoản")
     public ResponseEntity<ApiResponse<UserAdminResponse>> assignRoles(
             @PathVariable UUID id,

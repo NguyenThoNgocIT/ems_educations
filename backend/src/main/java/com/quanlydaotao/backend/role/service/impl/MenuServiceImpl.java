@@ -1,5 +1,6 @@
 package com.quanlydaotao.backend.role.service.impl;
 
+import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.role.dto.MenuDto;
 import com.quanlydaotao.backend.role.entity.Menus;
@@ -14,6 +15,7 @@ import com.quanlydaotao.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +44,7 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public MenuDto createMenu(MenuDto request) {
+        validateMenu(request);
         Menus menu = menuMapper.toEntity(request);
         applyPermission(menu, request);
         if (menu.getIsActive() == null) {
@@ -53,6 +56,7 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public MenuDto updateMenu(UUID id, MenuDto request) {
+        validateMenu(request);
         Menus menu = findMenu(id);
         menuMapper.updateEntityFromDto(request, menu);
         applyPermission(menu, request);
@@ -76,7 +80,9 @@ public class MenuServiceImpl implements MenuService {
         List<Menus> menus = permissionCodes.isEmpty()
                 ? menuRepository.findByIsActiveTrueAndPermissionIsNullOrderByOrderIndexAscMenuTitleAsc()
                 : menuRepository.findVisibleMenus(permissionCodes);
-        return menuMapper.toDtoList(menus);
+        return menuMapper.toDtoList(menus.stream()
+                .filter(menu -> StringUtils.hasText(menu.getMenuTitle()))
+                .toList());
     }
 
     private Menus findMenu(UUID id) {
@@ -89,6 +95,14 @@ public class MenuServiceImpl implements MenuService {
             Permission permission = permissionRepository.findById(request.getPermissionId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy quyền của menu"));
             menu.setPermission(permission);
+        } else {
+            menu.setPermission(null);
+        }
+    }
+
+    private void validateMenu(MenuDto request) {
+        if (!StringUtils.hasText(request.getMenuTitle())) {
+            throw new BusinessException("Ten menu khong duoc de trong");
         }
     }
 }

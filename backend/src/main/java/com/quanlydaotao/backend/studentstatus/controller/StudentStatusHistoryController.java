@@ -31,7 +31,7 @@ public class StudentStatusHistoryController {
     private final StudentStatusHistoryService studentStatusHistoryService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy lịch sử trạng thái sinh viên")
     public ResponseEntity<ApiResponse<List<StudentStatusHistoryResponse>>> search(
             @RequestParam(required = false) UUID studentId,
@@ -43,21 +43,21 @@ public class StudentStatusHistoryController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết lịch sử trạng thái sinh viên")
     public ResponseEntity<ApiResponse<StudentStatusHistoryResponse>> get(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử trạng thái sinh viên thành công", studentStatusHistoryService.getHistory(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo lịch sử trạng thái sinh viên")
     public ResponseEntity<ApiResponse<StudentStatusHistoryResponse>> create(@Valid @RequestBody StudentStatusHistoryRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo lịch sử trạng thái sinh viên thành công", studentStatusHistoryService.createHistory(request)));
     }
 
     @PostMapping("/admin/current")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin gán trạng thái hiện tại cho sinh viên")
     public ResponseEntity<ApiResponse<StudentStatusHistoryResponse>> setCurrent(@Valid @RequestBody StudentStatusHistoryRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Gán trạng thái hiện tại cho sinh viên thành công",
@@ -66,7 +66,7 @@ public class StudentStatusHistoryController {
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật lịch sử trạng thái sinh viên")
     public ResponseEntity<ApiResponse<StudentStatusHistoryResponse>> update(@PathVariable UUID id,
                                                                            @RequestBody StudentStatusHistoryRequest request) {
@@ -75,7 +75,7 @@ public class StudentStatusHistoryController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm lịch sử trạng thái sinh viên")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         studentStatusHistoryService.deleteHistory(id);

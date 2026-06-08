@@ -21,7 +21,7 @@ public class DegreeController {
     private final DegreeService degreeService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách trình độ")
     public ResponseEntity<ApiResponse<List<DegreeDto>>> searchDegrees(
             @RequestParam(required = false) String keyword,
@@ -32,28 +32,28 @@ public class DegreeController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết trình độ")
     public ResponseEntity<ApiResponse<DegreeDto>> getDegree(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy trình độ thành công", degreeService.getDegree(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo trình độ")
     public ResponseEntity<ApiResponse<DegreeDto>> createDegree(@RequestBody DegreeDto request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo trình độ thành công", degreeService.createDegree(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật trình độ")
     public ResponseEntity<ApiResponse<DegreeDto>> updateDegree(@PathVariable UUID id, @RequestBody DegreeDto request) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật trình độ thành công", degreeService.updateDegree(id, request)));
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm trình độ")
     public ResponseEntity<ApiResponse<Void>> deleteDegree(@PathVariable UUID id) {
         degreeService.deleteDegree(id);

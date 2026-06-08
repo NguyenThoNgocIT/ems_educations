@@ -4,6 +4,7 @@ import com.quanlydaotao.backend.common.dto.ApiResponse;
 import jakarta.persistence.NonUniqueResultException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -39,6 +40,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
         return buildErrorResponse(ErrorCode.VALIDATION_ERROR, resolveValidationMessage(ex));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        return buildErrorResponse(ErrorCode.BAD_REQUEST, "Du lieu JSON khong hop le hoac sai kieu du lieu.");
     }
 
     @ExceptionHandler({IncorrectResultSizeDataAccessException.class, NonUniqueResultException.class})

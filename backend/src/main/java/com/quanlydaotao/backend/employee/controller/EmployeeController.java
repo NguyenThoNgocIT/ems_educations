@@ -24,14 +24,14 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách nhân viên")
     public ResponseEntity<ApiResponse<List<EmployeeAdminResponse>>> getAllEmployeesForAdmin() {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách nhân viên thành công", employeeService.getAllEmployeesForAdmin()));
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết nhân viên")
     public ResponseEntity<ApiResponse<EmployeeAdminResponse>> getEmployeeForAdmin(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin nhân viên thành công", employeeService.getEmployeeForAdmin(id)));

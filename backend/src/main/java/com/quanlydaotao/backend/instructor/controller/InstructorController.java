@@ -41,7 +41,7 @@ public class InstructorController {
     private final ScheduleQueryService scheduleQueryService;
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo giảng viên và tài khoản đăng nhập")
     public ResponseEntity<ApiResponse<AccountCreationResponse>> createInstructorForAdmin(
             @Valid @RequestBody InstructorAdminCreateRequest request) {
@@ -49,21 +49,21 @@ public class InstructorController {
     }
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách giảng viên")
     public ResponseEntity<ApiResponse<List<InstructorAdminResponse>>> getAllInstructorsForAdmin() {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách giảng viên thành công", instructorService.getAllInstructorsForAdmin()));
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết giảng viên")
     public ResponseEntity<ApiResponse<InstructorAdminResponse>> getInstructorForAdmin(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin giảng viên thành công", instructorService.getInstructorForAdmin(id)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật toàn bộ thông tin giảng viên")
     public ResponseEntity<ApiResponse<InstructorAdminResponse>> updateInstructorForAdmin(
             @PathVariable UUID id,
@@ -72,7 +72,7 @@ public class InstructorController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm giảng viên")
     public ResponseEntity<ApiResponse<Void>> deleteInstructorForAdmin(@PathVariable UUID id) {
         instructorService.deleteInstructorForAdmin(id);

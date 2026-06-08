@@ -23,6 +23,8 @@ interface AddUserModalProps {
   onSave: (userData: any) => void;
 }
 
+type AccountType = 'STUDENT' | 'LECTURER' | 'STAFF';
+
 const removeVietnameseTones = (str: string) => {
   str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, 'a');
   str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, 'e');
@@ -51,6 +53,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
   const [dob, setDob] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [accountType, setAccountType] = useState<AccountType>('STUDENT');
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [roleSearch, setRoleSearch] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -86,7 +89,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
         setCohorts(parseUserList(cohortsRes));
         setPrograms(parseUserList(programsRes));
       } catch (err) {
-        console.error('Lỗi khi tải metadata để tạo user:', err);
+        console.error('Lỗi khi tải dữ liệu nền để tạo người dùng:', err);
       }
     };
     if (isOpen) {
@@ -115,16 +118,49 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
     if (programs.length > 0 && !selectedProgramId) setSelectedProgramId(programs[0].trainingProgramId || programs[0].id);
   }, [programs, selectedProgramId]);
 
-  // Derive user type based on selected roles
-  const rolesInfo = Array.from(selectedRoles).map(roleId => allRoles.find(r => (r.id || r.roleId) === roleId));
-  const isStudent = rolesInfo.some(r => r?.code === 'STUDENT');
-  const isLecturer = rolesInfo.some(r => r?.code === 'LECTURER');
-  const isStaff = rolesInfo.some(r => r && r.code !== 'STUDENT' && r.code !== 'LECTURER') || selectedRoles.size === 0;
+  useEffect(() => {
+    if (!isOpen) return;
+    const baseRole = allRoles.find(r => r.code === accountType);
+    const baseRoleId = baseRole?.id || baseRole?.roleId;
+    setSelectedRoles(prev => {
+      const objectRoleCodes = new Set(['STUDENT', 'LECTURER', 'STAFF']);
+      const next = new Set(
+        Array.from(prev).filter(roleId => {
+          const role = allRoles.find(r => (r.id || r.roleId) === roleId);
+          return !role || !objectRoleCodes.has(role.code) || role.code === accountType;
+        }),
+      );
+      if (baseRoleId) next.add(baseRoleId);
+      return next;
+    });
+  }, [accountType, allRoles, isOpen]);
+
+  const isStudent = accountType === 'STUDENT';
+  const isLecturer = accountType === 'LECTURER';
+  const isStaff = accountType === 'STAFF';
+  const filteredMajors = selectedDepartmentId
+    ? majors.filter(m => String(m.departmentId || m.department?.departmentId || m.department?.id || '') === String(selectedDepartmentId))
+    : majors;
+  const filteredPrograms = programs.filter(p => {
+    const programMajorId = String(p.majorId || p.major?.majorId || p.major?.id || '');
+    const programCohortId = String(p.academicCohortId || p.cohortId || p.academicCohort?.cohortId || p.academicCohort?.id || '');
+    return (!selectedMajorId || !programMajorId || programMajorId === String(selectedMajorId))
+      && (!selectedCohortId || !programCohortId || programCohortId === String(selectedCohortId));
+  });
+
+  useEffect(() => {
+    if (!isStudent || !selectedMajorId) return;
+    const stillValid = filteredMajors.some(m => String(m.majorId || m.id) === String(selectedMajorId));
+    if (!stillValid) {
+      setSelectedMajorId('');
+      setSelectedProgramId('');
+    }
+  }, [isStudent, selectedDepartmentId, selectedMajorId, majors]);
 
   const isFormValid = (() => {
     if (!fullName || !dob) return false;
     if (isStudent) {
-      return !!selectedMajorId && !!selectedCohortId && !!selectedProgramId;
+      return !!selectedDepartmentId && !!selectedCohortId;
     }
     if (isLecturer) {
       return !!selectedDepartmentId;
@@ -144,7 +180,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
     const cleanName = removeVietnameseTones(fullName.trim())
       .toLowerCase()
       .replace(/\s+/g, '.');
-    setEmail(`${cleanName}@uems.edu.vn`);
+    setEmail(`${cleanName}@donga.edu.vn`);
   }, [fullName]);
 
   // Auto-generate Password from DoB (DDMMYYYY)
@@ -169,13 +205,19 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
   };
 
   const handleSave = () => {
+    const roleIds = new Set(selectedRoles);
+    const baseRole = allRoles.find(r => r.code === accountType);
+    const baseRoleId = baseRole?.id || baseRole?.roleId;
+    if (baseRoleId) roleIds.add(baseRoleId);
+
     onSave({
       fullName,
       dob,
       email,
       password,
-      roles: Array.from(selectedRoles),
+      roles: Array.from(roleIds),
       avatar,
+      accountType,
       isStudent,
       isLecturer,
       isStaff,
@@ -188,6 +230,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
     // Reset form
     setFullName('');
     setDob('');
+    setAccountType('STUDENT');
     setSelectedRoles(new Set());
     setAvatar(null);
     setSelectedDivisionId('');
@@ -218,7 +261,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
           <button 
             onClick={onClose} 
             className="p-2 rounded-xl hover:bg-gray-200/50 dark:hover:bg-gray-700/50 text-gray-400 transition"
-            aria-label="Close"
+            aria-label="Đóng"
           >
             <X size={20} />
           </button>
@@ -258,12 +301,53 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Loại đối tượng <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'STUDENT', label: 'Sinh viên' },
+                      { value: 'LECTURER', label: 'Giảng viên' },
+                      { value: 'STAFF', label: 'Nhân viên' },
+                    ].map(option => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setAccountType(option.value as AccountType)}
+                        className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                          accountType === option.value
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+                            : 'border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Dynamically show additional fields based on selected roles */}
                 {isStudent && (
                   <div className="space-y-4 pt-2">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        Ngành học <span className="text-red-500">*</span>
+                        Khoa <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedDepartmentId}
+                        onChange={e => setSelectedDepartmentId(e.target.value)}
+                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
+                      >
+                        <option value="">-- Chọn khoa --</option>
+                        {departments.map(d => (
+                          <option key={d.departmentId || d.id} value={d.departmentId || d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Ngành học
                       </label>
                       <select
                         value={selectedMajorId}
@@ -271,7 +355,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                         className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
                       >
                         <option value="">-- Chọn ngành học --</option>
-                        {majors.map(m => (
+                        {filteredMajors.map(m => (
                           <option key={m.majorId || m.id} value={m.majorId || m.id}>{m.name}</option>
                         ))}
                       </select>
@@ -293,7 +377,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        Chương trình đào tạo <span className="text-red-500">*</span>
+                        Chương trình đào tạo
                       </label>
                       <select
                         value={selectedProgramId}
@@ -301,7 +385,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                         className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
                       >
                         <option value="">-- Chọn chương trình đào tạo --</option>
-                        {programs.map(p => (
+                        {filteredPrograms.map(p => (
                           <option key={p.trainingProgramId || p.id} value={p.trainingProgramId || p.id}>{p.name}</option>
                         ))}
                       </select>
@@ -350,7 +434,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                 )}
 
                 <div className="pt-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Avatar Preview</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Xem trước ảnh đại diện</label>
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border-2 border-dashed border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-500 overflow-hidden">
                       {avatar ? (
@@ -363,7 +447,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                     </div>
                     <label className="px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg hover:bg-emerald-100 transition border border-emerald-200 dark:border-emerald-800/50 cursor-pointer">
                       <Upload size={14} className="inline mr-1" />
-                      Upload ảnh
+                      Tải ảnh lên
                       <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
                     </label>
                   </div>
@@ -389,7 +473,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                       type="email" 
                       value={email}
                       readOnly
-                      placeholder="email@uems.edu.vn" 
+                      placeholder="email@donga.edu.vn" 
                       className="w-full pl-4 pr-10 py-2.5 text-sm rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 italic cursor-not-allowed" 
                     />
                     <RefreshCw size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300" />
@@ -410,7 +494,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                     />
                     <Key size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300" />
                   </div>
-                  <p className="mt-1.5 text-[11px] text-gray-400 italic">Mật khẩu này sẽ được gửi qua email cho user sau khi tạo</p>
+                  <p className="mt-1.5 text-[11px] text-gray-400 italic">Mật khẩu này sẽ được gửi qua email cho người dùng sau khi tạo</p>
                 </div>
 
                 <div className="space-y-3">
@@ -422,7 +506,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                         type="text"
                         value={roleSearch}
                         onChange={(e) => setRoleSearch(e.target.value)}
-                        placeholder="Tìm role..."
+                        placeholder="Tìm vai trò..."
                         className="w-full pl-6 pr-2 py-1 text-[11px] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-1 focus:ring-emerald-500/30"
                       />
                     </div>
@@ -434,8 +518,8 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                         <thead className="sticky top-0 bg-white dark:bg-gray-900 shadow-sm text-gray-400 font-medium border-b border-gray-100 dark:border-gray-800">
                           <tr>
                             <th className="py-2 px-3 w-8"></th>
-                            <th className="py-2 px-2">Role</th>
-                            <th className="py-2 px-2 text-right pr-4 text-[11px] uppercase tracking-tighter">Perms</th>
+                            <th className="py-2 px-2">Vai trò</th>
+                            <th className="py-2 px-2 text-right pr-4 text-[11px] uppercase tracking-tighter">Quyền</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
@@ -500,7 +584,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Auto-pilot user creation active</p>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Sẵn sàng tạo tài khoản tự động</p>
           </div>
           
           <div className="flex gap-3">
@@ -521,7 +605,7 @@ export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModal
                   : 'bg-gray-300 cursor-not-allowed shadow-none'
               }`}
             >
-              <span>Tạo user</span>
+              <span>Tạo người dùng</span>
               <Check size={16} />
             </button>
           </div>

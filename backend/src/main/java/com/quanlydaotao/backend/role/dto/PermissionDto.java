@@ -13,6 +13,7 @@ public class PermissionDto {
     private String description;
     private String module;
     private Boolean isActive;
+    private Long apiCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

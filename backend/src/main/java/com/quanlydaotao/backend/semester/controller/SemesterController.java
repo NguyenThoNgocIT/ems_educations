@@ -23,7 +23,7 @@ public class SemesterController {
     private final SemesterService semesterService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách học kỳ")
     public ResponseEntity<ApiResponse<List<SemesterResponse>>> searchSemesters(
             @RequestParam(required = false) String keyword,
@@ -35,21 +35,21 @@ public class SemesterController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết học kỳ")
     public ResponseEntity<ApiResponse<SemesterResponse>> getSemester(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy học kỳ thành công", semesterService.getSemester(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo học kỳ")
     public ResponseEntity<ApiResponse<SemesterResponse>> createSemester(@Valid @RequestBody SemesterRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo học kỳ thành công", semesterService.createSemester(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật học kỳ")
     public ResponseEntity<ApiResponse<SemesterResponse>> updateSemester(@PathVariable UUID id,
                                                                         @Valid @RequestBody SemesterRequest request) {
@@ -57,7 +57,7 @@ public class SemesterController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm học kỳ")
     public ResponseEntity<ApiResponse<Void>> deleteSemester(@PathVariable UUID id) {
         semesterService.deleteSemester(id);

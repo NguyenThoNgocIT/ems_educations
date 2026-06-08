@@ -21,7 +21,7 @@ public class AutoScheduleController {
     private final AutoScheduleService autoScheduleService;
 
     @PostMapping("/generate/{semesterId}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Kích hoạt tiến trình xếp lịch tự động cho một học kỳ")
     public ResponseEntity<ApiResponse<String>> generateSchedule(@PathVariable UUID semesterId) {
         autoScheduleService.generateScheduleForSemester(semesterId);
@@ -29,7 +29,7 @@ public class AutoScheduleController {
     }
 
     @GetMapping("/status/{semesterId}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Kiểm tra trạng thái tiến trình xếp lịch tự động")
     public ResponseEntity<ApiResponse<String>> getSolverStatus(@PathVariable UUID semesterId) {
         SolverStatus status = autoScheduleService.getSolverStatus(semesterId);

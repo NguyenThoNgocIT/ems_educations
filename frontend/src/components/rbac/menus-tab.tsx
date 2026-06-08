@@ -1,38 +1,99 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Menu,
-  Plus,
-  ChevronRight,
-  ChevronDown,
-  Key,
-  Unlink,
-  Pencil,
-  Trash2,
-  Lock,
-  RefreshCw,
   AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Key,
+  Layers,
+  Lock,
+  Menu,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Route,
+  Trash2,
+  Unlink,
   UploadCloud,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { menuApi, permissionApi } from '@/api/rbac';
+import type { CreateMenuDto, MenuItem as MenuItemType, Permission, UpdateMenuDto } from '@/types/rbac';
 import { Modal } from '@/components/ui/modal';
 import { ExcelImportModal } from './excel-import-modal';
-import { menuApi, permissionApi } from '@/api/rbac';
-import type { MenuItem as MenuItemType, Permission, CreateMenuDto, UpdateMenuDto } from '@/types/rbac';
 import { EmptyState } from './shared';
 
-const PREDEFINED_ICONS = ['📄', '📁', '📊', '👥', '📚', '🎓', '📅', '🏢', '⚙️', '🛡️', '🔧', '📈'];
-const PREDEFINED_PATHS = [
-  { label: '--- Không có đường dẫn (Menu nhóm) ---', value: '' },
-  { label: 'Tổng quan (Dashboard)', value: '/dashboard/admin' },
-  { label: 'Quản lý sinh viên', value: '/dashboard/admin/students' },
-  { label: 'Quản lý giảng viên', value: '/dashboard/admin/lecturers' },
-  { label: 'Quản lý khóa học', value: '/dashboard/admin/courses' },
-  { label: 'Quản lý lớp học', value: '/dashboard/admin/course-classes' },
-  { label: 'Quản lý lịch học', value: '/dashboard/admin/schedules' },
-  { label: 'Quản lý phòng học', value: '/dashboard/admin/rooms' },
-  { label: 'Phân quyền (RBAC)', value: '/dashboard/admin/rbac' },
-  { label: '--- Đường dẫn tùy chỉnh (Tự nhập) ---', value: 'CUSTOM' }
+const ICON_OPTIONS = [
+  { value: 'layout-dashboard', label: 'Bảng điều khiển' },
+  { value: 'users', label: 'Người dùng/Sinh viên' },
+  { value: 'user', label: 'Cá nhân/Giảng viên' },
+  { value: 'book-open', label: 'Học phần' },
+  { value: 'calendar-days', label: 'Lịch học' },
+  { value: 'landmark', label: 'Khoa/Đơn vị' },
+  { value: 'graduation-cap', label: 'Đào tạo' },
+  { value: 'building', label: 'Cơ sở vật chất' },
+  { value: 'shield-check', label: 'Hệ thống/RBAC' },
+  { value: 'key', label: 'Quyền' },
+  { value: 'menu', label: 'Menu' },
+  { value: 'file-text', label: 'Tài liệu' },
 ];
+
+const PATH_OPTIONS = [
+  { group: 'Tổng quan', items: [{ label: 'Bảng điều khiển', value: '/dashboard/admin' }] },
+  {
+    group: 'Hồ sơ nhân sự',
+    items: [
+      { label: 'Sinh viên', value: '/dashboard/admin/students' },
+      { label: 'Giảng viên', value: '/dashboard/admin/lecturers' },
+      { label: 'Nhân viên', value: '/dashboard/admin/staffs' },
+      { label: 'Phân lớp theo học kỳ', value: '/dashboard/admin/student-class-assignments' },
+    ],
+  },
+  {
+    group: 'Cơ cấu đào tạo',
+    items: [
+      { label: 'Khoa / đơn vị', value: '/dashboard/admin/departments' },
+      { label: 'Bộ phận chuyên môn', value: '/dashboard/admin/divisions' },
+      { label: 'Chức vụ', value: '/dashboard/admin/positions' },
+      { label: 'Bằng cấp', value: '/dashboard/admin/degrees' },
+      { label: 'Ngành học', value: '/dashboard/admin/majors' },
+      { label: 'Chuyên ngành', value: '/dashboard/admin/specializations' },
+      { label: 'Khóa đào tạo', value: '/dashboard/admin/academic-cohorts' },
+      { label: 'Chương trình đào tạo', value: '/dashboard/admin/training-programs' },
+    ],
+  },
+  {
+    group: 'Niên khóa và giảng dạy',
+    items: [
+      { label: 'Năm học', value: '/dashboard/admin/school-years' },
+      { label: 'Học kỳ', value: '/dashboard/admin/semesters' },
+      { label: 'Lớp hành chính', value: '/dashboard/admin/classes' },
+      { label: 'Môn học', value: '/dashboard/admin/courses' },
+      { label: 'Lớp học phần', value: '/dashboard/admin/course-classes' },
+      { label: 'Lịch học', value: '/dashboard/admin/schedules' },
+      { label: 'Duyệt điều chỉnh lịch', value: '/dashboard/admin/schedule-adjustments' },
+    ],
+  },
+  {
+    group: 'Cơ sở vật chất',
+    items: [
+      { label: 'Tòa nhà', value: '/dashboard/admin/buildings' },
+      { label: 'Phòng học', value: '/dashboard/admin/rooms' },
+      { label: 'Ca học', value: '/dashboard/admin/time-slots' },
+    ],
+  },
+  {
+    group: 'Hệ thống',
+    items: [
+      { label: 'Tài khoản người dùng', value: '/dashboard/admin/users' },
+      { label: 'Phân quyền RBAC', value: '/dashboard/admin/rbac' },
+      { label: 'Yêu cầu đặt lại mật khẩu', value: '/dashboard/admin/password-reset-requests' },
+    ],
+  },
+];
+
+const flatPathOptions = PATH_OPTIONS.flatMap(group => group.items);
+
+const permissionIdOf = (permission: Permission) => permission.id || permission.permissionId || '';
 
 export function MenusTab() {
   const [menus, setMenus] = useState<MenuItemType[]>([]);
@@ -40,20 +101,18 @@ export function MenusTab() {
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [modal, setModal] = useState<{ mode: 'create' | 'edit' | 'delete'; item?: MenuItemType; parentId?: string | null } | null>(null);
-  const [form, setForm] = useState<CreateMenuDto>({ name: '', path: '', icon: '📄', orderIndex: 0, parentId: null, permissionId: null });
+  const [form, setForm] = useState<CreateMenuDto>({ name: '', path: '', icon: 'menu', orderIndex: 0, parentId: null, permissionId: null });
+  const [menuKind, setMenuKind] = useState<'group' | 'screen'>('screen');
   const [saving, setSaving] = useState(false);
-  const [isCustomPath, setIsCustomPath] = useState(false);
   const [showImport, setShowImport] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [menuRes, permRes]: any = await Promise.all([menuApi.getAll(), permissionApi.getAll()]);
-      const menuList: MenuItemType[] = Array.isArray(menuRes?.data) ? menuRes.data : Array.isArray(menuRes) ? menuRes : [];
-      setMenus(menuList);
-      // Auto-expand top level
-      setExpandedIds(new Set(menuList.filter(m => !m.parentId).map(m => m.id)));
-      setAllPermissions(Array.isArray(permRes?.data) ? permRes.data : Array.isArray(permRes) ? permRes : []);
+      const [menuRes, permRes] = await Promise.all([menuApi.getAll(), permissionApi.getAll()]);
+      setMenus(menuRes);
+      setAllPermissions(permRes);
+      setExpandedIds(new Set(menuRes.filter(menu => !menu.parentId).map(menu => menu.id)));
     } catch {
       toast.error('Không thể tải danh sách menu');
     } finally {
@@ -68,18 +127,16 @@ export function MenusTab() {
       .filter(item => (item.parentId ?? null) === parentId)
       .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
       .map(item => {
-        if (visited.has(item.id)) {
-          return { ...item, children: [] };
-        }
-
+        if (visited.has(item.id)) return { ...item, children: [] };
         const nextVisited = new Set(visited);
         nextVisited.add(item.id);
-
         return { ...item, children: buildTree(items, item.id, nextVisited) };
       });
   };
 
-  const tree = buildTree(menus, null, new Set());
+  const tree = buildTree(menus);
+  const parentMenu = menus.find(menu => menu.id === form.parentId);
+  const selectedPermission = allPermissions.find(permission => permissionIdOf(permission) === form.permissionId);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -90,30 +147,62 @@ export function MenusTab() {
   };
 
   const openCreate = (parentId?: string | null) => {
-    const siblingsCount = menus.filter(m => (m.parentId ?? null) === (parentId ?? null)).length;
-    setForm({ name: '', path: '', icon: '📄', orderIndex: siblingsCount, parentId: parentId ?? null, permissionId: null });
-    setIsCustomPath(false);
-    setModal({ mode: 'create', parentId });
+    const normalizedParentId = parentId ?? null;
+    const siblingsCount = menus.filter(menu => (menu.parentId ?? null) === normalizedParentId).length;
+    setMenuKind(normalizedParentId ? 'screen' : 'group');
+    setForm({
+      name: '',
+      path: '',
+      icon: normalizedParentId ? 'file-text' : 'menu',
+      orderIndex: siblingsCount,
+      parentId: normalizedParentId,
+      permissionId: null,
+    });
+    setModal({ mode: 'create', parentId: normalizedParentId });
   };
 
   const openEdit = (item: MenuItemType) => {
-    setForm({ name: item.name, path: item.path || '', icon: item.icon || '📄', orderIndex: item.orderIndex, parentId: item.parentId ?? null, permissionId: item.permissionId ?? null });
-    setIsCustomPath(!PREDEFINED_PATHS.some(p => p.value === (item.path || '')));
+    setMenuKind(item.path ? 'screen' : 'group');
+    setForm({
+      name: item.name,
+      path: item.path || '',
+      icon: item.icon || 'menu',
+      orderIndex: item.orderIndex ?? 0,
+      parentId: item.parentId ?? null,
+      permissionId: item.permissionId ?? null,
+    });
     setModal({ mode: 'edit', item });
   };
 
   const openDelete = (item: MenuItemType) => setModal({ mode: 'delete', item });
   const closeModal = () => setModal(null);
 
+  const applyPathOption = (path: string) => {
+    const option = flatPathOptions.find(item => item.value === path);
+    setForm(prev => ({
+      ...prev,
+      path,
+      name: prev.name || option?.label || prev.name,
+    }));
+  };
+
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('Tên menu không được để trống'); return; }
+    if (!form.name.trim()) {
+      toast.error('Tên menu không được để trống');
+      return;
+    }
+    const payload: CreateMenuDto = {
+      ...form,
+      path: menuKind === 'group' ? '' : form.path?.trim(),
+      permissionId: form.permissionId || null,
+    };
     setSaving(true);
     try {
       if (modal?.mode === 'create') {
-        await menuApi.create(form);
+        await menuApi.create(payload);
         toast.success('Tạo menu thành công');
       } else if (modal?.mode === 'edit' && modal.item) {
-        await menuApi.update(modal.item.id, form as UpdateMenuDto);
+        await menuApi.update(modal.item.id, payload as UpdateMenuDto);
         toast.success('Cập nhật menu thành công');
       }
       closeModal();
@@ -148,10 +237,10 @@ export function MenusTab() {
         const dto = {
           name: String(row.Name || row.name || '').trim(),
           path: String(row.Path || row.path || '').trim(),
-          icon: String(row.Icon || row.icon || '📄').trim(),
+          icon: String(row.Icon || row.icon || 'menu').trim(),
           orderIndex: Number(row.OrderIndex || row.orderIndex || 0),
           parentId: null,
-          permissionId: null
+          permissionId: null,
         };
         if (dto.name) {
           await menuApi.create(dto);
@@ -159,13 +248,13 @@ export function MenusTab() {
         } else {
           failed++;
         }
-      } catch (e) {
+      } catch {
         failed++;
       }
     }
-    
+
     if (success > 0) {
-      toast.success(`Import thành công ${success} menu gốc.`);
+      toast.success(`Nhập thành công ${success} menu gốc.`);
       fetchData();
     }
     if (failed > 0) {
@@ -177,217 +266,272 @@ export function MenusTab() {
   const MenuNode = ({ item, depth }: { item: MenuItemType; depth: number }) => {
     const hasChildren = (item.children?.length ?? 0) > 0;
     const isExpanded = expandedIds.has(item.id);
-    const linkedPerm = allPermissions.find(p => p.id === item.permissionId);
+    const linkedPerm = allPermissions.find(permission => permissionIdOf(permission) === item.permissionId);
+    const isGroup = !item.path;
 
     return (
       <div>
         <div
-          className={`flex items-center gap-2 py-2.5 px-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/40 transition group ${depth > 0 ? 'ml-6' : ''}`}
+          className={`group flex items-center gap-2 rounded-xl px-3 py-2.5 transition hover:bg-gray-50 dark:hover:bg-gray-800/40 ${depth > 0 ? 'ml-6' : ''}`}
           style={{ paddingLeft: `${12 + depth * 20}px` }}
         >
-          {/* Expand toggle */}
           <button
+            type="button"
             onClick={() => hasChildren && toggleExpand(item.id)}
-            className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ${hasChildren ? 'text-gray-400 hover:text-gray-600' : 'text-transparent'}`}
+            className={`flex h-5 w-5 flex-shrink-0 items-center justify-center ${hasChildren ? 'text-gray-400 hover:text-gray-600' : 'text-transparent'}`}
           >
-            {hasChildren ? (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : <span className="w-3.5 h-3.5 rounded-sm border border-gray-200 dark:border-gray-700 block" />}
+            {hasChildren ? (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : <span className="block h-3.5 w-3.5 rounded-sm border border-gray-200 dark:border-gray-700" />}
           </button>
 
-          {/* Icon */}
-          <span className="w-6 text-center text-base">{item.icon || '📄'}</span>
+          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
+            {isGroup ? <Layers size={14} /> : <Route size={14} />}
+          </span>
 
-          {/* Name + path */}
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{item.name}</span>
-            {item.path && <span className="ml-2 text-xs text-gray-400 font-mono">{item.path}</span>}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{item.name}</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${isGroup ? 'bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-300' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'}`}>
+                {isGroup ? 'Nhóm' : 'Màn hình'}
+              </span>
+            </div>
+            {item.path && <code className="mt-0.5 block truncate text-xs text-gray-400">{item.path}</code>}
           </div>
 
-          {/* Permission badge */}
           {linkedPerm ? (
-            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
+            <span className="hidden max-w-[220px] items-center gap-1 truncate rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-400 sm:inline-flex">
               <Key size={9} /> {linkedPerm.name}
             </span>
           ) : (
-            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] text-gray-400 border border-dashed border-gray-200 dark:border-gray-700">
+            <span className="hidden items-center gap-1 rounded-full border border-dashed border-gray-200 px-2 py-0.5 text-[11px] text-gray-400 dark:border-gray-700 sm:inline-flex">
               <Unlink size={9} /> Công khai
             </span>
           )}
 
-          {/* Order */}
-          <span className="text-xs text-gray-300 dark:text-gray-600 w-5 text-center">{item.orderIndex}</span>
+          <span className="w-8 text-center text-xs text-gray-300 dark:text-gray-600">{item.orderIndex}</span>
 
-          {/* Actions */}
-          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition">
-            <button onClick={() => openCreate(item.id)} className="p-1 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition" title="Thêm menu con">
+          <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+            <button type="button" onClick={() => openCreate(item.id)} className="rounded-lg p-1 text-gray-400 transition hover:bg-emerald-50 hover:text-emerald-600" title="Thêm menu con">
               <Plus size={13} />
             </button>
-            <button onClick={() => openEdit(item)} className="p-1 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition" title="Chỉnh sửa">
+            <button type="button" onClick={() => openEdit(item)} className="rounded-lg p-1 text-gray-400 transition hover:bg-blue-50 hover:text-blue-600" title="Chỉnh sửa">
               <Pencil size={13} />
             </button>
-            <button onClick={() => openDelete(item)} className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition" title="Xóa">
+            <button type="button" onClick={() => openDelete(item)} className="rounded-lg p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-500" title="Xóa">
               <Trash2 size={13} />
             </button>
           </div>
         </div>
 
-        {/* Children */}
         {hasChildren && isExpanded && (
           <div>
-            {item.children!.map((child, index) => (
-              <MenuNode key={child.id || `${item.id}-child-${index}`} item={child} depth={depth + 1} />
-            ))}
+            {item.children!.map(child => <MenuNode key={child.id} item={child} depth={depth + 1} />)}
           </div>
         )}
       </div>
     );
   };
 
-
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 dark:border-emerald-900/40 dark:bg-emerald-900/10">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+            <Layers size={16} /> Nhóm menu
+          </div>
+          <p className="text-xs leading-5 text-emerald-700/80 dark:text-emerald-300/80">
+            Menu gốc không có đường dẫn sẽ là nhóm lớn trên sidebar, ví dụ Hồ sơ nhân sự hoặc Giảng dạy.
+          </p>
+        </div>
+        <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-900/40 dark:bg-blue-900/10">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-800 dark:text-blue-300">
+            <Route size={16} /> Màn hình
+          </div>
+          <p className="text-xs leading-5 text-blue-700/80 dark:text-blue-300/80">
+            Menu có đường dẫn là màn hình người dùng bấm vào, ví dụ Sinh viên, Môn học, RBAC.
+          </p>
+        </div>
+        <div className="rounded-xl border border-violet-100 bg-violet-50/60 p-4 dark:border-violet-900/40 dark:bg-violet-900/10">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-violet-800 dark:text-violet-300">
+            <Lock size={16} /> Quyền hiển thị
+          </div>
+          <p className="text-xs leading-5 text-violet-700/80 dark:text-violet-300/80">
+            Gắn quyền để menu chỉ hiện với người dùng có vai trò chứa quyền đó. Không gắn quyền nghĩa là công khai.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4 text-sm leading-6 text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-300">
+        Menu chỉ điều khiển việc hiển thị trên sidebar. API vẫn phải được bảo vệ ở tab Quyền hạn bằng phần API bảo vệ. Nên dùng cùng một quyền cho cả menu và API để tránh thấy menu nhưng gọi API bị chặn.
+      </div>
+
       <div className="flex justify-end gap-2">
-        <button onClick={() => setShowImport(true)} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition shadow-sm">
-          <UploadCloud size={15} /> Import Excel
+        <button onClick={() => setShowImport(true)} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-800/80">
+          <UploadCloud size={15} /> Nhập Excel
         </button>
-        <button onClick={() => openCreate(null)} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition shadow-sm">
-          <Plus size={15} /> Thêm menu gốc
+        <button onClick={() => openCreate(null)} className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
+          <Plus size={15} /> Thêm nhóm/menu gốc
         </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-        {/* Header row */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-          <span className="flex-1 text-xs font-semibold text-gray-500 uppercase tracking-wider pl-7">Tên menu / Đường dẫn</span>
-          <span className="hidden sm:block text-xs font-semibold text-gray-500 uppercase tracking-wider w-36 text-center">Permission</span>
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider w-10 text-center">Thứ tự</span>
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
+          <span className="flex-1 pl-7 text-xs font-semibold uppercase tracking-wider text-gray-500">Tên menu / đường dẫn</span>
+          <span className="hidden w-52 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 sm:block">Quyền hiển thị</span>
+          <span className="w-10 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Thứ tự</span>
           <span className="w-24" />
         </div>
 
         {loading ? (
-          <div className="p-6 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-10 bg-gray-50 dark:bg-gray-800 rounded-xl animate-pulse" style={{ marginLeft: `${(i % 2) * 20}px` }} />
+          <div className="space-y-3 p-6">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="h-10 animate-pulse rounded-xl bg-gray-50 dark:bg-gray-800" />
             ))}
           </div>
         ) : tree.length === 0 ? (
           <EmptyState
             icon={<Menu size={32} />}
             title="Chưa có menu nào"
-            description="Tạo menu gốc đầu tiên để cấu hình điều hướng"
-            action={<button onClick={() => openCreate(null)} className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm rounded-xl hover:bg-emerald-700 transition"><Plus size={14} /> Thêm menu gốc</button>}
+            description="Tạo nhóm/menu gốc đầu tiên để cấu hình sidebar"
+            action={<button onClick={() => openCreate(null)} className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm text-white transition hover:bg-emerald-700"><Plus size={14} /> Thêm nhóm/menu gốc</button>}
           />
         ) : (
-          <div className="p-2 space-y-0.5">
-            {tree.map((item, index) => (
-              <MenuNode key={item.id || `root-${index}`} item={item} depth={0} />
-            ))}
+          <div className="space-y-0.5 p-2">
+            {tree.map(item => <MenuNode key={item.id} item={item} depth={0} />)}
           </div>
         )}
       </div>
 
-      {/* Modal Create/Edit */}
-      <Modal isOpen={modal?.mode === 'create' || modal?.mode === 'edit'} onClose={closeModal} className="max-w-md w-full mx-4">
+      <Modal isOpen={modal?.mode === 'create' || modal?.mode === 'edit'} onClose={closeModal} className="max-w-lg w-full mx-4">
         <div className="p-6">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-900/30">
               <Menu size={20} className="text-emerald-600" />
             </div>
             <div>
-              <h2 className="font-bold text-gray-900 dark:text-white text-lg">
-                {modal?.mode === 'create' ? (modal.parentId ? 'Thêm menu con' : 'Thêm menu gốc') : 'Chỉnh sửa menu'}
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                {modal?.mode === 'create' ? (modal.parentId ? 'Thêm menu con' : 'Thêm nhóm/menu gốc') : 'Chỉnh sửa menu'}
               </h2>
-              <p className="text-xs text-gray-400">Cấu hình thông tin menu điều hướng</p>
+              <p className="text-xs text-gray-400">
+                {parentMenu ? `Menu cha: ${parentMenu.name}` : 'Menu gốc sẽ nằm cấp đầu tiên trên sidebar'}
+              </p>
             </div>
           </div>
+
           <div className="space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Loại menu</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMenuKind('group')}
+                  className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${menuKind === 'group' ? 'border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-300' : 'border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700'}`}
+                >
+                  Nhóm menu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMenuKind('screen')}
+                  className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${menuKind === 'screen' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700'}`}
+                >
+                  Màn hình có đường dẫn
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-4 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Icon</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Icon</label>
                 <select
-                  value={form.icon || '📄'}
-                  onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition appearance-none"
+                  value={form.icon || 'menu'}
+                  onChange={event => setForm(prev => ({ ...prev, icon: event.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
-                  {PREDEFINED_ICONS.map(icon => (
-                    <option key={icon} value={icon}>{icon}</option>
-                  ))}
+                  {ICON_OPTIONS.map(icon => <option key={icon.value} value={icon.value}>{icon.label}</option>)}
                 </select>
               </div>
               <div className="col-span-3">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tên menu <span className="text-red-500">*</span></label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Tên menu <span className="text-red-500">*</span></label>
                 <input
                   value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="VD: Quản lý sinh viên"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
+                  onChange={event => setForm(prev => ({ ...prev, name: event.target.value }))}
+                  placeholder={menuKind === 'group' ? 'VD: Hồ sơ nhân sự' : 'VD: Sinh viên'}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Đường dẫn (path)</label>
-              {!isCustomPath ? (
+
+            {menuKind === 'screen' && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Đường dẫn màn hình</label>
                 <select
-                  value={PREDEFINED_PATHS.some(p => p.value === form.path) ? form.path : 'CUSTOM'}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === 'CUSTOM') {
-                      setIsCustomPath(true);
-                      setForm(f => ({ ...f, path: '' }));
+                  value={flatPathOptions.some(option => option.value === form.path) ? form.path : 'CUSTOM'}
+                  onChange={event => {
+                    if (event.target.value === 'CUSTOM') {
+                      setForm(prev => ({ ...prev, path: '' }));
                     } else {
-                      setForm(f => ({ ...f, path: val }));
+                      applyPathOption(event.target.value);
                     }
                   }}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
+                  className="mb-2 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
-                  {PREDEFINED_PATHS.map(p => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
+                  <option value="">-- Chọn màn hình có sẵn --</option>
+                  {PATH_OPTIONS.map(group => (
+                    <optgroup key={group.group} label={group.group}>
+                      {group.items.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </optgroup>
                   ))}
+                  <option value="CUSTOM">Tự nhập đường dẫn khác</option>
                 </select>
-              ) : (
-                <div className="flex gap-2">
-                  <input
-                    value={form.path}
-                    onChange={e => setForm(f => ({ ...f, path: e.target.value }))}
-                    placeholder="/dashboard/admin/tuy-chinh"
-                    autoFocus
-                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
-                  />
-                  <button onClick={() => setIsCustomPath(false)} className="px-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 text-sm">Hủy</button>
-                </div>
-              )}
-            </div>
+                <input
+                  value={form.path || ''}
+                  onChange={event => setForm(prev => ({ ...prev, path: event.target.value }))}
+                  placeholder="/dashboard/admin/tuy-chinh"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 font-mono text-sm text-gray-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Thứ tự hiển thị</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Thứ tự hiển thị</label>
                 <input
                   type="number"
-                  disabled
-                  value={form.orderIndex}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-500 text-sm focus:outline-none cursor-not-allowed"
+                  value={form.orderIndex ?? 0}
+                  onChange={event => setForm(prev => ({ ...prev, orderIndex: Number(event.target.value) }))}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  <span className="flex items-center gap-1"><Lock size={12} /> Yêu cầu quyền</span>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="flex items-center gap-1"><Lock size={12} /> Quyền hiển thị menu</span>
                 </label>
                 <select
                   value={form.permissionId ?? ''}
-                  onChange={e => setForm(f => ({ ...f, permissionId: e.target.value || null }))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
+                  onChange={event => setForm(prev => ({ ...prev, permissionId: event.target.value || null }))}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
-                  <option value="">— Công khai —</option>
-                  {allPermissions.map((p, permIndex) => (
-                    <option key={p.id ?? p.permissionId ?? p.code ?? `perm-${permIndex}`} value={p.id ?? p.permissionId ?? ''}>
-                      {p.name}
+                  <option value="">Công khai - ai đăng nhập cũng thấy</option>
+                  {allPermissions.map(permission => (
+                    <option key={permissionIdOf(permission)} value={permissionIdOf(permission)}>
+                      {permission.code ? `${permission.code} - ${permission.name}` : permission.name}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
+
+            <div className={`rounded-xl border px-3 py-2 text-xs leading-5 ${selectedPermission ? 'border-blue-100 bg-blue-50 text-blue-700 dark:border-blue-900/40 dark:bg-blue-900/10 dark:text-blue-300' : 'border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-400'}`}>
+              {selectedPermission ? (
+                <span>Menu này chỉ hiển thị khi người dùng có quyền <strong>{selectedPermission.code}</strong>. Hãy đảm bảo quyền này cũng được gắn API tương ứng ở tab Quyền hạn.</span>
+              ) : (
+                <span>Menu công khai sẽ hiện với mọi tài khoản đã đăng nhập. Chỉ nên dùng cho trang tổng quan hoặc trang không có dữ liệu nhạy cảm.</span>
+              )}
+            </div>
           </div>
-          <div className="flex justify-end gap-2.5 mt-6">
-            <button onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 transition">Hủy</button>
-            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition">
+
+          <div className="mt-6 flex justify-end gap-2.5">
+            <button onClick={closeModal} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700">Hủy</button>
+            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50">
               {saving && <RefreshCw size={13} className="animate-spin" />}
               {modal?.mode === 'create' ? 'Tạo menu' : 'Lưu thay đổi'}
             </button>
@@ -395,22 +539,21 @@ export function MenusTab() {
         </div>
       </Modal>
 
-      {/* Modal Delete */}
       <Modal isOpen={modal?.mode === 'delete'} onClose={closeModal} className="max-w-sm w-full mx-4">
         <div className="p-6 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-900/20">
             <AlertTriangle size={28} className="text-red-500" />
           </div>
-          <h2 className="font-bold text-gray-900 dark:text-white text-lg mb-2">Xóa menu?</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          <h2 className="mb-2 text-lg font-bold text-gray-900 dark:text-white">Xóa menu?</h2>
+          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
             Xóa menu <span className="font-semibold text-gray-800 dark:text-gray-200">"{modal?.item?.name}"</span>.
             {(modal?.item?.children?.length ?? 0) > 0 && (
-              <span className="block mt-1 text-xs text-amber-600">⚠️ Menu này có {modal?.item?.children?.length} menu con sẽ bị xóa theo.</span>
+              <span className="mt-1 block text-xs text-amber-600">Menu này có {modal?.item?.children?.length} menu con. Hãy kiểm tra trước khi xóa.</span>
             )}
           </p>
           <div className="flex justify-center gap-3">
-            <button onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition">Hủy</button>
-            <button onClick={handleDelete} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition">
+            <button onClick={closeModal} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50">Hủy</button>
+            <button onClick={handleDelete} disabled={saving} className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50">
               {saving && <RefreshCw size={13} className="animate-spin" />}
               Xác nhận xóa
             </button>
@@ -418,12 +561,11 @@ export function MenusTab() {
         </div>
       </Modal>
 
-      {/* Excel Import Modal */}
       <ExcelImportModal
         isOpen={showImport}
         onClose={() => setShowImport(false)}
         onImport={handleImportExcel}
-        title="Nhập danh sách Menu gốc"
+        title="Nhập danh sách menu gốc"
         expectedColumns={['Name', 'Path', 'Icon']}
       />
     </div>
