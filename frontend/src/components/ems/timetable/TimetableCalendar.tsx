@@ -8,6 +8,7 @@ import { BookOpen, Clock, MapPin, Users } from 'lucide-react';
 
 interface Props {
   events: any[];
+  viewMode?: string;
   calendarRef: React.RefObject<FullCalendar | null>;
   onDateSelect: (info: DateSelectArg) => void;
   onEventClick: (info: EventClickArg) => void;
@@ -18,6 +19,7 @@ interface Props {
 
 export default function TimetableCalendar({
   events,
+  viewMode = "ALL",
   calendarRef,
   onDateSelect,
   onEventClick,
@@ -30,6 +32,8 @@ export default function TimetableCalendar({
     const isPractical = eventInfo.event.extendedProps.calendar === 'Warning' || eventInfo.event.extendedProps.mode === 'TH';
     const hasRoom = !!eventInfo.event.extendedProps.roomCode;
     const modeLabel = isPractical ? 'THỰC HÀNH' : 'LÝ THUYẾT';
+    const showLecturerIdentity = viewMode === "ALL";
+    const instructorName = eventInfo.event.extendedProps.instructorName || "Chưa phân công";
 
     let palette = {
       card: 'bg-emerald-50/95 border-emerald-600 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-400 dark:text-emerald-100',
@@ -64,9 +68,16 @@ export default function TimetableCalendar({
     return (
       <div className={`group flex h-full w-full cursor-grab flex-col overflow-hidden rounded-lg border-l-4 p-2 text-[14px] shadow-sm transition-all hover:shadow-md active:cursor-grabbing 2xl:p-3 ${palette.card}`}>
         <div className="mb-1.5 flex items-start justify-between gap-1.5 2xl:mb-2 2xl:gap-2">
-          <span className={`max-w-[54%] truncate rounded-full px-2 py-1 text-[13px] font-semibold uppercase leading-none shadow-sm 2xl:px-2.5 ${palette.room}`}>
-            {eventInfo.event.extendedProps.roomCode || 'CHƯA XẾP'}
-          </span>
+          {showLecturerIdentity ? (
+            <span className="flex min-w-0 max-w-[62%] items-center gap-1.5 rounded-full bg-white/80 px-2 py-1 text-[13px] font-bold leading-none text-emerald-800 shadow-sm ring-1 ring-emerald-200 dark:bg-slate-950/80 dark:text-emerald-100 dark:ring-emerald-500/30">
+              <Users size={13} className="shrink-0" />
+              <span className="truncate">{instructorName}</span>
+            </span>
+          ) : (
+            <span className={`max-w-[54%] truncate rounded-full px-2 py-1 text-[13px] font-semibold uppercase leading-none shadow-sm 2xl:px-2.5 ${palette.room}`}>
+              {eventInfo.event.extendedProps.roomCode || 'CHƯA XẾP'}
+            </span>
+          )}
           <span className={`shrink-0 rounded-full px-2 py-1 text-[13px] font-semibold leading-none ${palette.chip}`}>
             {isConflict ? 'TRÙNG LỊCH' : modeLabel}
           </span>
@@ -77,7 +88,7 @@ export default function TimetableCalendar({
         </div>
 
         <div className={`mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold 2xl:gap-x-3 ${palette.meta}`}>
-          {eventInfo.event.extendedProps.instructorName ? (
+          {!showLecturerIdentity && eventInfo.event.extendedProps.instructorName ? (
             <span className="flex min-w-0 items-center gap-1">
               <Users size={13} className="shrink-0" />
               <span className="truncate">{eventInfo.event.extendedProps.instructorName}</span>
@@ -127,6 +138,10 @@ export default function TimetableCalendar({
           eventResize={onEventResize}
           eventContent={renderEventContent}
           eventDisplay="block"
+          eventMaxStack={3}
+          dayMaxEvents={3}
+          moreLinkClick="popover"
+          moreLinkContent={(args) => `+${args.num} lịch`}
           slotMinTime="07:00:00"
           slotMaxTime="21:30:00"
           slotDuration="01:00:00"
@@ -347,6 +362,68 @@ export default function TimetableCalendar({
         .admin-timetable-calendar .fc-event-main {
           height: 100%;
           color: inherit !important;
+        }
+
+        .admin-timetable-calendar .fc-more-link {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 2rem;
+          border: 1px solid #99f6e4;
+          border-radius: 0.75rem;
+          background: #ecfdf5;
+          padding: 0.35rem 0.6rem;
+          color: #047857;
+          font-size: 13px;
+          font-weight: 700;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        }
+
+        .admin-timetable-calendar .fc-more-link:hover {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        .admin-timetable-calendar .fc-popover {
+          overflow: hidden;
+          border: 1px solid #dbe7e2;
+          border-radius: 1rem;
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+        }
+
+        .admin-timetable-calendar .fc-popover-header {
+          background: #f8fafc;
+          color: #0f172a;
+          font-size: 14px;
+          font-weight: 700;
+          padding: 0.75rem 1rem;
+        }
+
+        .admin-timetable-calendar .fc-popover-body {
+          max-height: 420px;
+          overflow-y: auto;
+          padding: 0.5rem;
+        }
+
+        .dark .admin-timetable-calendar .fc-more-link {
+          border-color: rgba(52, 211, 153, 0.35);
+          background: rgba(6, 78, 59, 0.45);
+          color: #a7f3d0;
+        }
+
+        .dark .admin-timetable-calendar .fc-more-link:hover {
+          background: rgba(6, 95, 70, 0.7);
+          color: #d1fae5;
+        }
+
+        .dark .admin-timetable-calendar .fc-popover {
+          border-color: #334155;
+          background: #0f172a;
+        }
+
+        .dark .admin-timetable-calendar .fc-popover-header {
+          background: #111827;
+          color: #f8fafc;
         }
 
         .admin-timetable-calendar .fc-timegrid-now-indicator-line {

@@ -28,6 +28,15 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
 
     boolean existsByCourseClassCourseClassId(UUID courseClassId);
 
+    @Query("""
+            SELECT COALESCE(SUM(COALESCE(s.numberOfPeriods, 0)), 0)
+            FROM Schedule s
+            WHERE s.courseClass.courseClassId = :courseClassId
+              AND s.isActive = true
+              AND (s.scheduleStatus IS NULL OR s.scheduleStatus <> 'CANCELLED')
+            """)
+    Long sumActivePeriodsByCourseClass(@Param("courseClassId") UUID courseClassId);
+
     List<Schedule> findByCourseClassCourseClassId(UUID courseClassId);
     
     List<Schedule> findByInstructorEmployeeId(UUID instructorId);

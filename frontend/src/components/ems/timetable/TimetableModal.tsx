@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from "@/components/ui/modal";
-import { CalendarDays, CheckCircle2, Loader2 } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, Loader2 } from 'lucide-react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ interface Props {
   rooms: any[];
   timeSlots: any[];
   lecturers: any[];
+  conflicts?: Array<{ type: "room" | "lecturer" | "courseClass"; message: string }>;
+  saveError?: string;
   onSubmit: () => Promise<void>;
   isEditing?: boolean;
   isSubmitting?: boolean;
@@ -54,7 +56,7 @@ const timeSlotLabel = (timeSlot: any) => {
   return `${timeSlot.slotCode || "Ca hoc"}: ${timeSlot.startTime || ""} - ${timeSlot.endTime || ""}`;
 };
 
-export default function TimetableModal({ isOpen, onClose, formData, setFormData, courseClasses, rooms, timeSlots, lecturers, onSubmit, isEditing = false, isSubmitting = false, onDelete }: Props) {
+export default function TimetableModal({ isOpen, onClose, formData, setFormData, courseClasses, rooms, timeSlots, lecturers, conflicts = [], saveError = "", onSubmit, isEditing = false, isSubmitting = false, onDelete }: Props) {
   const selectedCourseClass = courseClasses.find((c: any) => courseClassIdOf(c) === String(formData.courseClassId));
   const selectedLecturer = lecturers.find((l: any) => lecturerIdOf(l) === String(formData.instructorId));
   const selectedRoom = rooms.find((r: any) => roomIdOf(r) === String(formData.roomId));
@@ -63,6 +65,9 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
   const selectedLecturerLabel = lecturerLabel(selectedLecturer) || formData.instructorName || "";
   const selectedRoomLabel = roomLabel(selectedRoom) || formData.roomCode || "";
   const selectedTimeSlotLabel = timeSlotLabel(selectedTimeSlot) || formData.slotCode || "";
+  const hasBlockingConflict = conflicts.length > 0;
+  const busyRooms = new Set(conflicts.filter((conflict) => conflict.type === "room").map(() => String(formData.roomId || "")));
+  const busyLecturers = new Set(conflicts.filter((conflict) => conflict.type === "lecturer").map(() => String(formData.instructorId || "")));
 
   return (
     <Modal
@@ -152,7 +157,7 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
                   {lecturers?.length > 0 ? (
                     lecturers.map((l: any) => (
                       <SelectItem key={lecturerIdOf(l)} value={lecturerIdOf(l)}>
-                        {lecturerLabel(l)}
+                        {lecturerLabel(l)}{busyLecturers.has(lecturerIdOf(l)) ? " - Đang bận" : ""}
                       </SelectItem>
                     ))
                   ) : (
@@ -178,7 +183,7 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
                   {rooms?.length > 0 ? (
                     rooms.map((r: any) => (
                       <SelectItem key={roomIdOf(r)} value={roomIdOf(r)}>
-                        {roomLabel(r)}
+                        {roomLabel(r)}{busyRooms.has(roomIdOf(r)) ? " - Đang bận" : ""}
                       </SelectItem>
                     ))
                   ) : (
@@ -275,6 +280,30 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
               className="resize-none bg-gray-50/50 dark:bg-gray-800/50"
             />
           </div>
+
+          {hasBlockingConflict && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
+              <div className="mb-2 flex items-center gap-2 font-bold">
+                <AlertTriangle className="h-4 w-4" />
+                Trùng lịch
+              </div>
+              <ul className="space-y-1">
+                {conflicts.map((conflict, index) => (
+                  <li key={`${conflict.type}-${index}`}>{conflict.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {saveError && !hasBlockingConflict && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
+              <div className="mb-1 flex items-center gap-2 font-bold">
+                <AlertTriangle className="h-4 w-4" />
+                Khong the luu lich
+              </div>
+              <div>{saveError}</div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-3 mt-8 pt-5 border-t border-border">
@@ -297,7 +326,7 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
             <Button 
               onClick={onSubmit} 
               type="button" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || hasBlockingConflict}
               className="px-6 h-11 bg-brand-500 hover:bg-brand-600 text-white shadow-md shadow-brand-500/20"
             >
               {isSubmitting ? (
