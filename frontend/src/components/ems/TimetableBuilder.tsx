@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import type { AxiosResponse } from "axios";
 import FullCalendar from "@fullcalendar/react";
 import { Draggable, EventReceiveArg } from "@fullcalendar/interaction";
 import { DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { useModal } from "@/hooks/useModal";
 import { scheduleApi } from "@/api/schedule";
-import { courseClassApi } from "@/api/course";
+import { courseApi, courseClassApi } from "@/api/course";
 import { roomApi } from "@/api/room";
 import { timeSlotApi } from "@/api/timeSlot";
 import { lecturerApi } from "@/api/lecturer";
 import { semesterApi } from "@/api/semester";
+import { departmentApi } from "@/api/department";
 import { toast } from "sonner";
 import { Filter, Bot, Loader2, CalendarRange, MapPin } from "lucide-react";
 
@@ -78,10 +80,13 @@ const getSettledValue = <T,>(result: PromiseSettledResult<T>, fallback: T) =>
 export default function TimetableBuilder() {
   const [events, setEvents] = useState<any[]>([]);
   const [courseClasses, setCourseClasses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [timeSlots, setTimeSlots] = useState<any[]>([]);
   const [lecturers, setLecturers] = useState<any[]>([]);
   const [semesters, setSemesters] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState("ALL");
   
   // State phục vụ tìm kiếm & lọc
   const [searchTerm, setSearchTerm] = useState("");
@@ -100,6 +105,7 @@ export default function TimetableBuilder() {
   const [formData, setFormData] = useState({
     courseClassId: "",
     courseClassName: "",
+    seriesEditMode: "ONLY_THIS",
     roomId: "",
     roomCode: "",
     timeSlotId: "",
@@ -118,9 +124,30 @@ export default function TimetableBuilder() {
   const externalEventsRef = useRef<HTMLDivElement>(null);
   const { isOpen, openModal, closeModal } = useModal();
 
-  const buildCalendarEvent = (schedule: any, slots: any[] = timeSlots, lecturerList: any[] = lecturers) => {
+  const buildCalendarEvent = (
+    schedule: any,
+    slots: any[] = timeSlots,
+    lecturerList: any[] = lecturers,
+    courseClassList: any[] = courseClasses,
+    courseList: any[] = courses
+  ) => {
     const slot = slots.find((ts: any) => timeSlotIdOf(ts) === String(schedule.timeSlotId));
     const lecturer = lecturerList.find((entry: any) => lecturerIdOf(entry) === String(schedule.instructorId));
+    const courseClass = courseClassList.find((c: any) => courseClassIdOf(c) === String(schedule.courseClassId));
+    const course = courseList.find((c: any) => String(c.courseId || c.id) === String(courseClass?.courseId || courseClass?.id));
+
+    const departmentId =
+      schedule.departmentId ||
+      lecturer?.departmentId ||
+      courseClass?.departmentId ||
+      course?.departmentId ||
+      courseClass?.department?.departmentId;
+    const departmentName =
+      schedule.departmentName ||
+      lecturer?.departmentName ||
+      courseClass?.departmentName ||
+      course?.departmentName ||
+      courseClass?.department?.name;
 
     let eventDate = schedule.date;
     if (!eventDate) {
@@ -156,13 +183,17 @@ export default function TimetableBuilder() {
         roomCode: schedule.roomCode,
         roomId: schedule.roomId,
         courseClassName: schedule.courseClassName,
+        courseName: schedule.courseName,
         courseClassId: schedule.courseClassId,
+        departmentId,
+        departmentName,
         timeSlotId: schedule.timeSlotId,
         slotCode: schedule.slotCode,
         numberOfPeriods: schedule.numberOfPeriods,
         semesterId: schedule.semesterId,
         mode: schedule.mode,
         scheduleStatus: schedule.scheduleStatus,
+        isException: schedule.isException === true || String(schedule.note || "").includes("[EXCEPTION]"),
         note: schedule.note
       }
     };
@@ -178,10 +209,21 @@ export default function TimetableBuilder() {
       ...payload,
       scheduleId,
       courseClassName: selectedClass?.classCode || selectedClass?.courseClassName || payload.courseClassName,
+      courseName: selectedClass?.courseName || payload.courseName,
       classCode: selectedClass?.classCode,
       roomCode: selectedRoom?.code || selectedRoom?.roomCode || payload.roomCode,
       slotCode: selectedSlot?.slotCode || payload.slotCode,
-      instructorName: selectedLecturer?.fullName || selectedLecturer?.name || payload.instructorName
+      instructorName: selectedLecturer?.fullName || selectedLecturer?.name || payload.instructorName,
+      departmentId:
+        payload.departmentId ||
+        selectedLecturer?.departmentId ||
+        selectedClass?.departmentId ||
+        selectedClass?.department?.departmentId,
+      departmentName:
+        payload.departmentName ||
+        selectedLecturer?.departmentName ||
+        selectedClass?.departmentName ||
+        selectedClass?.department?.name
     });
   };
 
@@ -208,12 +250,14 @@ export default function TimetableBuilder() {
   const fetchInitialData = async () => {
     if (!selectedSemesterId) return;
     try {
-      const [schedulesResult, classesResult, roomsResult, slotsResult, lecturersResult] = await Promise.allSettled([
+      const [schedulesResult, classesResult, roomsResult, slotsResult, lecturersResult, coursesResult, departmentsResult] = await Promise.allSettled([
         scheduleApi.getAll(),
         courseClassApi.getBySemester(selectedSemesterId),
         roomApi.getAll(),
         timeSlotApi.getAll(),
-        lecturerApi.getAll()
+        lecturerApi.getAll(),
+        courseApi.getAll(),
+        departmentApi.getAll({ isActive: true })
       ]);
 
       if (schedulesResult.status === "rejected") {
@@ -221,13 +265,16 @@ export default function TimetableBuilder() {
       }
 
       const schedulesRes = schedulesResult.value;
-      const classesRes = getSettledValue(classesResult, []);
-      const roomsRes = getSettledValue(roomsResult, []);
-      const slotsRes = getSettledValue(slotsResult, []);
-      const lecturersRes = getSettledValue(lecturersResult, lecturers);
+      const classesRes = getSettledValue<any[]>(classesResult, []);
+      const roomsRes = getSettledValue<any[]>(roomsResult, []);
+      const slotsRes = getSettledValue<any[]>(slotsResult, []);
+      const lecturersRes = getSettledValue<any[]>(lecturersResult, lecturers);
+      const coursesRes = getSettledValue<AxiosResponse<any>>(coursesResult, { data: [] } as any);
+      const departmentsList = getSettledValue<any[]>(departmentsResult, []);
       const listSlots = sortTimeSlots(toArray(slotsRes));
       const schedulesList = toArray(schedulesRes);
       let classesList = toArray(classesRes);
+      const courseList = toArray(coursesRes);
 
       if (classesList.length === 0) {
         classesList = toArray(await courseClassApi.getAll());
@@ -249,7 +296,8 @@ export default function TimetableBuilder() {
           : schedulesList;
 
       const lecturersList = toArray(lecturersRes);
-      const scheduleEvents = semesterSchedules.map((s: any) => buildCalendarEvent(s, listSlots, lecturersList));
+      const departmentListItems = toArray(departmentsList);
+      const scheduleEvents = semesterSchedules.map((s: any) => buildCalendarEvent(s, listSlots, lecturersList, classesList, courseList));
 
       console.info("[TimetableBuilder] calendar data loaded", {
         selectedSemesterId,
@@ -264,9 +312,11 @@ export default function TimetableBuilder() {
 
       setEvents(scheduleEvents);
       setCourseClasses(classesList);
+      setCourses(courseList);
       setRooms(toArray(roomsRes));
       setTimeSlots(listSlots);
       setLecturers(lecturersList);
+      setDepartments(departmentListItems);
 
       if (lecturersResult.status === "rejected") {
         toast.warning("Danh sách giảng viên tải chậm, lịch vẫn hiển thị theo dữ liệu hiện có.");
@@ -310,9 +360,18 @@ export default function TimetableBuilder() {
 
   // LOGIC LỌC SỰ KIỆN THEO CHẾ ĐỘ XEM
   const filteredEvents = useMemo(() => {
-    if (viewMode === "ALL" || filterId === "ALL") return events;
+    let filtered = events;
+
+    if (selectedDepartmentId && selectedDepartmentId !== "ALL") {
+      filtered = filtered.filter((event) => {
+        const deptId = event.extendedProps.departmentId || event.extendedProps.instructorDepartmentId || "";
+        return String(deptId) === String(selectedDepartmentId);
+      });
+    }
+
+    if (viewMode === "ALL" || filterId === "ALL") return filtered;
     
-    return events.filter(event => {
+    return filtered.filter(event => {
       if (viewMode === "LECTURER") {
         return event.extendedProps.instructorId === filterId;
       }
@@ -324,7 +383,7 @@ export default function TimetableBuilder() {
       }
       return true;
     });
-  }, [events, viewMode, filterId]);
+  }, [events, viewMode, filterId, selectedDepartmentId]);
 
   const scheduleConflicts = useMemo(() => {
     if (!formData.date || !formData.timeSlotId) return [];
@@ -408,11 +467,23 @@ export default function TimetableBuilder() {
     ];
   }, [courseClasses, formData.courseClassId, isEditing, unscheduledCourseClasses]);
 
+  const selectedCourseProgress = useMemo(() => {
+    const progress = periodProgressByClass.get(String(formData.courseClassId || ""));
+    const scheduled = progress?.scheduled || 0;
+    const required = progress?.required || 0;
+    return {
+      scheduled,
+      required,
+      remaining: Math.max(required - scheduled, 0),
+    };
+  }, [formData.courseClassId, periodProgressByClass]);
+
   const resetModalFields = () => {
     setServerScheduleError("");
     setFormData({
       courseClassId: "",
       courseClassName: "",
+      seriesEditMode: "ONLY_THIS",
       roomId: "",
       roomCode: "",
       timeSlotId: "",
@@ -472,6 +543,7 @@ export default function TimetableBuilder() {
     setFormData({
       courseClassId: props.courseClassId || "",
       courseClassName: props.courseClassName || "",
+      seriesEditMode: "ONLY_THIS",
       roomId: props.roomId || "",
       roomCode: props.roomCode || "",
       timeSlotId: props.timeSlotId || "",
@@ -495,6 +567,11 @@ export default function TimetableBuilder() {
       toast.error("Vui lòng điền đầy đủ các trường bắt buộc");
       return;
     }
+    if (isEditing && formData.seriesEditMode === "THIS_AND_FOLLOWING") {
+      toast.error("Chưa hỗ trợ đổi cả chuỗi tuần sau. Mặc định chỉ thay đổi buổi này.");
+      setServerScheduleError("Chưa hỗ trợ đổi cả chuỗi tuần sau. Hãy chọn 'Chỉ thay đổi buổi này'.");
+      return;
+    }
     if (scheduleConflicts.length > 0) {
       setServerScheduleError(scheduleConflicts[0].message);
       toast.error(scheduleConflicts[0].message);
@@ -514,6 +591,11 @@ export default function TimetableBuilder() {
       const payload = {
         ...formData,
         date: normalizedDate,
+        note: isEditing
+          ? String(formData.note || "").includes("[EXCEPTION]")
+            ? formData.note
+            : `[EXCEPTION] ${formData.note || ""}`.trim()
+          : formData.note,
         numberOfPeriods: Number(formData.numberOfPeriods) || 1,
         dayOfWeek: dayOfWeek,
         semesterId: selectedClass?.semesterId || formData.semesterId || selectedSemesterId
@@ -646,7 +728,9 @@ export default function TimetableBuilder() {
       semesterId: originalEvent.extendedProps.semesterId || selectedSemesterId,
       mode: originalEvent.extendedProps.mode || "LT",
       scheduleStatus: originalEvent.extendedProps.scheduleStatus || "PLANNED",
-      note: originalEvent.extendedProps.note || ""
+      note: String(originalEvent.extendedProps.note || "").includes("[EXCEPTION]")
+        ? originalEvent.extendedProps.note
+        : `[EXCEPTION] ${originalEvent.extendedProps.note || ""}`.trim()
     };
     
     try {
@@ -741,6 +825,20 @@ export default function TimetableBuilder() {
             <SelectItem value="LECTURER">Theo Giảng viên</SelectItem>
             <SelectItem value="COURSE_CLASS">Theo Lớp học phần</SelectItem>
             <SelectItem value="ROOM">Theo Phòng học</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
+          <SelectTrigger className="h-10 w-[min(260px,calc(100vw-3rem))] bg-white dark:bg-gray-900 rounded-xl border-gray-200 dark:border-gray-700">
+            <SelectValue placeholder="Lọc theo khoa" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="ALL">Tất cả khoa</SelectItem>
+            {departments.map((dept) => (
+              <SelectItem key={dept.departmentId || dept.id} value={dept.departmentId || dept.id}>
+                {dept.code ? `${dept.code} - ${dept.name}` : dept.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -839,10 +937,12 @@ export default function TimetableBuilder() {
           formData={formData}
           setFormData={handleModalFormDataChange}
           courseClasses={modalCourseClasses}
+          courses={courses}
           rooms={rooms}
           timeSlots={timeSlots}
           lecturers={lecturers}
           conflicts={scheduleConflicts}
+          courseProgress={selectedCourseProgress}
           saveError={serverScheduleError}
           onSubmit={handleAddSchedule}
           isEditing={isEditing}

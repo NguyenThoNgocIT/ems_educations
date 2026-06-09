@@ -4,7 +4,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin, { EventReceiveArg } from "@fullcalendar/interaction";
 import { DateSelectArg, EventClickArg, EventContentArg } from "@fullcalendar/core";
-import { BookOpen, Clock, MapPin, Users } from 'lucide-react';
+import { BookOpen, Clock, MapPin, Repeat2, Users } from 'lucide-react';
 
 interface Props {
   events: any[];
@@ -34,6 +34,9 @@ export default function TimetableCalendar({
     const modeLabel = isPractical ? 'THỰC HÀNH' : 'LÝ THUYẾT';
     const showLecturerIdentity = viewMode === "ALL";
     const instructorName = eventInfo.event.extendedProps.instructorName || "Chưa phân công";
+    const courseClassName = eventInfo.event.extendedProps.courseClassName || eventInfo.event.title;
+    const courseName = eventInfo.event.extendedProps.courseName;
+    const isException = eventInfo.event.extendedProps.isException === true;
 
     let palette = {
       card: 'bg-emerald-50/95 border-emerald-600 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-400 dark:text-emerald-100',
@@ -83,11 +86,19 @@ export default function TimetableCalendar({
           </span>
         </div>
 
-        <div className="mb-1 line-clamp-2 text-[14px] font-semibold leading-snug">
-          {eventInfo.event.extendedProps.courseClassName || eventInfo.event.title}
+        <div className="mb-1 min-w-0">
+          <div className="truncate text-[14px] font-bold leading-snug">{courseClassName}</div>
+          {courseName ? (
+            <div className="truncate text-[12px] font-semibold leading-snug opacity-80">{courseName}</div>
+          ) : null}
+          <div className="truncate text-[12px] font-semibold leading-snug opacity-70">GV: {instructorName}</div>
         </div>
 
         <div className={`mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold 2xl:gap-x-3 ${palette.meta}`}>
+          <span className="flex min-w-0 items-center gap-1">
+            <Repeat2 size={13} className="shrink-0" />
+            <span className="truncate">{isException ? "Ngoại lệ" : "Lặp hàng tuần"}</span>
+          </span>
           {!showLecturerIdentity && eventInfo.event.extendedProps.instructorName ? (
             <span className="flex min-w-0 items-center gap-1">
               <Users size={13} className="shrink-0" />
