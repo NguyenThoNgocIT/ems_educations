@@ -112,10 +112,10 @@ export function ExcelImportModal({ isOpen, onClose, onImport, title, expectedCol
             <AlertCircle size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-800 dark:text-blue-300">
               <p className="font-medium mb-1">Cấu trúc file bắt buộc:</p>
-              <p className="text-xs opacity-90 mb-2">File Excel của bạn phải chứa dòng tiêu đề (row 1) với các cột chính xác như sau: <strong className="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded">{expectedColumns.join(', ')}</strong></p>
+              <p className="text-xs opacity-90 mb-2">File Excel của bạn phải chứa dòng tiêu đề ở dòng 1 với các cột chính xác như sau: <strong className="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded">{expectedColumns.join(', ')}</strong></p>
               {sampleData && (
                 <button onClick={downloadTemplate} className="text-xs font-semibold text-blue-700 hover:underline">
-                  &darr; Tải file mẫu (Template)
+                  &darr; Tải file mẫu
                 </button>
               )}
             </div>
@@ -166,7 +166,7 @@ export function ExcelImportModal({ isOpen, onClose, onImport, title, expectedCol
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:bg-gray-400 text-white text-sm font-medium rounded-xl transition"
           >
             {loading ? <RefreshCw size={15} className="animate-spin" /> : <UploadCloud size={15} />}
-            Tiến hành Import
+            Tiến hành nhập
           </button>
         </div>
       </div>

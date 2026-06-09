@@ -21,7 +21,7 @@ public class PositionController {
     private final PositionService positionService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách chức vụ")
     public ResponseEntity<ApiResponse<List<PositionDto>>> searchPositions(
             @RequestParam(required = false) String keyword,
@@ -32,28 +32,28 @@ public class PositionController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết chức vụ")
     public ResponseEntity<ApiResponse<PositionDto>> getPosition(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy chức vụ thành công", positionService.getPosition(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo chức vụ")
     public ResponseEntity<ApiResponse<PositionDto>> createPosition(@RequestBody PositionDto request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo chức vụ thành công", positionService.createPosition(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật chức vụ")
     public ResponseEntity<ApiResponse<PositionDto>> updatePosition(@PathVariable UUID id, @RequestBody PositionDto request) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật chức vụ thành công", positionService.updatePosition(id, request)));
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm chức vụ")
     public ResponseEntity<ApiResponse<Void>> deletePosition(@PathVariable UUID id) {
         positionService.deletePosition(id);

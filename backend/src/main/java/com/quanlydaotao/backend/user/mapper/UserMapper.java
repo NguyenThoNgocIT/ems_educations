@@ -15,6 +15,8 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface UserMapper {
     @Mapping(target = "personId", source = "person.personId")
+    @Mapping(target = "fullName", source = "person.fullName")
+    @Mapping(target = "fullNameNoAccent", source = "person.fullNameNoAccent")
     UserAdminResponse toDto(User entity);
 
     @Mapping(target = "person", ignore = true)

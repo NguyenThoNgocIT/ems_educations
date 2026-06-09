@@ -13,43 +13,105 @@ import type {
   UserWithRoles,
 } from '@/types/rbac';
 
+const unwrapList = <T = any>(response: any): T[] => {
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response)) return response;
+  return [];
+};
+
+const unwrapData = <T = any>(response: any): T => response?.data || response;
+
+const normalizePermission = (permission: any): Permission => ({
+  ...permission,
+  id: permission.id || permission.permissionId || '',
+  permissionId: permission.permissionId || permission.id,
+  code: permission.code || '',
+  name: permission.name || permission.code || '',
+});
+
+const normalizeRole = (role: any): Role => ({
+  ...role,
+  id: role.id || role.roleId || '',
+  roleId: role.roleId || role.id,
+  code: role.code || '',
+  name: role.name || role.code || '',
+  userCount: role.userCount ?? 0,
+  permissionCount: role.permissionCount ?? role.permissions?.length ?? 0,
+  permissions: Array.isArray(role.permissions) ? role.permissions.map(normalizePermission) : role.permissions,
+});
+
+const normalizeMenu = (menu: any): MenuItem => ({
+  ...menu,
+  id: menu.id || menu.menuId || '',
+  menuId: menu.menuId || menu.id,
+  name: menu.name || menu.menuTitle || '',
+  menuTitle: menu.menuTitle || menu.name || '',
+  path: menu.path ?? menu.menuUrl ?? '',
+  menuUrl: menu.menuUrl ?? menu.path ?? '',
+  icon: menu.icon ?? menu.menuIcon ?? '',
+  menuIcon: menu.menuIcon ?? menu.icon ?? '',
+  orderIndex: menu.orderIndex ?? 0,
+  parentId: menu.parentId ?? null,
+  permissionId: menu.permissionId ?? null,
+  permissionCode: menu.permissionCode ?? null,
+});
+
+const toBackendMenuPayload = (data: CreateMenuDto | UpdateMenuDto) => ({
+  menuTitle: data.name,
+  menuUrl: data.path || '',
+  menuIcon: data.icon || '',
+  orderIndex: data.orderIndex ?? 0,
+  parentId: data.parentId ?? null,
+  permissionId: data.permissionId ?? null,
+});
+
 // ─── Roles ────────────────────────────────────────────────────────────────────
 export const roleApi = {
-  getAll: (): Promise<Role[]> =>
-    request.get('/api/v1/roles/admin'),
+  getAll: async (): Promise<Role[]> => {
+    const response: any = await request.get('/api/v1/roles/admin');
+    return unwrapList(response).map(normalizeRole);
+  },
 
-  getById: (id: string): Promise<Role> =>
-    request.get(`/api/v1/roles/admin/${id}`),
+  getById: async (id: string): Promise<Role> => {
+    const response: any = await request.get(`/api/v1/roles/admin/${id}`);
+    return normalizeRole(unwrapData(response));
+  },
 
-  create: (data: CreateRoleDto): Promise<Role> =>
-    request.post('/api/v1/roles/admin', data),
+  create: async (data: CreateRoleDto): Promise<Role> => {
+    const response: any = await request.post('/api/v1/roles/admin', data);
+    return normalizeRole(unwrapData(response));
+  },
 
-  update: (id: string, data: UpdateRoleDto): Promise<Role> =>
-    request.put(`/api/v1/roles/admin/${id}`, data),
+  update: async (id: string, data: UpdateRoleDto): Promise<Role> => {
+    const response: any = await request.put(`/api/v1/roles/admin/${id}`, data);
+    return normalizeRole(unwrapData(response));
+  },
 
   delete: (id: string): Promise<void> =>
     request.delete(`/api/v1/roles/admin/${id}`),
 
   // Permission assignment for a role
-  getPermissions: (id: string): Promise<Permission[]> =>
-    request.get(`/api/v1/roles/admin/${id}/permissions`),
+  getPermissions: async (id: string): Promise<Permission[]> => {
+    const response: any = await request.get(`/api/v1/roles/admin/${id}/permissions`);
+    return unwrapList(response).map(normalizePermission);
+  },
 
-  updatePermissions: (id: string, permissionIds: string[]): Promise<Role> =>
-    request.put(`/api/v1/roles/admin/${id}/permissions`, { permissionIds }),
+  updatePermissions: async (id: string, permissionIds: string[]): Promise<Role> => {
+    const response: any = await request.put(`/api/v1/roles/admin/${id}/permissions`, {
+      permissionIds: permissionIds.filter(Boolean),
+    });
+    return normalizeRole(unwrapData(response));
+  },
 
   getAllWithPermissions: async (): Promise<Role[]> => {
     const rolesRes: any = await request.get('/api/v1/roles/admin');
-    const roles: any[] = Array.isArray(rolesRes?.data) ? rolesRes.data : Array.isArray(rolesRes) ? rolesRes : [];
+    const roles: Role[] = unwrapList(rolesRes).map(normalizeRole);
     return Promise.all(
       roles.map(async (role) => {
         const roleId = role.id || role.roleId;
         if (!roleId) return role;
         const permissionsRes: any = await request.get(`/api/v1/roles/admin/${roleId}/permissions`);
-        const permissions = Array.isArray(permissionsRes?.data)
-          ? permissionsRes.data
-          : Array.isArray(permissionsRes)
-            ? permissionsRes
-            : [];
+        const permissions = unwrapList(permissionsRes).map(normalizePermission);
         return { ...role, permissions };
       }),
     );
@@ -58,17 +120,25 @@ export const roleApi = {
 
 // ─── Permissions ──────────────────────────────────────────────────────────────
 export const permissionApi = {
-  getAll: (): Promise<Permission[]> =>
-    request.get('/api/v1/permissions/admin'),
+  getAll: async (): Promise<Permission[]> => {
+    const response: any = await request.get('/api/v1/permissions/admin');
+    return unwrapList(response).map(normalizePermission);
+  },
 
-  getById: (id: string): Promise<Permission> =>
-    request.get(`/api/v1/permissions/admin/${id}`),
+  getById: async (id: string): Promise<Permission> => {
+    const response: any = await request.get(`/api/v1/permissions/admin/${id}`);
+    return normalizePermission(unwrapData(response));
+  },
 
-  create: (data: CreatePermissionDto): Promise<Permission> =>
-    request.post('/api/v1/permissions/admin', data),
+  create: async (data: CreatePermissionDto): Promise<Permission> => {
+    const response: any = await request.post('/api/v1/permissions/admin', data);
+    return normalizePermission(unwrapData(response));
+  },
 
-  update: (id: string, data: UpdatePermissionDto): Promise<Permission> =>
-    request.put(`/api/v1/permissions/admin/${id}`, data),
+  update: async (id: string, data: UpdatePermissionDto): Promise<Permission> => {
+    const response: any = await request.put(`/api/v1/permissions/admin/${id}`, data);
+    return normalizePermission(unwrapData(response));
+  },
 
   delete: (id: string): Promise<void> =>
     request.delete(`/api/v1/permissions/admin/${id}`),
@@ -99,17 +169,25 @@ export const permissionApi = {
 
 // ─── Menus ────────────────────────────────────────────────────────────────────
 export const menuApi = {
-  getAll: (): Promise<MenuItem[]> =>
-    request.get('/api/v1/menus/admin'),
+  getAll: async (): Promise<MenuItem[]> => {
+    const response: any = await request.get('/api/v1/menus/admin');
+    return unwrapList(response).map(normalizeMenu);
+  },
 
-  getMe: (): Promise<MenuItem[]> =>
-    request.get('/api/v1/menus/me'),
+  getMe: async (): Promise<MenuItem[]> => {
+    const response: any = await request.get('/api/v1/menus/me');
+    return unwrapList(response).map(normalizeMenu);
+  },
 
-  create: (data: CreateMenuDto): Promise<MenuItem> =>
-    request.post('/api/v1/menus/admin', data),
+  create: async (data: CreateMenuDto): Promise<MenuItem> => {
+    const response: any = await request.post('/api/v1/menus/admin', toBackendMenuPayload(data));
+    return normalizeMenu(response?.data || response);
+  },
 
-  update: (id: string, data: UpdateMenuDto): Promise<MenuItem> =>
-    request.put(`/api/v1/menus/admin/${id}`, data),
+  update: async (id: string, data: UpdateMenuDto): Promise<MenuItem> => {
+    const response: any = await request.put(`/api/v1/menus/admin/${id}`, toBackendMenuPayload(data));
+    return normalizeMenu(response?.data || response);
+  },
 
   delete: (id: string): Promise<void> =>
     request.delete(`/api/v1/menus/admin/${id}`),

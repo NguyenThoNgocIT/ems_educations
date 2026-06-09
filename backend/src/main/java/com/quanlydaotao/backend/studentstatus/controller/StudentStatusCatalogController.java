@@ -31,7 +31,7 @@ public class StudentStatusCatalogController {
     private final StudentStatusCatalogService studentStatusCatalogService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách danh mục trạng thái sinh viên")
     public ResponseEntity<ApiResponse<List<StudentStatusCatalogResponse>>> search(
             @RequestParam(required = false) String keyword,
@@ -42,21 +42,21 @@ public class StudentStatusCatalogController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết danh mục trạng thái sinh viên")
     public ResponseEntity<ApiResponse<StudentStatusCatalogResponse>> get(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy trạng thái sinh viên thành công", studentStatusCatalogService.getStatus(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo danh mục trạng thái sinh viên")
     public ResponseEntity<ApiResponse<StudentStatusCatalogResponse>> create(@Valid @RequestBody StudentStatusCatalogRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo trạng thái sinh viên thành công", studentStatusCatalogService.createStatus(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật danh mục trạng thái sinh viên")
     public ResponseEntity<ApiResponse<StudentStatusCatalogResponse>> update(@PathVariable UUID id,
                                                                            @RequestBody StudentStatusCatalogRequest request) {
@@ -65,7 +65,7 @@ public class StudentStatusCatalogController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm danh mục trạng thái sinh viên")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         studentStatusCatalogService.deleteStatus(id);

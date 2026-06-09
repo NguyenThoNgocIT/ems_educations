@@ -21,7 +21,7 @@ public class TrainingProgramCourseController {
     private final TrainingProgramCourseService service;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lọc học phần trong chương trình đào tạo")
     public ResponseEntity<ApiResponse<List<TrainingProgramCourseResponse>>> search(
             @RequestParam(required = false) UUID trainingProgramId,
@@ -34,7 +34,7 @@ public class TrainingProgramCourseController {
     }
 
     @GetMapping("/admin/by-student/{studentId}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy học phần theo chương trình hiện tại của sinh viên")
     public ResponseEntity<ApiResponse<List<TrainingProgramCourseResponse>>> getForStudent(
             @PathVariable UUID studentId,

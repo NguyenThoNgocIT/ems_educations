@@ -47,7 +47,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -99,10 +98,7 @@ public class AuthService {
         session.setExpiresAt(LocalDateTime.now().plusDays(7));
         userSessionRepository.save(session);
 
-        List<String> roles = authentication.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .filter(authority -> authority.startsWith("ROLE_"))
-                .collect(Collectors.toList());
+        List<String> roles = findRoleCodes(user.getUserId());
 
         boolean requirePassChange = user.getRequirePasswordChange() != null && user.getRequirePasswordChange();
         if ("admin".equalsIgnoreCase(user.getUsername()) || "superadmin".equalsIgnoreCase(user.getUsername())) {

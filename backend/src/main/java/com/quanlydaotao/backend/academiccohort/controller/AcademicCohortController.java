@@ -22,7 +22,7 @@ public class AcademicCohortController {
     private final AcademicCohortService academicCohortService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách niên khóa")
     public ResponseEntity<ApiResponse<List<AcademicCohortResponse>>> searchCohorts(
             @RequestParam(required = false) String keyword,
@@ -32,21 +32,21 @@ public class AcademicCohortController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết niên khóa")
     public ResponseEntity<ApiResponse<AcademicCohortResponse>> getCohort(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy niên khóa thành công", academicCohortService.getCohort(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo niên khóa")
     public ResponseEntity<ApiResponse<AcademicCohortResponse>> createCohort(@RequestBody AcademicCohortRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo niên khóa thành công", academicCohortService.createCohort(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật niên khóa")
     public ResponseEntity<ApiResponse<AcademicCohortResponse>> updateCohort(@PathVariable UUID id,
                                                                             @RequestBody AcademicCohortRequest request) {
@@ -55,7 +55,7 @@ public class AcademicCohortController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm niên khóa")
     public ResponseEntity<ApiResponse<Void>> deleteCohort(@PathVariable UUID id) {
         academicCohortService.deleteCohort(id);

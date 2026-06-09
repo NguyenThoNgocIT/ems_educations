@@ -22,7 +22,7 @@ public class AdministrativeClassController {
     private final AdministrativeClassService administrativeClassService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách lớp hành chính")
     public ResponseEntity<ApiResponse<List<AdministrativeClassResponse>>> searchClasses(
             @RequestParam(required = false) String keyword,
@@ -37,21 +37,21 @@ public class AdministrativeClassController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết lớp hành chính")
     public ResponseEntity<ApiResponse<AdministrativeClassResponse>> getClass(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy lớp hành chính thành công", administrativeClassService.getClass(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo lớp hành chính")
     public ResponseEntity<ApiResponse<AdministrativeClassResponse>> createClass(@RequestBody AdministrativeClassRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo lớp hành chính thành công", administrativeClassService.createClass(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật lớp hành chính")
     public ResponseEntity<ApiResponse<AdministrativeClassResponse>> updateClass(@PathVariable UUID id,
                                                                                 @RequestBody AdministrativeClassRequest request) {
@@ -60,7 +60,7 @@ public class AdministrativeClassController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm lớp hành chính")
     public ResponseEntity<ApiResponse<Void>> deleteClass(@PathVariable UUID id) {
         administrativeClassService.deleteClass(id);

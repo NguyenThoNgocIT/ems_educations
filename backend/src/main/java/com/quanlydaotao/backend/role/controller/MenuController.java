@@ -28,35 +28,35 @@ public class MenuController {
     }
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','MENU_VIEW')")
     @Operation(summary = "Admin lấy toàn bộ menu")
     public ResponseEntity<ApiResponse<List<MenuDto>>> getAllMenusForAdmin() {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách menu thành công", menuService.getAllMenusForAdmin()));
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','MENU_VIEW')")
     @Operation(summary = "Admin lấy chi tiết menu")
     public ResponseEntity<ApiResponse<MenuDto>> getMenuForAdmin(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy menu thành công", menuService.getMenuForAdmin(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','MENU_CREATE')")
     @Operation(summary = "Admin tạo menu")
     public ResponseEntity<ApiResponse<MenuDto>> createMenu(@RequestBody MenuDto request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo menu thành công", menuService.createMenu(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','MENU_EDIT')")
     @Operation(summary = "Admin cập nhật menu")
     public ResponseEntity<ApiResponse<MenuDto>> updateMenu(@PathVariable UUID id, @RequestBody MenuDto request) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật menu thành công", menuService.updateMenu(id, request)));
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_SUPER_ADMIN','MENU_DELETE')")
     @Operation(summary = "Admin xóa mềm menu")
     public ResponseEntity<ApiResponse<Void>> deleteMenu(@PathVariable UUID id) {
         menuService.deleteMenu(id);

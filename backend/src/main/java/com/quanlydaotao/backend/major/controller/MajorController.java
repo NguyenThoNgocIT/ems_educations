@@ -23,7 +23,7 @@ public class MajorController {
     private final MajorService majorService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách ngành")
     public ResponseEntity<ApiResponse<List<MajorResponse>>> getAllMajors(
             @RequestParam(required = false) String keyword,
@@ -33,28 +33,28 @@ public class MajorController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết ngành")
     public ResponseEntity<ApiResponse<MajorResponse>> getMajorById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy ngành thành công", majorService.getMajorById(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo ngành")
     public ResponseEntity<ApiResponse<MajorResponse>> createMajor(@Valid @RequestBody MajorRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo ngành thành công", majorService.createMajor(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật ngành")
     public ResponseEntity<ApiResponse<MajorResponse>> updateMajor(@PathVariable UUID id, @Valid @RequestBody MajorRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật ngành thành công", majorService.updateMajor(id, request)));
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm ngành")
     public ResponseEntity<ApiResponse<Void>> deleteMajor(@PathVariable UUID id) {
         majorService.deleteMajor(id);

@@ -35,6 +35,23 @@ public interface StudentSummaryRepository extends JpaRepository<StudentSummary, 
             """)
     List<StudentSummary> findFinalizedByStudent(UUID studentId);
 
+    @Query("""
+            SELECT COUNT(s)
+            FROM StudentSummary s
+            WHERE s.isActive = true
+              AND s.isFinalized = true
+            """)
+    long countFinalizedActive();
+
+    @Query("""
+            SELECT COUNT(s)
+            FROM StudentSummary s
+            WHERE s.isActive = true
+              AND s.isFinalized = true
+              AND UPPER(COALESCE(s.result, '')) = 'PASSED'
+            """)
+    long countPassedFinalizedActive();
+
     default Optional<StudentSummary> findLatestFinalizedByStudentAndCourse(UUID studentId, UUID courseId) {
         return findFinalizedByStudentAndCourse(studentId, courseId).stream().findFirst();
     }

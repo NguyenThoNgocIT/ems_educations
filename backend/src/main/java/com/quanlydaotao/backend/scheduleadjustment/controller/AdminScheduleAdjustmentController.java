@@ -31,7 +31,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin/schedule-adjustments")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
 @Tag(name = "Admin điều chỉnh lịch giảng dạy", description = "API admin duyệt và tra cứu yêu cầu điều chỉnh lịch")
 public class AdminScheduleAdjustmentController {
     private final ScheduleAdjustmentService service;

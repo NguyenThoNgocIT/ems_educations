@@ -23,7 +23,7 @@ public class TeachingAssignmentController {
     private final TeachingAssignmentService service;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách phân công giảng dạy")
     public ResponseEntity<ApiResponse<List<TeachingAssignmentResponse>>> search(
             @RequestParam(required = false) UUID instructorId,
@@ -36,7 +36,7 @@ public class TeachingAssignmentController {
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin phân công giảng viên cho lớp học phần")
     public ResponseEntity<ApiResponse<TeachingAssignmentResponse>> assign(@Valid @RequestBody TeachingAssignmentRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Phân công giảng dạy thành công", service.assign(request)));

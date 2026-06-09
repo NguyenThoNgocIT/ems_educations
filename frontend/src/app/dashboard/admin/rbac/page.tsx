@@ -18,9 +18,9 @@ interface TabConfig {
 
 const TABS: TabConfig[] = [
   { id: 'roles',       label: 'Vai trò',         icon: <ShieldCheck size={16} />, description: 'Quản lý các vai trò trong hệ thống' },
-  { id: 'permissions', label: 'Quyền hạn',        icon: <Key size={16} />,         description: 'Quản lý quyền truy cập và API endpoints' },
+  { id: 'permissions', label: 'Quyền hạn',        icon: <Key size={16} />,         description: 'Quản lý quyền truy cập và các điểm cuối API' },
   { id: 'menus',       label: 'Menu',             icon: <Menu size={16} />,        description: 'Cấu hình menu điều hướng theo quyền' },
-  { id: 'users',       label: 'Quản lý User',     icon: <Users size={16} />,       description: 'Quản lý người dùng và gán vai trò' },
+  { id: 'users',       label: 'Quản lý người dùng', icon: <Users size={16} />,     description: 'Quản lý người dùng và gán vai trò' },
 ];
 
 export default function RBACPage() {
@@ -58,6 +58,24 @@ export default function RBACPage() {
           <RefreshCw size={14} />
           Làm mới
         </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        {[
+          { title: '1. Quyền', text: 'Tạo quyền nghiệp vụ và gắn API được bảo vệ.', icon: <Key size={16} /> },
+          { title: '2. Menu', text: 'Gắn quyền cho menu để thanh điều hướng tự lọc.', icon: <Menu size={16} /> },
+          { title: '3. Vai trò', text: 'Gom nhiều quyền thành vai trò.', icon: <ShieldCheck size={16} /> },
+          { title: '4. Người dùng', text: 'Gắn vai trò cho tài khoản người dùng.', icon: <Users size={16} /> },
+        ].map(item => (
+          <div key={item.title} className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
+            <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
+              <span className="text-emerald-600">{item.icon}</span>
+              {item.title}
+            </div>
+            <p className="text-xs leading-5 text-gray-500 dark:text-gray-400">{item.text}</p>
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}

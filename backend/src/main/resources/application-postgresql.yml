@@ -26,6 +26,6 @@ spring:
         dialect: ${DB_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
   flyway:
     locations: classpath:db/migration-postgresql
-    repair-on-migrate: true
+    repair-on-migrate: false
 
 # Chọn profile postgresql khi muốn chạy Neon hoặc một PostgreSQL khác.

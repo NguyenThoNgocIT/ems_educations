@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,6 +20,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByPersonPersonId(UUID personId);
     Optional<User> findByConfirmationToken(String confirmationToken);
 
+    @EntityGraph(attributePaths = "person")
     @Query("SELECT u FROM User u WHERE " +
            "(:keyword IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))) AND " +
            "(:isActive IS NULL OR u.isActive = :isActive) AND " +

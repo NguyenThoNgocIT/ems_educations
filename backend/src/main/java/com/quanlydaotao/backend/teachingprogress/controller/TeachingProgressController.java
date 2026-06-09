@@ -24,21 +24,21 @@ public class TeachingProgressController {
     private final TeachingProgressService service;
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin ghi nhận buổi dạy thực tế")
     public ResponseEntity<ApiResponse<TeachingProgressLogResponse>> log(@Valid @RequestBody TeachingProgressLogRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Ghi nhận buổi dạy thành công", service.logSession(request)));
     }
 
     @GetMapping("/admin/course-classes/{courseClassId}/logs")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xem các buổi dạy thực tế của lớp học phần")
     public ResponseEntity<ApiResponse<List<TeachingProgressLogResponse>>> logs(@PathVariable UUID courseClassId) {
         return ResponseEntity.ok(ApiResponse.success("Lấy buổi dạy thực tế thành công", service.getLogs(courseClassId)));
     }
 
     @GetMapping("/admin/course-classes/{courseClassId}/summary")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xem tổng hợp tiến độ giảng dạy của lớp học phần")
     public ResponseEntity<ApiResponse<TeachingProgressSummaryResponse>> summary(@PathVariable UUID courseClassId) {
         return ResponseEntity.ok(ApiResponse.success("Lấy tiến độ giảng dạy thành công", service.getSummary(courseClassId)));

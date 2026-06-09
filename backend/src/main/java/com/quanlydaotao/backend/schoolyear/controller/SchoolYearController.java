@@ -22,7 +22,7 @@ public class SchoolYearController {
     private final SchoolYearService schoolYearService;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy danh sách năm học")
     public ResponseEntity<ApiResponse<List<SchoolYearResponse>>> searchSchoolYears(
             @RequestParam(required = false) String keyword,
@@ -32,21 +32,21 @@ public class SchoolYearController {
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin lấy chi tiết năm học")
     public ResponseEntity<ApiResponse<SchoolYearResponse>> getSchoolYear(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Lấy năm học thành công", schoolYearService.getSchoolYear(id)));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin tạo năm học")
     public ResponseEntity<ApiResponse<SchoolYearResponse>> createSchoolYear(@RequestBody SchoolYearRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo năm học thành công", schoolYearService.createSchoolYear(request)));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin cập nhật năm học")
     public ResponseEntity<ApiResponse<SchoolYearResponse>> updateSchoolYear(@PathVariable UUID id,
                                                                             @RequestBody SchoolYearRequest request) {
@@ -55,7 +55,7 @@ public class SchoolYearController {
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xóa mềm năm học")
     public ResponseEntity<ApiResponse<Void>> deleteSchoolYear(@PathVariable UUID id) {
         schoolYearService.deleteSchoolYear(id);

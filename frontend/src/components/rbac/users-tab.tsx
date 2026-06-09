@@ -94,8 +94,8 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
       
       setAllRoles(rolesWithPerms);
     } catch (error) {
-      console.error('Lỗi khi tải danh sách role:', error);
-      toast.error('Không thể tải danh sách vai trò. Vui lòng kiểm tra backend.');
+      console.error('Lỗi khi tải danh sách vai trò:', error);
+      toast.error('Không thể tải danh sách vai trò. Vui lòng kiểm tra máy chủ.');
     } finally {
       setRolesLoading(false);
     }
@@ -104,10 +104,8 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      // If the search string is like "role:STUDENT", we might want to pass it differently
-      // if backend supports it. For now just pass as keyword.
       const keyword = searchDebounced.startsWith('role:') 
-        ? searchDebounced.replace('role:', '').trim() 
+        ? undefined
         : searchDebounced || undefined;
 
       const res: any = await userRoleApi.searchUsers({
@@ -150,7 +148,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedUserIds(new Set(users.map(u => u.id)));
+      setSelectedUserIds(new Set(visibleUsers.map(u => u.id)));
     } else {
       setSelectedUserIds(new Set());
     }
@@ -221,7 +219,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         await refreshUser();
       }
       
-      toast.success(`Đã cập nhật roles cho user ${modalUser.fullName || modalUser.email}`);
+      toast.success(`Đã cập nhật vai trò cho người dùng ${modalUser.fullName || modalUser.email}`);
       closeModal();
     } catch {
       toast.error('Cập nhật vai trò thất bại. Vui lòng thử lại.');
@@ -288,6 +286,13 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
     r.name.toLowerCase().includes(roleSearch.toLowerCase()) || 
     r.code.toLowerCase().includes(roleSearch.toLowerCase())
   );
+  const activeRoleFilter = searchDebounced.startsWith('role:')
+    ? searchDebounced.replace('role:', '').trim().toUpperCase()
+    : '';
+  const visibleUsers = useMemo(() => {
+    if (!activeRoleFilter) return users;
+    return users.filter(user => user.roles?.some(role => role.code?.toUpperCase() === activeRoleFilter));
+  }, [users, activeRoleFilter]);
 
   const handleSaveUsers = async (userData: any) => {
     try {
@@ -299,6 +304,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         const response: any = await request.post('/api/v1/students/admin', {
           fullName: userData.fullName,
           dateOfBirth: userData.dob,
+          departmentId: userData.departmentId,
           majorId: userData.majorId,
           trainingProgramId: userData.trainingProgramId,
           academicCohortId: userData.academicCohortId,
@@ -324,7 +330,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
       }
 
       if (!userId) {
-        throw new Error('Không nhận được User ID từ máy chủ.');
+        throw new Error('Không nhận được mã người dùng từ máy chủ.');
       }
 
       if (userData.roles && userData.roles.length > 0) {
@@ -340,7 +346,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
       setIsAddUserModalOpen(false);
       fetchUsers();
     } catch (err: any) {
-      console.error('Lỗi khi tạo user:', err);
+      console.error('Lỗi khi tạo người dùng:', err);
       const errorMsg = err?.response?.data?.message || err?.message || 'Không thể tạo người dùng mới';
       toast.error(errorMsg);
     } finally {
@@ -350,6 +356,33 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 dark:border-emerald-900/40 dark:bg-emerald-900/10">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+            <UserPlus size={16} /> Tạo tài khoản
+          </div>
+          <p className="text-xs leading-5 text-emerald-700/80 dark:text-emerald-300/80">
+            Chọn loại đối tượng Sinh viên, Giảng viên, Nhân viên; hệ thống tự sinh tên đăng nhập, email edu và mật khẩu.
+          </p>
+        </div>
+        <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-900/40 dark:bg-blue-900/10">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-800 dark:text-blue-300">
+            <ShieldCheck size={16} /> Gắn vai trò
+          </div>
+          <p className="text-xs leading-5 text-blue-700/80 dark:text-blue-300/80">
+            Người dùng nhận quyền thông qua các vai trò được chọn, không gắn quyền trực tiếp.
+          </p>
+        </div>
+        <div className="rounded-xl border border-violet-100 bg-violet-50/60 p-4 dark:border-violet-900/40 dark:bg-violet-900/10">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-violet-800 dark:text-violet-300">
+            <Key size={16} /> Quyền kế thừa
+          </div>
+          <p className="text-xs leading-5 text-violet-700/80 dark:text-violet-300/80">
+            Tab quyền chi tiết chỉ để xem người dùng sẽ vào được API/menu nào.
+          </p>
+        </div>
+      </div>
+
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row justify-between gap-3">
         <div className="relative w-full sm:max-w-md">
@@ -357,7 +390,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Tìm theo email, họ tên, hoặc 'role:STUDENT'..."
+            placeholder="Tìm theo email, họ tên hoặc mã vai trò..."
             className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition shadow-sm"
           />
         </div>
@@ -379,6 +412,35 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         </div>
       </div>
 
+      {allRoles.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 text-xs dark:border-gray-800 dark:bg-gray-900">
+          <span className="font-semibold text-gray-500 dark:text-gray-400">Lọc theo vai trò:</span>
+          <button
+            type="button"
+            onClick={() => setSearch('')}
+            className={`rounded-lg px-2.5 py-1 font-medium transition ${
+              !activeRoleFilter ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'
+            }`}
+          >
+            Tất cả
+          </button>
+          {allRoles.map(role => (
+            <button
+              key={role.id || role.roleId || role.code}
+              type="button"
+              onClick={() => setSearch(`role:${role.code}`)}
+              className={`rounded-lg px-2.5 py-1 font-medium transition ${
+                activeRoleFilter === role.code
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'
+              }`}
+            >
+              {role.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Main Table */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
@@ -388,16 +450,16 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                 <th className="py-3 px-4 w-12">
                   <input 
                     type="checkbox" 
-                    aria-label="Select all users"
+                    aria-label="Chọn tất cả người dùng"
                     className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 cursor-pointer w-4 h-4"
-                    checked={users.length > 0 && selectedUserIds.size === users.length}
+                    checked={visibleUsers.length > 0 && selectedUserIds.size === visibleUsers.length}
                     onChange={handleSelectAll}
                   />
                 </th>
                 <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Người dùng</th>
                 <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Email</th>
-                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Số Roles</th>
-                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Tổng Permissions</th>
+                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Số vai trò</th>
+                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Tổng quyền</th>
                 <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Trạng thái</th>
                 <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs text-right">Thao tác</th>
               </tr>
@@ -405,7 +467,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
             <tbody>
               {loading
                 ? <UserTableSkeleton rows={6} />
-                : users.length === 0
+                : visibleUsers.length === 0
                 ? (
                   <tr><td colSpan={7}>
                     <EmptyState
@@ -415,7 +477,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                     />
                   </td></tr>
                 )
-                : users.map(user => {
+                : visibleUsers.map(user => {
                   const roleCount = user.roles?.length ?? 0;
                   
                   // Shared logic to calculate permission count
@@ -439,7 +501,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                       <td className="py-3 px-4">
                         <input 
                           type="checkbox" 
-                          aria-label={`Select user ${user.fullName || user.email}`}
+                          aria-label={`Chọn người dùng ${user.fullName || user.email}`}
                           className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 cursor-pointer w-4 h-4"
                           checked={selectedUserIds.has(user.id)}
                           onChange={() => handleSelectUser(user.id)}
@@ -459,7 +521,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                       <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{user.email || '—'}</td>
                       <td className="py-3 px-4">
                         <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50">
-                          {roleCount} roles
+                          {roleCount} vai trò
                         </span>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-500">
@@ -477,12 +539,12 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                             : 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:border-gray-700'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${user.isActive !== false ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                          {user.isActive !== false ? 'Active' : 'Inactive'}
+                          {user.isActive !== false ? 'Hoạt động' : 'Ngưng hoạt động'}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
                         <ActionMenu>
-                          <ActionMenuItem icon={<Settings2 size={14} />} label="Gán quyền / Xem chi tiết" onClick={() => openAssign(user)} />
+                          <ActionMenuItem icon={<Settings2 size={14} />} label="Gán vai trò / Xem quyền" onClick={() => openAssign(user)} />
                         </ActionMenu>
                       </td>
                     </tr>
@@ -494,9 +556,9 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         </div>
         
         {/* Simple pagination footer (UI only for now) */}
-        {!loading && users.length > 0 && (
+        {!loading && visibleUsers.length > 0 && (
           <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm text-gray-500">
-            <span>Hiển thị {users.length} người dùng</span>
+            <span>Hiển thị {visibleUsers.length} người dùng</span>
             <div className="flex gap-1">
               <button className="px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50">Trước</button>
               <button className="px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50">Sau</button>
@@ -505,7 +567,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         )}
       </div>
 
-      {/* Add User Modal */}
+      {/* Modal thêm người dùng */}
       <AddUserModal 
         isOpen={isAddUserModalOpen} 
         onClose={() => setIsAddUserModalOpen(false)} 
@@ -513,7 +575,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
         onSave={handleSaveUsers}
       />
 
-      {/* Modal User Detail (XL) */}
+      {/* Modal chi tiết người dùng */}
       <Modal isOpen={!!modalUser} onClose={closeModal} className="max-w-7xl w-full mx-4 h-[90vh] flex flex-col">
         {modalUser && (
           <div className="flex flex-col h-full bg-gray-50/30 dark:bg-gray-900/20">
@@ -531,7 +593,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{modalUser.email}</p>
                   </div>
                 </div>
-                <button onClick={closeModal} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition" aria-label="Close">
+                <button onClick={closeModal} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition" aria-label="Đóng">
                   <X size={20} />
                 </button>
               </div>
@@ -554,7 +616,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                       : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
                   }`}
                 >
-                  <ShieldCheck size={16} /> Roles (Gán quyền)
+                  <ShieldCheck size={16} /> Vai trò
                 </button>
                 <button
                   onClick={() => setModalTab('permissions')}
@@ -564,7 +626,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                       : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
                   }`}
                 >
-                  <Key size={16} /> Permissions chi tiết
+                  <Key size={16} /> Quyền chi tiết
                 </button>
               </div>
             </div>
@@ -582,7 +644,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                       <input
                         value={roleSearch}
                         onChange={e => setRoleSearch(e.target.value)}
-                        placeholder="Tìm role theo tên hoặc mã (Nhấn Ctrl+K)..."
+                        placeholder="Tìm vai trò theo tên hoặc mã (Nhấn Ctrl+K)..."
                         className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
                       />
                     </div>
@@ -592,10 +654,10 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                         <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
                           <tr>
                             <th className="py-2.5 px-4 w-12 font-medium text-gray-500">Chọn</th>
-                            <th className="py-2.5 px-4 font-medium text-gray-500">Tên Role</th>
+                            <th className="py-2.5 px-4 font-medium text-gray-500">Tên vai trò</th>
                             <th className="py-2.5 px-4 font-medium text-gray-500">Mô tả</th>
-                            <th className="py-2.5 px-4 font-medium text-gray-500">Permissions</th>
-                            <th className="py-2.5 px-4 font-medium text-gray-500 text-right">Users</th>
+                            <th className="py-2.5 px-4 font-medium text-gray-500">Quyền</th>
+                            <th className="py-2.5 px-4 font-medium text-gray-500 text-right">Người dùng</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -608,7 +670,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                           ) : filteredRoles.length === 0 ? (
                             <tr>
                               <td colSpan={5} className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-                                Không tìm thấy Role phù hợp.
+                                Không tìm thấy vai trò phù hợp.
                               </td>
                             </tr>
                           ) : filteredRoles.map(role => {
@@ -664,16 +726,16 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                     <div className="sticky top-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
                       <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <Layers size={16} className="text-emerald-600" />
-                        Preview Quyền hạn
+                        Xem trước quyền hạn
                       </h3>
                       
                       <div className="grid grid-cols-2 gap-3 mb-5">
                         <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Tổng Permissions</p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Tổng quyền</p>
                           <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{totalPermissions}</p>
                         </div>
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">API Endpoints</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Điểm cuối API</p>
                           <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalEndpoints}</p>
                         </div>
                       </div>
@@ -694,7 +756,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                           </ul>
                         ) : (
                           <p className="text-sm text-gray-400 italic bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg text-center">
-                            Chưa chọn role nào. User sẽ không có quyền truy cập.
+                            Chưa chọn vai trò nào. Người dùng sẽ không có quyền truy cập.
                           </p>
                         )}
                       </div>
@@ -731,7 +793,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                       <EmptyState
                         icon={<Key size={32} />}
                         title="Không có quyền nào"
-                        description="User chưa được gán role nào có chứa API hoặc không khớp bộ lọc Method."
+                        description="Người dùng chưa được gán vai trò nào có chứa API hoặc không khớp bộ lọc phương thức."
                       />
                     ) : (
                       <table className="w-full text-left text-sm">
@@ -739,7 +801,7 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
                           <tr>
                             <th className="py-3 px-4 font-medium text-gray-500">Tên Quyền</th>
                             <th className="py-3 px-4 font-medium text-gray-500">Module</th>
-                            <th className="py-3 px-4 font-medium text-gray-500">Method & APIs</th>
+                            <th className="py-3 px-4 font-medium text-gray-500">Phương thức & API</th>
                           </tr>
                         </thead>
                         <tbody>

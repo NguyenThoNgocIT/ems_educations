@@ -31,14 +31,14 @@ public class PermissionServiceImpl implements PermissionService {
     @Transactional(readOnly = true)
     public List<PermissionDto> searchPermissions(String module, String keyword) {
         return permissionRepository.search(normalizeBlank(module), normalizeBlank(keyword)).stream()
-                .map(permissionMapper::toDto)
+                .map(this::toDtoWithApiCount)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public PermissionDto getPermission(UUID id) {
-        return permissionMapper.toDto(findPermission(id));
+        return toDtoWithApiCount(findPermission(id));
     }
 
     @Override
@@ -51,7 +51,7 @@ public class PermissionServiceImpl implements PermissionService {
         });
         Permission permission = permissionMapper.toEntity(request);
         permission.setCode(code);
-        return permissionMapper.toDto(permissionRepository.save(permission));
+        return toDtoWithApiCount(permissionRepository.save(permission));
     }
 
     @Override
@@ -69,7 +69,7 @@ public class PermissionServiceImpl implements PermissionService {
         }
         permissionMapper.updateEntityFromDto(request, permission);
         if (StringUtils.hasText(request.getCode())) permission.setCode(normalizeCode(request.getCode()));
-        return permissionMapper.toDto(permissionRepository.save(permission));
+        return toDtoWithApiCount(permissionRepository.save(permission));
     }
 
     @Override
@@ -139,5 +139,11 @@ public class PermissionServiceImpl implements PermissionService {
 
     private String normalizeBlank(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private PermissionDto toDtoWithApiCount(Permission permission) {
+        PermissionDto dto = permissionMapper.toDto(permission);
+        dto.setApiCount(permissionApiRepository.countActiveByPermissionId(permission.getPermissionId()));
+        return dto;
     }
 }

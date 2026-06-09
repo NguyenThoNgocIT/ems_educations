@@ -81,7 +81,7 @@ public class AuthController {
     }
 
     @GetMapping("/admin/password-reset-requests")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin xem danh sách yêu cầu quên mật khẩu")
     public ResponseEntity<ApiResponse<List<PasswordResetRequestResponse>>> getPasswordResetRequests(
             @RequestParam(required = false) String status) {
@@ -89,7 +89,7 @@ public class AuthController {
     }
 
     @PutMapping("/admin/password-reset-requests/{id}/approve")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin duyệt yêu cầu và reset mật khẩu về ngày sinh")
     public ResponseEntity<ApiResponse<AdminResetPasswordResponse>> approvePasswordResetRequest(
             @PathVariable UUID id,
@@ -99,7 +99,7 @@ public class AuthController {
     }
 
     @PutMapping("/admin/password-reset-requests/{id}/reject")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
     @Operation(summary = "Admin từ chối yêu cầu reset mật khẩu")
     public ResponseEntity<ApiResponse<Void>> rejectPasswordResetRequest(
             @PathVariable UUID id,

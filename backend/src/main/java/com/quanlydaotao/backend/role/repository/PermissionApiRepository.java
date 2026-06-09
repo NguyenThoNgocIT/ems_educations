@@ -22,4 +22,12 @@ public interface PermissionApiRepository extends JpaRepository<PermissionApis, P
     List<PermissionApis> findActiveWithPermission();
 
     List<PermissionApis> findByPermissionPermissionIdAndIsActiveTrue(java.util.UUID permissionId);
+
+    @Query("""
+            SELECT COUNT(pa)
+            FROM PermissionApis pa
+            WHERE pa.permission.permissionId = :permissionId
+              AND pa.isActive = true
+            """)
+    long countActiveByPermissionId(@org.springframework.data.repository.query.Param("permissionId") java.util.UUID permissionId);
 }

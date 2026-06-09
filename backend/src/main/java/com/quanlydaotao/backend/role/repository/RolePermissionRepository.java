@@ -25,6 +25,16 @@ public interface RolePermissionRepository extends JpaRepository<RolePermissions,
     List<RolePermissions> findActiveByRoleId(@Param("roleId") UUID roleId);
 
     @Query("""
+            SELECT COUNT(rp)
+            FROM RolePermissions rp
+            JOIN rp.permission p
+            WHERE rp.role.roleId = :roleId
+              AND rp.isActive = true
+              AND p.isActive = true
+            """)
+    long countActiveByRoleId(@Param("roleId") UUID roleId);
+
+    @Query("""
             SELECT DISTINCT p.code
             FROM UserRole ur
             JOIN ur.role r
