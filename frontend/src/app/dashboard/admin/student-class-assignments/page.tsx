@@ -90,6 +90,11 @@ export default function StudentClassAssignmentsPage() {
   const [courseModalOpen, setCourseModalOpen] = useState(false);
   const [studentForm, setStudentForm] = useState({ studentId: "", note: "" });
   const [courseForm, setCourseForm] = useState({ courseClassId: "", instructorId: "", note: "" });
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  const [selectedCourseClassIds, setSelectedCourseClassIds] = useState<string[]>([]);
+  const [courseClassSearchTerm, setCourseClassSearchTerm] = useState("");
+  const [teachingAssignments, setTeachingAssignments] = useState<any[]>([]);
 
   const selectedSemester = semestersList.find((semester) => semester.semesterId === selectedSemesterId);
   const selectedClass = classesList.find((item) => getClassId(item) === selectedClassId);
@@ -141,9 +146,62 @@ export default function StudentClassAssignmentsPage() {
 
     return students.filter((student) => {
       const id = student.id || student.studentId;
-      return id && !assignedIds.has(id) && (!hasCourseClassRoster || courseClassStudentIds.has(id));
+      if (!id) return false;
+
+      // Filter out already assigned
+      if (assignedIds.has(id)) return false;
+
+      // Filter out if not in course class roster (if roster is active)
+      if (hasCourseClassRoster && !courseClassStudentIds.has(id)) return false;
+
+      // Match selected administrative class constraints (department, major, cohort)
+      if (selectedClass) {
+        if (selectedClass.departmentId && student.departmentId && student.departmentId !== selectedClass.departmentId) {
+          return false;
+        }
+        if (selectedClass.majorId && student.majorId && student.majorId !== selectedClass.majorId) {
+          return false;
+        }
+        if (selectedClass.academicCohortId && student.academicCohortId && student.academicCohortId !== selectedClass.academicCohortId) {
+          return false;
+        }
+      }
+
+      return true;
     });
-  }, [assignmentsInSemester, courseClassStudentIds, students]);
+  }, [assignmentsInSemester, courseClassStudentIds, students, selectedClass]);
+
+  const filteredAvailableStudents = useMemo(() => {
+    const keyword = studentSearchTerm.trim().toLowerCase();
+    if (!keyword) return availableStudents;
+    return availableStudents.filter(
+      (student) =>
+        String(student.fullName || "").toLowerCase().includes(keyword) ||
+        String(student.studentCode || "").toLowerCase().includes(keyword)
+    );
+  }, [availableStudents, studentSearchTerm]);
+
+  const availableCourseClasses = useMemo(() => {
+    return courseClasses.filter((item) => {
+      const id = getCourseClassId(item);
+      if (!id) return false;
+      if (selectedSemesterId && item.semesterId && item.semesterId !== selectedSemesterId) {
+        return false;
+      }
+      return true;
+    });
+  }, [courseClasses, selectedSemesterId]);
+
+  const filteredAvailableCourseClasses = useMemo(() => {
+    const keyword = courseClassSearchTerm.trim().toLowerCase();
+    if (!keyword) return availableCourseClasses;
+    return availableCourseClasses.filter((item) => {
+      const nameMatch = String(item.courseName || "").toLowerCase().includes(keyword);
+      const codeMatch = String(item.classCode || item.code || "").toLowerCase().includes(keyword);
+      const courseCodeMatch = String(item.courseCode || "").toLowerCase().includes(keyword);
+      return nameMatch || codeMatch || courseCodeMatch;
+    });
+  }, [availableCourseClasses, courseClassSearchTerm]);
 
   const totalAssigned = assignmentsInSemester.length;
   const filledClasses = classSummaries.filter((item) => item.studentCount > 0).length;
@@ -178,14 +236,21 @@ export default function StudentClassAssignmentsPage() {
 
   const fetchAssignments = async () => {
     try {
-      const response = await request.get("/api/v1/student-classes/admin", {
-        params: { semesterId: selectedSemesterId || undefined, isActive: true },
-      });
-      setAssignments(normalizeRows<StudentClassAssignment>(response));
+      const [studentClassRes, teachingRes] = await Promise.all([
+        request.get("/api/v1/student-classes/admin", {
+          params: { semesterId: selectedSemesterId || undefined, isActive: true },
+        }),
+        request.get("/api/v1/teaching-assignments/admin", {
+          params: { semesterId: selectedSemesterId || undefined, isActive: true },
+        }),
+      ]);
+      setAssignments(normalizeRows<StudentClassAssignment>(studentClassRes));
+      setTeachingAssignments(normalizeRows<any>(teachingRes));
     } catch (error) {
       console.error(error);
       toast.error("Không thể tải dữ liệu phân lớp theo học kỳ");
       setAssignments([]);
+      setTeachingAssignments([]);
     }
   };
 
@@ -236,31 +301,67 @@ export default function StudentClassAssignmentsPage() {
       toast.error("Vui lòng chọn học kỳ và lớp hành chính");
       return;
     }
+    setSelectedStudentIds([]);
+    setStudentSearchTerm("");
     setStudentForm({ studentId: "", note: "" });
     setStudentModalOpen(true);
   };
 
   const handleAssignStudent = async () => {
-    if (!studentForm.studentId || !selectedClassId || !selectedSemesterId) {
-      toast.error("Vui lòng chọn sinh viên, lớp và học kỳ");
+    if (selectedStudentIds.length === 0 || !selectedClassId || !selectedSemesterId) {
+      toast.error("Vui lòng chọn ít nhất một sinh viên, lớp và học kỳ");
       return;
     }
 
     setSaving(true);
-    try {
-      await request.post("/api/v1/student-classes/admin", {
-        studentId: studentForm.studentId,
+    
+    // Call assignment for each student in parallel
+    const promises = selectedStudentIds.map((studentId) =>
+      request.post("/api/v1/student-classes/admin", {
+        studentId,
         classId: selectedClassId,
         semesterId: selectedSemesterId,
         status: "ACTIVE",
         isActive: true,
         note: studentForm.note,
-      });
-      toast.success("Đã gán sinh viên vào lớp hành chính");
-      setStudentModalOpen(false);
+      })
+    );
+
+    try {
+      const results = await Promise.allSettled(promises);
+      
+      const succeededCount = results.filter((r) => r.status === "fulfilled").length;
+      const failedCount = results.filter((r) => r.status === "rejected").length;
+      
+      if (failedCount === 0) {
+        toast.success(`Đã gán thành công ${succeededCount} sinh viên vào lớp hành chính`);
+        setStudentModalOpen(false);
+      } else {
+        const errors = results
+          .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+          .map((r) => {
+            const err = r.reason;
+            return err?.response?.data?.message || err?.message || "Lỗi không xác định";
+          });
+        const uniqueErrors = Array.from(new Set(errors));
+        toast.warning(
+          `Đã gán thành công ${succeededCount} sinh viên. Thất bại ${failedCount} sinh viên. Lỗi: ${uniqueErrors.join("; ")}`
+        );
+        
+        // Retain only failed students in the selection
+        const failedIds: string[] = [];
+        results.forEach((res, index) => {
+          if (res.status === "rejected") {
+            failedIds.push(selectedStudentIds[index]);
+          }
+        });
+        setSelectedStudentIds(failedIds);
+      }
+      
       fetchAssignments();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Gán sinh viên thất bại");
+    } catch (error) {
+      console.error(error);
+      toast.error("Có lỗi xảy ra khi gán sinh viên");
     } finally {
       setSaving(false);
     }
@@ -284,30 +385,76 @@ export default function StudentClassAssignmentsPage() {
       toast.error("Vui lòng chọn học kỳ và lớp hành chính");
       return;
     }
+    setSelectedCourseClassIds([]);
+    setCourseClassSearchTerm("");
     setCourseForm({ courseClassId: "", instructorId: "", note: "" });
     setCourseModalOpen(true);
   };
 
   const handleAssignCourseClass = async () => {
-    if (!courseForm.courseClassId || !courseForm.instructorId || !selectedClassId || !selectedSemesterId) {
-      toast.error("Vui lòng chọn lớp học phần và giảng viên");
+    if (selectedCourseClassIds.length === 0 || !courseForm.instructorId || !selectedClassId || !selectedSemesterId) {
+      toast.error("Vui lòng chọn ít nhất một lớp học phần và giảng viên");
+      return;
+    }
+
+    const selectedLecturerId = courseForm.instructorId;
+    const isAssignedToOtherClass = teachingAssignments.some(
+      (ta) =>
+        ta.instructorId === selectedLecturerId &&
+        ta.classId !== selectedClassId &&
+        ta.isActive !== false
+    );
+    if (isAssignedToOtherClass) {
+      toast.error("Giảng viên đã được phân công phụ trách lớp hành chính khác trong học kỳ này");
       return;
     }
 
     setSaving(true);
-    try {
-      await request.post("/api/v1/teaching-assignments/admin", {
+    
+    const promises = selectedCourseClassIds.map((courseClassId) =>
+      request.post("/api/v1/teaching-assignments/admin", {
         instructorId: courseForm.instructorId,
-        courseClassId: courseForm.courseClassId,
+        courseClassId,
         classId: selectedClassId,
         semesterId: selectedSemesterId,
         isActive: true,
         note: courseForm.note,
-      });
-      toast.success("Đã gán lớp học phần và giảng viên");
-      setCourseModalOpen(false);
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Gán lớp học phần thất bại");
+      })
+    );
+
+    try {
+      const results = await Promise.allSettled(promises);
+      
+      const succeededCount = results.filter((r) => r.status === "fulfilled").length;
+      const failedCount = results.filter((r) => r.status === "rejected").length;
+      
+      if (failedCount === 0) {
+        toast.success(`Đã gán thành công ${succeededCount} lớp học phần cho giảng viên`);
+        setCourseModalOpen(false);
+      } else {
+        const errors = results
+          .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+          .map((r) => {
+            const err = r.reason;
+            return err?.response?.data?.message || err?.message || "Lỗi không xác định";
+          });
+        const uniqueErrors = Array.from(new Set(errors));
+        toast.warning(
+          `Đã gán thành công ${succeededCount} lớp học phần. Thất bại ${failedCount} lớp. Lỗi: ${uniqueErrors.join("; ")}`
+        );
+        
+        // Retain only failed course classes in the selection
+        const failedIds: string[] = [];
+        results.forEach((res, index) => {
+          if (res.status === "rejected") {
+            failedIds.push(selectedCourseClassIds[index]);
+          }
+        });
+        setSelectedCourseClassIds(failedIds);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Có lỗi xảy ra khi gán lớp học phần");
     } finally {
       setSaving(false);
     }
@@ -341,7 +488,9 @@ export default function StudentClassAssignmentsPage() {
               }}
             >
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Chọn học kỳ" />
+                <SelectValue placeholder="Chọn học kỳ">
+                  {selectedSemester ? (selectedSemester.name || selectedSemester.code) : "Chọn học kỳ"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {semestersList.filter((semester) => semester.semesterId).map((semester) => (
@@ -508,20 +657,86 @@ export default function StudentClassAssignmentsPage() {
                 <p className="font-semibold">{selectedClass?.classCode || "—"}</p>
               </div>
             </div>
-            <div>
-              <Label>Sinh viên từ lớp học phần chưa gán lớp hành chính</Label>
-              <Select value={studentForm.studentId} onValueChange={(value) => setStudentForm({ ...studentForm, studentId: value })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Chọn sinh viên" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[320px]">
-                  {availableStudents.filter((student) => student.id || student.studentId).map((student) => (
-                    <SelectItem key={student.id || student.studentId} value={student.id || student.studentId || ""}>
-                      {student.studentCode} - {student.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div>
+                <Label>Tìm kiếm sinh viên chưa gán lớp hành chính</Label>
+                <Input
+                  value={studentSearchTerm}
+                  onChange={(event) => setStudentSearchTerm(event.target.value)}
+                  placeholder="Tìm theo mã sinh viên, họ tên..."
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">
+                    Danh sách sinh viên ({filteredAvailableStudents.length} sinh viên)
+                  </Label>
+                  {filteredAvailableStudents.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0 text-xs text-primary hover:no-underline"
+                      onClick={() => {
+                        const allIds = filteredAvailableStudents
+                          .map((s) => s.id || s.studentId)
+                          .filter(Boolean) as string[];
+                        const allSelected = allIds.every((id) => selectedStudentIds.includes(id));
+                        if (allSelected) {
+                          setSelectedStudentIds((prev) => prev.filter((id) => !allIds.includes(id)));
+                        } else {
+                          setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...allIds])));
+                        }
+                      }}
+                    >
+                      {filteredAvailableStudents
+                        .map((s) => s.id || s.studentId)
+                        .filter(Boolean)
+                        .every((id) => selectedStudentIds.includes(id as string))
+                        ? "Bỏ chọn tất cả"
+                        : "Chọn tất cả"}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="max-h-[280px] overflow-y-auto rounded-md border p-2 space-y-1 bg-background">
+                  {filteredAvailableStudents.map((student) => {
+                    const sId = student.id || student.studentId || "";
+                    const isChecked = selectedStudentIds.includes(sId);
+                    return (
+                      <label
+                        key={sId}
+                        className="flex items-center gap-3 rounded px-2 py-1.5 hover:bg-muted/50 cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedStudentIds((prev) =>
+                              isChecked ? prev.filter((id) => id !== sId) : [...prev, sId]
+                            );
+                          }}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 cursor-pointer w-4 h-4"
+                        />
+                        <span className="font-mono text-xs font-semibold bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                          {student.studentCode}
+                        </span>
+                        <span className="font-medium">{student.fullName}</span>
+                      </label>
+                    );
+                  })}
+                  {filteredAvailableStudents.length === 0 && (
+                    <p className="text-center py-8 text-sm text-muted-foreground">
+                      Không tìm thấy sinh viên nào phù hợp hoặc chưa gán lớp hành chính
+                    </p>
+                  )}
+                </div>
+                
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>Đã chọn: <strong className="text-foreground">{selectedStudentIds.length}</strong> sinh viên</span>
+                </div>
+              </div>
             </div>
             <div>
               <Label>Ghi chú</Label>
@@ -545,36 +760,122 @@ export default function StudentClassAssignmentsPage() {
             <DialogTitle>Gán lớp học phần và giảng viên</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
-              <Label>Lớp học phần sau khi chia</Label>
-              <Select value={courseForm.courseClassId} onValueChange={(value) => setCourseForm({ ...courseForm, courseClassId: value })}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Chọn lớp học phần" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[320px]">
-                  {courseClasses
-                    .filter((item) => !selectedSemesterId || !item.semesterId || item.semesterId === selectedSemesterId)
-                    .filter((item) => getCourseClassId(item))
-                    .map((item) => (
-                      <SelectItem key={getCourseClassId(item)} value={getCourseClassId(item)}>
-                        {item.classCode || item.code || "Lớp học phần"} - {item.courseCode || item.courseName || ""}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div>
+                <Label>Tìm kiếm lớp học phần</Label>
+                <Input
+                  value={courseClassSearchTerm}
+                  onChange={(event) => setCourseClassSearchTerm(event.target.value)}
+                  placeholder="Tìm theo mã lớp, mã môn, tên môn..."
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">
+                    Danh sách lớp học phần ({filteredAvailableCourseClasses.length} lớp)
+                  </Label>
+                  {filteredAvailableCourseClasses.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0 text-xs text-primary hover:no-underline"
+                      onClick={() => {
+                        const allIds = filteredAvailableCourseClasses
+                          .map(getCourseClassId)
+                          .filter(Boolean) as string[];
+                        const allSelected = allIds.every((id) => selectedCourseClassIds.includes(id));
+                        if (allSelected) {
+                          setSelectedCourseClassIds((prev) => prev.filter((id) => !allIds.includes(id)));
+                        } else {
+                          setSelectedCourseClassIds((prev) => Array.from(new Set([...prev, ...allIds])));
+                        }
+                      }}
+                    >
+                      {filteredAvailableCourseClasses
+                        .map(getCourseClassId)
+                        .filter(Boolean)
+                        .every((id) => selectedCourseClassIds.includes(id as string))
+                        ? "Bỏ chọn tất cả"
+                        : "Chọn tất cả"}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="max-h-[200px] overflow-y-auto rounded-md border p-2 space-y-1 bg-background">
+                  {filteredAvailableCourseClasses.map((item) => {
+                    const cId = getCourseClassId(item);
+                    const isChecked = selectedCourseClassIds.includes(cId);
+                    return (
+                      <label
+                        key={cId}
+                        className="flex items-center gap-3 rounded px-2 py-1.5 hover:bg-muted/50 cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedCourseClassIds((prev) =>
+                              isChecked ? prev.filter((id) => id !== cId) : [...prev, cId]
+                            );
+                          }}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 cursor-pointer w-4 h-4"
+                        />
+                        <span className="font-mono text-xs font-semibold bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                          {item.classCode || item.code}
+                        </span>
+                        <span className="font-medium">{item.courseName}</span>
+                      </label>
+                    );
+                  })}
+                  {filteredAvailableCourseClasses.length === 0 && (
+                    <p className="text-center py-6 text-sm text-muted-foreground">
+                      Không tìm thấy lớp học phần phù hợp
+                    </p>
+                  )}
+                </div>
+                
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <span>Đã chọn: <strong className="text-foreground">{selectedCourseClassIds.length}</strong> lớp học phần</span>
+                </div>
+              </div>
             </div>
             <div>
               <Label>Giảng viên phụ trách</Label>
               <Select value={courseForm.instructorId} onValueChange={(value) => setCourseForm({ ...courseForm, instructorId: value })}>
                 <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Chọn giảng viên" />
+                  <SelectValue placeholder="Chọn giảng viên">
+                    {courseForm.instructorId
+                      ? (() => {
+                          const item = lecturers.find((l) => getLecturerId(l) === courseForm.instructorId);
+                          return item ? `${item.instructorCode || "GV"} - ${item.fullName}` : "Chọn giảng viên";
+                        })()
+                      : "Chọn giảng viên"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-h-[320px]">
-                  {lecturers.filter((lecturer) => getLecturerId(lecturer)).map((lecturer) => (
-                    <SelectItem key={getLecturerId(lecturer)} value={getLecturerId(lecturer)}>
-                      {lecturer.instructorCode || "GV"} - {lecturer.fullName}
-                    </SelectItem>
-                  ))}
+                  {lecturers
+                    .filter((lecturer) => getLecturerId(lecturer))
+                    .map((lecturer) => {
+                      const lId = getLecturerId(lecturer);
+                      const isAssignedToOtherClass = teachingAssignments.some(
+                        (ta) =>
+                          ta.instructorId === lId &&
+                          ta.classId !== selectedClassId &&
+                          ta.isActive !== false
+                      );
+                      return (
+                        <SelectItem
+                          key={lId}
+                          value={lId}
+                          disabled={isAssignedToOtherClass}
+                        >
+                          {lecturer.instructorCode || "GV"} - {lecturer.fullName}
+                          {isAssignedToOtherClass ? " (Đã phụ trách lớp khác)" : ""}
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import LecturerAttendance from '@/components/ems/lecturer/LecturerAttendance';
 
 export default function AttendancePage() {
@@ -11,7 +11,9 @@ export default function AttendancePage() {
         <p className="text-slate-500 dark:text-slate-400 mt-1">Cập nhật tiến độ giảng dạy và điểm danh sinh viên tham gia lớp học.</p>
       </div>
 
-      <LecturerAttendance />
+      <Suspense fallback={null}>
+        <LecturerAttendance />
+      </Suspense>
     </div>
   );
 }

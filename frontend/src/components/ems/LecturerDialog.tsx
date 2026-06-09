@@ -66,6 +66,7 @@ const defaultLecturer: InstructorAdminFormData = {
   gender: 'Nam',
   phoneNumber: '',
   contactEmail: '',
+  avatarUrl: '',
   permanentAddress: '',
   employeeCode: '',
   instructorCode: '',
@@ -172,6 +173,7 @@ export default function LecturerDialog({
             gender: lecturer.gender || 'Nam',
             phoneNumber: lecturer.phoneNumber || '',
             contactEmail: lecturer.contactEmail || '',
+            avatarUrl: lecturer.avatarUrl || '',
             permanentAddress: lecturer.permanentAddress || '',
             instructorCode: lecturer.instructorCode || '',
             startWorkDate: toDateInputValue(lecturer.startWorkDate),
@@ -237,6 +239,7 @@ export default function LecturerDialog({
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
         phoneNumber: formData.phoneNumber || undefined,
+        avatarUrl: formData.avatarUrl || undefined,
         permanentAddress: formData.permanentAddress || undefined,
         note: formData.note || undefined,
         startWorkDate: formData.startWorkDate || undefined,
@@ -377,6 +380,26 @@ export default function LecturerDialog({
                   />
                 </div>
                 )}
+
+                <div className="md:col-span-2 lg:col-span-3">
+                  <Label htmlFor="avatarUrl">Ảnh đại diện</Label>
+                  <div className="mt-1.5 flex items-center gap-3">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 text-sm font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+                      {formData.avatarUrl ? (
+                        <img src={formData.avatarUrl} alt={formData.fullName || 'Avatar'} className="h-full w-full object-cover" />
+                      ) : (
+                        <User className="h-6 w-6" />
+                      )}
+                    </div>
+                    <Input
+                      id="avatarUrl"
+                      value={formData.avatarUrl}
+                      onChange={(e) => setField('avatarUrl', e.target.value)}
+                      className="h-10"
+                      placeholder="https://.../avatar.jpg"
+                    />
+                  </div>
+                </div>
 
                 <div className="md:col-span-2 lg:col-span-3">
                   <Label htmlFor="permanentAddress">Địa chỉ thường trú</Label>

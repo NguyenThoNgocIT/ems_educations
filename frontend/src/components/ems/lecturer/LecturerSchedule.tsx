@@ -173,7 +173,7 @@ export default function LecturerSchedule() {
   };
 
   return (
-    <div className="lecturer-schedule-calendar flex w-full flex-col overflow-x-auto rounded-2xl border border-emerald-100 bg-[#f7f9ff] p-3 shadow-sm dark:border-slate-700 dark:bg-slate-950 md:p-6">
+    <div className="lecturer-schedule-calendar w-full overflow-x-auto">
       <div className="min-w-[860px] rounded-2xl border border-emerald-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <FullCalendar
           ref={calendarRef}

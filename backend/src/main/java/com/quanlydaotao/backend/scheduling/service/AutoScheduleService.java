@@ -67,14 +67,17 @@ public class AutoScheduleService {
         List<CourseClass> classesInSemester = courseClassRepository.findBySemesterId(semesterId);
 
         for (CourseClass courseClass : classesInSemester) {
-            if (scheduleRepository.existsByCourseClassCourseClassId(courseClass.getCourseClassId())) {
+            int requiredPeriods = resolveTotalPeriods(courseClass);
+            int scheduledPeriods = Math.toIntExact(scheduleRepository.sumActivePeriodsByCourseClass(courseClass.getCourseClassId()));
+            int remainingPeriods = requiredPeriods - scheduledPeriods;
+            if (remainingPeriods <= 0) {
                 continue;
             }
             Employee instructor = resolveAssignedInstructor(courseClass, semesterId);
             if (instructor == null) {
                 continue;
             }
-            createFixedSessions(courseClass, semester, instructor, rooms, timeSlots);
+            createFixedSessions(courseClass, semester, instructor, rooms, timeSlots, remainingPeriods);
         }
     }
 
@@ -83,8 +86,8 @@ public class AutoScheduleService {
             Semester semester,
             Employee instructor,
             List<Room> rooms,
-            List<TimeSlot> timeSlots) {
-        int remainingPeriods = resolveTotalPeriods(courseClass);
+            List<TimeSlot> timeSlots,
+            int remainingPeriods) {
         LocalDate date = resolveStartDate(courseClass, semester);
         LocalDate endDate = resolveEndDate(courseClass, semester);
         while (remainingPeriods > 0 && !date.isAfter(endDate)) {

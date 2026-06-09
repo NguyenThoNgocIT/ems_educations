@@ -86,6 +86,7 @@ export interface InstructorAdminFormData {
   gender: string;
   phoneNumber: string;
   contactEmail: string;
+  avatarUrl: string;
   permanentAddress: string;
   employeeCode: string;
   instructorCode: string;

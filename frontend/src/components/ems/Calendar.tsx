@@ -408,10 +408,19 @@ const Calendar: React.FC = () => {
 
 const renderEventContent = (eventInfo: EventContentArg) => {
   const colorClass = `fc-bg-${eventInfo.event.extendedProps.calendar.toLowerCase()}`;
+  const courseName = eventInfo.event.extendedProps.courseName;
+  const instructorName = eventInfo.event.extendedProps.instructorName;
+
   return (
     <div className={`event-fc-color flex flex-col items-start ${colorClass} p-2 rounded-lg w-full overflow-hidden shadow-sm border-l-4`}>
       <div className="text-[10px] font-bold uppercase opacity-70 mb-1">{eventInfo.event.extendedProps.roomCode}</div>
       <div className="fc-event-title text-xs font-semibold leading-tight line-clamp-2">{eventInfo.event.extendedProps.courseClassName}</div>
+      {courseName ? (
+        <div className="text-[10px] opacity-80 line-clamp-1">{courseName}</div>
+      ) : null}
+      {instructorName ? (
+        <div className="text-[10px] uppercase opacity-70 line-clamp-1">GV: {instructorName}</div>
+      ) : null}
     </div>
   );
 };
