@@ -1,4 +1,5 @@
 import apiClient from './auth';
+import { unwrapApiResponse } from './response';
 
 export interface NotificationItem {
   userNotificationId: string;
@@ -12,15 +13,23 @@ export interface NotificationItem {
 }
 
 export const notificationApi = {
-  getNotifications: () =>
-    apiClient.get('/api/v1/notifications'),
+  getNotifications: async (): Promise<NotificationItem[]> => {
+    const response = await apiClient.get('/api/v1/notifications');
+    return unwrapApiResponse<NotificationItem[]>(response);
+  },
 
-  getUnreadCount: () =>
-    apiClient.get('/api/v1/notifications/unread-count'),
+  getUnreadCount: async (): Promise<{ count: number }> => {
+    const response = await apiClient.get('/api/v1/notifications/unread-count');
+    return unwrapApiResponse<{ count: number }>(response);
+  },
 
-  markAsRead: (id: string) =>
-    apiClient.put(`/api/v1/notifications/${id}/read`),
+  markAsRead: async (id: string): Promise<void> => {
+    const response = await apiClient.put(`/api/v1/notifications/${id}/read`);
+    return unwrapApiResponse<void>(response);
+  },
 
-  markAllAsRead: () =>
-    apiClient.post('/api/v1/notifications/mark-all-read'),
+  markAllAsRead: async (): Promise<void> => {
+    const response = await apiClient.post('/api/v1/notifications/mark-all-read');
+    return unwrapApiResponse<void>(response);
+  },
 };
