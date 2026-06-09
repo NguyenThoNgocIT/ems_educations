@@ -37,6 +37,8 @@ import com.quanlydaotao.backend.semester.repository.SemesterRepository;
 import com.quanlydaotao.backend.teachingassignment.repository.TeachingAssignmentRepository;
 import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.user.repository.UserRepository;
+import com.quanlydaotao.backend.notification.service.NotificationService;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -53,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService {
@@ -72,6 +75,7 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
     private final InstructorProfileRepository instructorProfileRepository;
     private final ScheduleAdjustmentMapper mapper;
     private final PlatformTransactionManager transactionManager;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -99,7 +103,27 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         entity.setReason(request.getReason().trim());
         entity.setStatus("PENDING");
         entity.setIsActive(true);
-        return enrichResponse(mapper.toDto(requestRepository.save(entity)));
+        ScheduleAdjustmentResponse response = enrichResponse(mapper.toDto(requestRepository.save(entity)));
+        try {
+            String requestTypeLabel = switch (entity.getRequestType()) {
+                case "ABSENT_MAKEUP" -> "Báo nghỉ và dạy bù";
+                case "EXTRA_SESSION" -> "Dạy thêm tiết";
+                case "RESCHEDULE" -> "Đổi lịch dạy";
+                case "ROOM_CHANGE" -> "Đổi phòng học";
+                default -> entity.getRequestType();
+            };
+            String title = "Yêu cầu điều chỉnh lịch dạy mới";
+            String content = String.format("Giảng viên %s đã gửi yêu cầu %s cho lớp %s (%s). Lý do: %s",
+                    response.getInstructorName(),
+                    requestTypeLabel,
+                    response.getClassCode(),
+                    response.getCourseClassName(),
+                    response.getReason());
+            notificationService.createNotificationForRole("ADMIN", title, content, "SCHEDULE_ADJUSTMENT", "HIGH");
+        } catch (Exception ex) {
+            log.error("Failed to create notification for admin: {}", ex.getMessage(), ex);
+        }
+        return response;
     }
 
     @Override
@@ -193,7 +217,9 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         entity.setAdminNote(request.getNote());
         entity.setReviewedBy(request.getReviewedBy());
         entity.setReviewedAt(LocalDateTime.now());
-        return enrichResponse(mapper.toDto(requestRepository.save(entity)));
+        ScheduleAdjustmentResponse response = enrichResponse(mapper.toDto(requestRepository.save(entity)));
+        notifyLecturer(entity, "APPROVED", request.getNote());
+        return response;
     }
 
     @Override
@@ -206,7 +232,9 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         entity.setAdminNote(request.getNote().trim());
         entity.setReviewedBy(request.getReviewedBy());
         entity.setReviewedAt(LocalDateTime.now());
-        return enrichResponse(mapper.toDto(requestRepository.save(entity)));
+        ScheduleAdjustmentResponse response = enrichResponse(mapper.toDto(requestRepository.save(entity)));
+        notifyLecturer(entity, "REJECTED", request.getNote());
+        return response;
     }
 
     @Override
@@ -219,7 +247,49 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         entity.setAdminNote(request.getNote().trim());
         entity.setReviewedBy(request.getReviewedBy());
         entity.setReviewedAt(LocalDateTime.now());
-        return enrichResponse(mapper.toDto(requestRepository.save(entity)));
+        ScheduleAdjustmentResponse response = enrichResponse(mapper.toDto(requestRepository.save(entity)));
+        notifyLecturer(entity, "RETURNED", request.getNote());
+        return response;
+    }
+
+    private void notifyLecturer(ScheduleAdjustmentRequest entity, String status, String adminNote) {
+        try {
+            Employee employee = employeeRepository.findById(entity.getRequestedByInstructorId()).orElse(null);
+            if (employee == null) return;
+            User user = userRepository.findByPersonPersonId(employee.getPerson().getPersonId()).orElse(null);
+            if (user == null) return;
+
+            String statusLabel = switch (status) {
+                case "APPROVED" -> "được duyệt";
+                case "REJECTED" -> "bị từ chối";
+                case "RETURNED" -> "yêu cầu sửa đổi";
+                default -> status;
+            };
+
+            String requestTypeLabel = switch (entity.getRequestType()) {
+                case "ABSENT_MAKEUP" -> "Báo nghỉ và dạy bù";
+                case "EXTRA_SESSION" -> "Dạy thêm tiết";
+                case "RESCHEDULE" -> "Đổi lịch dạy";
+                case "ROOM_CHANGE" -> "Đổi phòng học";
+                default -> entity.getRequestType();
+            };
+
+            CourseClass courseClass = courseClassRepository.findById(entity.getCourseClassId()).orElse(null);
+            String className = courseClass != null ? courseClass.getClassCode() : "";
+
+            String title = "Kết quả duyệt yêu cầu điều chỉnh lịch dạy";
+            StringBuilder content = new StringBuilder(String.format("Yêu cầu %s cho lớp %s của bạn đã %s.",
+                    requestTypeLabel,
+                    className,
+                    statusLabel));
+            if (StringUtils.hasText(adminNote)) {
+                content.append(" Ghi chú từ admin: ").append(adminNote.trim());
+            }
+
+            notificationService.createNotificationForUser(user.getUserId(), title, content.toString(), "SCHEDULE_ADJUSTMENT", "NORMAL");
+        } catch (Exception ex) {
+            log.error("Failed to create notification for lecturer: {}", ex.getMessage(), ex);
+        }
     }
 
     @Override
