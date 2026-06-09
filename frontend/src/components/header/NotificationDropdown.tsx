@@ -36,16 +36,13 @@ export default function NotificationDropdown({ href = "/dashboard/student/notifi
   const fetchNotifications = async () => {
     try {
       const countRes = await notificationApi.getUnreadCount();
-      if (countRes?.data?.count !== undefined) {
-        setUnreadCount(countRes.data.count);
-      } else if (countRes?.count !== undefined) {
+      if (countRes && typeof countRes.count === "number") {
         setUnreadCount(countRes.count);
       }
 
       const listRes = await notificationApi.getNotifications();
-      const listData = listRes?.data || listRes || [];
-      if (Array.isArray(listData)) {
-        setNotifications(listData);
+      if (Array.isArray(listRes)) {
+        setNotifications(listRes);
       }
     } catch (err) {
       console.error("Lỗi khi tải thông báo:", err);
