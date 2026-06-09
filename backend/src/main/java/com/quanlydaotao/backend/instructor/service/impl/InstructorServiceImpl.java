@@ -54,7 +54,7 @@ public class InstructorServiceImpl implements InstructorService {
     @Override
     @Transactional(readOnly = true)
     public List<InstructorAdminResponse> getAllInstructorsForAdmin() {
-        return instructorMapper.toDtoList(instructorProfileRepository.findAll());
+        return instructorMapper.toDtoList(instructorProfileRepository.findAllByIsActiveTrueAndDeletedAtIsNull());
     }
 
     @Override

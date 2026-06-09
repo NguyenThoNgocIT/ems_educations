@@ -16,6 +16,7 @@ import com.quanlydaotao.backend.studentclass.entity.StudentClass;
 import com.quanlydaotao.backend.studentclass.repository.StudentClassRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 
 @Configuration
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "app.seed", name = "administrative-class-test-data", havingValue = "true")
 public class AdministrativeClassTestDataSeeder {
     private final AdministrativeClassRepository classRepository;
     private final AcademicCohortRepository cohortRepository;

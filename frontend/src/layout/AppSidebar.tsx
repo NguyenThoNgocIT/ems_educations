@@ -2,6 +2,7 @@
 
 import { adminNavGroups } from "@/constants/navigation";
 import { menuApi } from "@/api/rbac";
+import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { cn } from "@/lib/utils";
 import type { MenuItem as RbacMenuItem } from "@/types/rbac";
@@ -59,6 +60,15 @@ function canShowPath(path: string, allowedPaths: Set<string> | null) {
   return candidates.some((candidate) => allowedPaths.has(candidate));
 }
 
+const STATIC_ADMIN_PATHS = new Set(
+  adminNavGroups.flatMap((group) =>
+    group.items.flatMap((item) => {
+      const path = normalizePath(item.path);
+      return [path, ...(MENU_PATH_ALIASES[path] || []).map(normalizePath)];
+    }),
+  ),
+);
+
 function menuKey(menu: RbacMenuItem) {
   return `menu:${menu.id}`;
 }
@@ -74,6 +84,10 @@ function buildMenuTree(items: RbacMenuItem[], parentId: string | null = null, vi
       return { ...item, children: buildMenuTree(items, item.id, nextVisited) };
     })
     .filter((item) => Boolean(normalizePath(item.path || item.menuUrl)) || (item.children?.length ?? 0) > 0);
+}
+
+function flattenMenus(items: RbacMenuItem[]): RbacMenuItem[] {
+  return items.flatMap((item) => [item, ...flattenMenus(item.children || [])]);
 }
 
 function DynamicMenuIcon({ icon }: { icon?: string }) {
@@ -130,14 +144,28 @@ function DynamicMenuIcon({ icon }: { icon?: string }) {
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const { isExpanded, isHovered, isMobileOpen, setIsHovered } = useSidebar();
   const isOpen = isExpanded || isHovered || isMobileOpen;
+  const isAdmin = Boolean(
+    user?.role?.toLowerCase().replace(/^role_/, "") === "admin"
+      || user?.role?.toLowerCase().replace(/^role_/, "") === "super_admin"
+      || user?.roles?.some((role) => ["admin", "super_admin"].includes(role.toLowerCase().replace(/^role_/, ""))),
+  );
   const [allowedPaths, setAllowedPaths] = useState<Set<string> | null>(null);
   const [dynamicMenus, setDynamicMenus] = useState<RbacMenuItem[]>([]);
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(["Hồ sơ nhân sự", "Giảng dạy"]));
 
   useEffect(() => {
     let mounted = true;
+
+    if (isAdmin) {
+      setAllowedPaths(null);
+      setDynamicMenus([]);
+      return () => {
+        mounted = false;
+      };
+    }
 
     menuApi.getMe()
       .then((menus) => {
@@ -153,7 +181,7 @@ export default function AppSidebar() {
       })
       .catch(() => {
         if (mounted) {
-          setAllowedPaths(new Set(["/dashboard/admin"]));
+          setAllowedPaths(null);
           setDynamicMenus([]);
         }
       });
@@ -161,7 +189,7 @@ export default function AppSidebar() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     const activeGroup = adminNavGroups.find((group) =>
@@ -337,7 +365,12 @@ export default function AppSidebar() {
     );
   };
 
-  const hasDynamicMenus = dynamicMenus.length > 0;
+  const customDynamicMenus = flattenMenus(dynamicMenus)
+    .filter((menu) => {
+      const path = normalizePath(menu.path || menu.menuUrl);
+      return path && !STATIC_ADMIN_PATHS.has(path);
+    })
+    .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
 
   return (
     <aside
@@ -380,7 +413,7 @@ export default function AppSidebar() {
 
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
         <div className="space-y-1.5">
-          {hasDynamicMenus ? dynamicMenus.map((menu) => renderDynamicMenu(menu)) : adminNavGroups.map((group, groupIndex) => {
+          {adminNavGroups.map((group, groupIndex) => {
             const visibleItems = group.items.filter((item) => canShowPath(item.path, allowedPaths));
             if (visibleItems.length === 0) return null;
 
@@ -515,6 +548,11 @@ export default function AppSidebar() {
               </section>
             );
           })}
+          {customDynamicMenus.length > 0 && (
+            <section className="space-y-1">
+              {customDynamicMenus.map((menu) => renderDynamicLink(menu))}
+            </section>
+          )}
         </div>
       </nav>
 

@@ -564,14 +564,14 @@ public class AccountServiceImpl {
 
     private String resolveFullNameNoAccent(AccountCreationRequest request) {
         if (StringUtils.hasText(request.getFullNameNoAccent())) {
-            return StringUtil.normalizeForAccountCode(request.getFullNameNoAccent());
+            return StringUtil.getFirstNameNoAccent(request.getFullNameNoAccent());
         }
         return StringUtil.getFirstNameNoAccent(request.getFullName());
     }
 
     private String firstNameForAccount(Person person) {
         if (StringUtils.hasText(person.getFullNameNoAccent())) {
-            return StringUtil.normalizeForAccountCode(person.getFullNameNoAccent());
+            return StringUtil.getFirstNameNoAccent(person.getFullNameNoAccent());
         }
         return StringUtil.getFirstNameNoAccent(person.getFullName());
     }

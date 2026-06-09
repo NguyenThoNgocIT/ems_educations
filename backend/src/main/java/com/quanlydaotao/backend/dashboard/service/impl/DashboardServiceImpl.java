@@ -35,7 +35,7 @@ public class DashboardServiceImpl implements DashboardService {
                 .totalStudents(studentRepository.count())
                 .totalLecturers(instructorProfileRepository.count())
                 .totalClasses(administrativeClassRepository.count())
-                .totalCourses(courseRepository.findByDeletedAtIsNull().size())
+                .totalCourses(courseRepository.countByDeletedAtIsNull())
                 .studentGrowth(0)
                 .lecturerGrowth(0)
                 .classGrowth(0)

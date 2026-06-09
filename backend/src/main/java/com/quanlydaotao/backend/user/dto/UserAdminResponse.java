@@ -10,6 +10,10 @@ import java.util.UUID;
 public class UserAdminResponse {
     private UUID userId;
     private UUID personId;
+    private String fullName;
+    private String fullNameNoAccent;
+    private String displayCode;
+    private String accountType;
     private String username;
     private String email;
     private LocalDateTime lastLoginAt;

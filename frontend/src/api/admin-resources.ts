@@ -123,6 +123,10 @@ export type Staff = {
 export type UserAccount = {
   userId?: string;
   personId?: string;
+  fullName?: string;
+  fullNameNoAccent?: string;
+  displayCode?: string;
+  accountType?: string;
   username?: string;
   email?: string;
   lastLoginAt?: string;

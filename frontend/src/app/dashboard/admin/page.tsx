@@ -119,11 +119,7 @@ export default function AdminDashboard() {
     
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchRealCounts(),      // API đã có - lấy số liệu thật
-        fetchDashboardStats(),  // API sẽ có - dùng khi BE có
-        fetchStudyStats(),      // API sẽ có - dùng khi BE có
-      ]);
+      await fetchRealCounts();
       setLoading(false);
     };
     

@@ -18,8 +18,8 @@ public class StringUtil {
         String normalized = Normalizer.normalize(value, Normalizer.Form.NFD);
         return DIACRITICAL_MARKS.matcher(normalized)
                 .replaceAll("")
-                .replace("đ", "d")
-                .replace("Đ", "D");
+                .replace("\u0111", "d")
+                .replace("\u0110", "D");
     }
 
     public static String normalizeForAccountCode(String value) {
