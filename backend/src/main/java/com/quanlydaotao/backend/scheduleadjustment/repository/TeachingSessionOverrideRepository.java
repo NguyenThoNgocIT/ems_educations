@@ -3,9 +3,11 @@ package com.quanlydaotao.backend.scheduleadjustment.repository;
 import com.quanlydaotao.backend.scheduleadjustment.entity.TeachingSessionOverride;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -104,6 +106,24 @@ public interface TeachingSessionOverrideRepository extends JpaRepository<Teachin
     @Query("""
             SELECT COUNT(o) > 0
             FROM TeachingSessionOverride o
+            JOIN TimeSlot ts ON ts.timeSlotId = o.timeSlotId
+            WHERE o.roomId = :roomId
+              AND o.teachingDate = :date
+              AND o.isActive = true
+              AND o.isVisible = true
+              AND (o.status IS NULL OR o.status <> 'CANCELLED')
+              AND ts.startTime < :endTime
+              AND :startTime < ts.endTime
+            """)
+    boolean hasRoomTimeOverlap(
+            @Param("roomId") UUID roomId,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime);
+
+    @Query("""
+            SELECT COUNT(o) > 0
+            FROM TeachingSessionOverride o
             WHERE o.instructorId = :instructorId
               AND o.teachingDate = :date
               AND o.timeSlotId = :timeSlotId
@@ -112,4 +132,40 @@ public interface TeachingSessionOverrideRepository extends JpaRepository<Teachin
               AND o.status <> 'CANCELLED'
             """)
     boolean hasInstructorConflict(UUID instructorId, LocalDate date, UUID timeSlotId);
+
+    @Query("""
+            SELECT COUNT(o) > 0
+            FROM TeachingSessionOverride o
+            JOIN TimeSlot ts ON ts.timeSlotId = o.timeSlotId
+            WHERE o.instructorId = :instructorId
+              AND o.teachingDate = :date
+              AND o.isActive = true
+              AND o.isVisible = true
+              AND (o.status IS NULL OR o.status <> 'CANCELLED')
+              AND ts.startTime < :endTime
+              AND :startTime < ts.endTime
+            """)
+    boolean hasInstructorTimeOverlap(
+            @Param("instructorId") UUID instructorId,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime);
+
+    @Query("""
+            SELECT COUNT(o) > 0
+            FROM TeachingSessionOverride o
+            JOIN TimeSlot ts ON ts.timeSlotId = o.timeSlotId
+            WHERE o.courseClassId = :courseClassId
+              AND o.teachingDate = :date
+              AND o.isActive = true
+              AND o.isVisible = true
+              AND (o.status IS NULL OR o.status <> 'CANCELLED')
+              AND ts.startTime < :endTime
+              AND :startTime < ts.endTime
+            """)
+    boolean hasCourseClassTimeOverlap(
+            @Param("courseClassId") UUID courseClassId,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime);
 }

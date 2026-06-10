@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -30,6 +31,16 @@ public class AutoScheduleController {
     public ResponseEntity<ApiResponse<String>> generateSchedule(@PathVariable UUID semesterId) {
         autoScheduleService.generateScheduleForSemester(semesterId);
         return ResponseEntity.ok(ApiResponse.success("Đã hoàn tất tự động xếp lịch gốc", "COMPLETED"));
+    }
+
+    @PostMapping("/course-classes/{courseClassId}/generate")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
+    @Operation(summary = "Tự động xếp lịch gốc cho một lớp học phần đã có giảng viên và sinh viên")
+    public ResponseEntity<ApiResponse<Integer>> generateCourseClassSchedule(
+            @PathVariable UUID courseClassId,
+            @RequestParam(required = false) UUID instructorId) {
+        int created = autoScheduleService.generateScheduleForCourseClass(courseClassId, instructorId);
+        return ResponseEntity.ok(ApiResponse.success("Đã tạo lịch gốc cho lớp học phần", created));
     }
 
     @GetMapping("/status/{semesterId}")

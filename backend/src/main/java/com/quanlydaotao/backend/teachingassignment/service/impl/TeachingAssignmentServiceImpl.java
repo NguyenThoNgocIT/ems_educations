@@ -1,6 +1,5 @@
 package com.quanlydaotao.backend.teachingassignment.service.impl;
 
-import com.quanlydaotao.backend.administrativeclass.repository.AdministrativeClassRepository;
 import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.course.entity.CourseClass;
@@ -27,7 +26,6 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
     private final TeachingAssignmentRepository repository;
     private final InstructorProfileRepository instructorProfileRepository;
     private final CourseClassRepository courseClassRepository;
-    private final AdministrativeClassRepository administrativeClassRepository;
     private final SemesterRepository semesterRepository;
     private final TeachingAssignmentMapper mapper;
 
@@ -41,8 +39,10 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
     @Transactional
     public TeachingAssignmentResponse assign(TeachingAssignmentRequest request) {
         validateReferences(request);
-        var existingAssignment = repository.findByInstructorIdAndCourseClassIdAndClassIdAndSemesterId(
-                request.getInstructorId(), request.getCourseClassId(), request.getClassId(), request.getSemesterId());
+        var existingAssignment = repository.search(
+                        request.getInstructorId(), request.getCourseClassId(), null, request.getSemesterId(), null)
+                .stream()
+                .findFirst();
         if (existingAssignment.isPresent() && Boolean.TRUE.equals(existingAssignment.get().getIsActive())) {
             throw new BusinessException("Phân công giảng dạy đã tồn tại");
         }
@@ -69,10 +69,10 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
         if (courseClassAlreadyAssigned) {
             throw new BusinessException("Lớp học phần đã có giảng viên được phân công");
         }
-        repository.findByInstructorIdAndCourseClassIdAndClassIdAndSemesterId(
-                        request.getInstructorId(), request.getCourseClassId(), request.getClassId(), request.getSemesterId())
+        repository.search(request.getInstructorId(), request.getCourseClassId(), null, request.getSemesterId(), true)
+                .stream()
+                .findFirst()
                 .filter(existing -> !existing.getAssignmentId().equals(assignmentId))
-                .filter(existing -> Boolean.TRUE.equals(existing.getIsActive()))
                 .ifPresent(existing -> {
                     throw new BusinessException("Phân công giảng dạy đã tồn tại");
                 });
@@ -103,9 +103,6 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học phần"));
         if (!request.getSemesterId().equals(courseClass.getSemesterId())) {
             throw new BusinessException("Học kỳ phân công không khớp lớp học phần");
-        }
-        if (!administrativeClassRepository.existsById(request.getClassId())) {
-            throw new ResourceNotFoundException("Không tìm thấy lớp hành chính");
         }
         if (!semesterRepository.existsById(request.getSemesterId())) {
             throw new ResourceNotFoundException("Không tìm thấy học kỳ");

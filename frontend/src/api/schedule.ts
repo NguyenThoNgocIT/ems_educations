@@ -12,6 +12,10 @@ export const scheduleApi = {
   update: (id: string, data: any, config?: AxiosRequestConfig) => apiClient.put(`/api/v1/schedules/${id}`, data, config),
   delete: (id: string) => apiClient.delete(`/api/v1/schedules/${id}`),
   generateAutoSchedule: (semesterId: string) => apiClient.post(`/api/v1/auto-schedules/generate/${semesterId}`),
+  generateCourseClassAutoSchedule: (courseClassId: string, instructorId?: string) =>
+    apiClient.post(`/api/v1/auto-schedules/course-classes/${courseClassId}/generate`, null, {
+      params: instructorId ? { instructorId } : undefined,
+    }),
   getAutoScheduleStatus: (semesterId: string) => apiClient.get(`/api/v1/auto-schedules/status/${semesterId}`),
   getTeachingProgress: (params?: { semesterId?: string; instructorId?: string; courseClassId?: string }) => 
     apiClient.get('/api/v1/schedules/teaching-progress', { params }),

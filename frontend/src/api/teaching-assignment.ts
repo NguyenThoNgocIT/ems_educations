@@ -4,7 +4,7 @@ import { unwrapApiResponse } from '@/api/response';
 export interface TeachingAssignmentRequest {
   instructorId: string;
   courseClassId: string;
-  classId: string;
+  classId?: string | null;
   semesterId: string;
   note?: string;
   isActive?: boolean;

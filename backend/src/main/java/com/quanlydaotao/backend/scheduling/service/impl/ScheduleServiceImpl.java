@@ -7,6 +7,7 @@ import com.quanlydaotao.backend.employeeleave.repository.EmployeeLeaveRequestRep
 import com.quanlydaotao.backend.facility.repository.RoomRepository;
 import com.quanlydaotao.backend.scheduling.dto.ScheduleDto;
 import com.quanlydaotao.backend.scheduling.entity.Schedule;
+import com.quanlydaotao.backend.scheduling.entity.TimeSlot;
 import com.quanlydaotao.backend.scheduling.mapper.ScheduleMapper;
 import com.quanlydaotao.backend.scheduling.repository.ScheduleRepository;
 import com.quanlydaotao.backend.scheduling.repository.TimeSlotRepository;
@@ -41,22 +42,30 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Override
     public List<ScheduleDto> getAll() {
-        return scheduleMapper.toDtoList(scheduleRepository.findAll());
+        return scheduleMapper.toDtoList(scheduleRepository.findAll().stream()
+                .filter(this::isVisibleSchedule)
+                .toList());
     }
 
     @Override
     public List<ScheduleDto> getByCourseClass(UUID courseClassId) {
-        return scheduleMapper.toDtoList(scheduleRepository.findByCourseClassCourseClassId(courseClassId));
+        return scheduleMapper.toDtoList(scheduleRepository.findByCourseClassCourseClassId(courseClassId).stream()
+                .filter(this::isVisibleSchedule)
+                .toList());
     }
 
     @Override
     public List<ScheduleDto> getByInstructor(UUID instructorId) {
-        return scheduleMapper.toDtoList(scheduleRepository.findByInstructorEmployeeId(instructorId));
+        return scheduleMapper.toDtoList(scheduleRepository.findByInstructorEmployeeId(instructorId).stream()
+                .filter(this::isVisibleSchedule)
+                .toList());
     }
 
     @Override
     public List<ScheduleDto> getByRoom(UUID roomId) {
-        return scheduleMapper.toDtoList(scheduleRepository.findByRoomRoomId(roomId));
+        return scheduleMapper.toDtoList(scheduleRepository.findByRoomRoomId(roomId).stream()
+                .filter(this::isVisibleSchedule)
+                .toList());
     }
 
     @Override
@@ -239,35 +248,39 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     private void validateScheduleByDate(ScheduleDto dto, UUID currentScheduleId) {
-        if (scheduleRepository.hasRoomConflictIgnoringSchedule(
-                dto.getRoomId(), dto.getDate(), dto.getTimeSlotId(), currentScheduleId)) {
+        TimeSlot targetSlot = timeSlotRepository.findById(dto.getTimeSlotId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ca học không tồn tại"));
+        if (scheduleRepository.hasRoomTimeOverlapIgnoringSchedule(
+                dto.getRoomId(), dto.getDate(), targetSlot.getStartTime(), targetSlot.getEndTime(), currentScheduleId)) {
             throw new BusinessException("Phòng học này đã có lịch vào ngày " + dto.getDate() + " tại ca học này.");
         }
 
-        if (scheduleRepository.hasCourseClassConflictIgnoringSchedule(
-                dto.getCourseClassId(), dto.getDate(), dto.getTimeSlotId(), currentScheduleId)) {
+        if (scheduleRepository.hasCourseClassTimeOverlapIgnoringSchedule(
+                dto.getCourseClassId(), dto.getDate(), targetSlot.getStartTime(), targetSlot.getEndTime(), currentScheduleId)) {
             throw new BusinessException("Lớp học phần này đã có lịch vào ngày " + dto.getDate() + " tại ca học này.");
         }
 
-        if (dto.getInstructorId() != null && scheduleRepository.hasInstructorConflictIgnoringSchedule(
-                dto.getInstructorId(), dto.getDate(), dto.getTimeSlotId(), currentScheduleId)) {
+        if (dto.getInstructorId() != null && scheduleRepository.hasInstructorTimeOverlapIgnoringSchedule(
+                dto.getInstructorId(), dto.getDate(), targetSlot.getStartTime(), targetSlot.getEndTime(), currentScheduleId)) {
             throw new BusinessException("Giảng viên này đã có lịch dạy vào ngày " + dto.getDate() + " tại ca học này.");
         }
     }
 
     private void validateScheduleByDayOfWeek(ScheduleDto dto, UUID currentScheduleId) {
-        if (scheduleRepository.existsByRoomRoomIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
-                dto.getRoomId(), dto.getSemesterId(), dto.getDayOfWeek(), dto.getTimeSlotId(), currentScheduleId)) {
+        TimeSlot targetSlot = timeSlotRepository.findById(dto.getTimeSlotId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ca học không tồn tại"));
+        if (scheduleRepository.hasRecurringRoomTimeOverlap(
+                dto.getRoomId(), dto.getSemesterId(), dto.getDayOfWeek(), targetSlot.getStartTime(), targetSlot.getEndTime())) {
             throw new BusinessException("Phòng học này đã có lịch vào Thứ " + dto.getDayOfWeek() + " tại ca học này.");
         }
 
-        if (scheduleRepository.existsByCourseClassCourseClassIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
-                dto.getCourseClassId(), dto.getSemesterId(), dto.getDayOfWeek(), dto.getTimeSlotId(), currentScheduleId)) {
+        if (scheduleRepository.hasRecurringCourseClassTimeOverlap(
+                dto.getCourseClassId(), dto.getSemesterId(), dto.getDayOfWeek(), targetSlot.getStartTime(), targetSlot.getEndTime())) {
             throw new BusinessException("Lớp học phần này đã có lịch vào Thứ " + dto.getDayOfWeek() + " tại ca học này.");
         }
 
-        if (dto.getInstructorId() != null && scheduleRepository.existsByInstructorEmployeeIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
-                dto.getInstructorId(), dto.getSemesterId(), dto.getDayOfWeek(), dto.getTimeSlotId(), currentScheduleId)) {
+        if (dto.getInstructorId() != null && scheduleRepository.hasRecurringInstructorTimeOverlap(
+                dto.getInstructorId(), dto.getSemesterId(), dto.getDayOfWeek(), targetSlot.getStartTime(), targetSlot.getEndTime())) {
             throw new BusinessException("Giảng viên này đã có lịch dạy vào Thứ " + dto.getDayOfWeek() + " tại ca học này.");
         }
     }
@@ -305,6 +318,16 @@ public class ScheduleServiceImpl implements ScheduleService {
                 throw new BusinessException("Giảng viên đã có lịch nghỉ được duyệt trong ngày này");
             }
         }
+    }
+
+    private boolean isVisibleSchedule(Schedule schedule) {
+        if (!Boolean.TRUE.equals(schedule.getIsActive()) || schedule.getDeletedAt() != null) {
+            return false;
+        }
+        if ("CANCELLED".equals(schedule.getScheduleStatus()) || "ABSENT".equals(schedule.getScheduleStatus())) {
+            return false;
+        }
+        return schedule.getDate() != null;
     }
 }
 

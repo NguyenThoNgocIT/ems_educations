@@ -165,16 +165,18 @@ export default function TimetableCalendar({
           nowIndicator
           locales={[viLocale]}
           locale="vi"
-          dayHeaderFormat={{ weekday: 'short', day: '2-digit', month: 'numeric' }}
-          dayHeaderContent={(arg) => {
-            const date = arg.date;
-            const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-            const dayName = days[date.getDay()];
-            if (arg.view.type === 'dayGridMonth') {
-              return dayName;
-            }
-            const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
-            return `${dayName} ${formattedDate}`;
+          firstDay={1}
+          dayHeaderFormat={{ weekday: 'short' }}
+          views={{
+            dayGridMonth: {
+              dayHeaderFormat: { weekday: 'short' },
+            },
+            timeGridWeek: {
+              dayHeaderFormat: { weekday: 'short', day: '2-digit', month: '2-digit' },
+            },
+            timeGridDay: {
+              dayHeaderFormat: { weekday: 'long', day: '2-digit', month: '2-digit' },
+            },
           }}
           buttonText={{
             today: 'Hôm nay',

@@ -15,7 +15,7 @@ import { semesterApi } from "@/api/semester";
 import { departmentApi } from "@/api/department";
 import { teachingAssignmentApi } from "@/api/teaching-assignment";
 import { toast } from "sonner";
-import { Filter, Bot, Loader2, CalendarRange, MapPin } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Filter, Bot, Loader2, CalendarRange } from "lucide-react";
 import { fixMojibakeText } from "@/utils/text";
 import { clearCache } from "@/utils/cache";
 
@@ -46,11 +46,14 @@ const requiredPeriodsOf = (courseClass: any) => {
   const theoryHours = Number(courseClass?.theoryHours || courseClass?.course?.theoryHours || 0);
   const practiceHours = Number(courseClass?.practiceHours || courseClass?.course?.practiceHours || 0);
   const configuredHours = theoryHours + practiceHours;
+  const credits = Number(courseClass?.credits || 0);
   if (configuredHours > 0) {
     return Math.max(1, Math.ceil(configuredHours));
   }
-  const credits = Number(courseClass?.credits || 0);
-  return Math.max(1, Math.ceil((credits || 3) * 15));
+  if (credits > 0) {
+    return Math.max(1, Math.ceil(credits * 15));
+  }
+  return 45;
 };
 
 const scheduleSaveErrorMessage = (error: any) => {
@@ -88,6 +91,23 @@ const sortTimeSlots = (slots: any[]) => {
 const getSettledValue = <T,>(result: PromiseSettledResult<T>, fallback: T) =>
   result.status === "fulfilled" ? result.value : fallback;
 
+const toDateOnly = (value?: string) => String(value || "").slice(0, 10);
+
+const addDaysToDateString = (value?: string, days = 0) => {
+  const dateOnly = toDateOnly(value);
+  if (!dateOnly) return "";
+  const date = new Date(`${dateOnly}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+const javaDayToFullCalendarDay = (day?: number) => {
+  if (day === 7) return 0;
+  if (day && day >= 1 && day <= 6) return day;
+  return 1;
+};
+
 export default function TimetableBuilder() {
   const [events, setEvents] = useState<any[]>([]);
   const [courseClasses, setCourseClasses] = useState<any[]>([]);
@@ -103,6 +123,8 @@ export default function TimetableBuilder() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("ALL"); // ALL | LECTURER | COURSE_CLASS | ROOM
   const [filterId, setFilterId] = useState("ALL");
+  const [autoScheduleCourseClassId, setAutoScheduleCourseClassId] = useState("");
+  const [autoScheduleInstructorId, setAutoScheduleInstructorId] = useState("");
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
   
   const [isAutoScheduling, setIsAutoScheduling] = useState(false);
@@ -146,6 +168,7 @@ export default function TimetableBuilder() {
     const lecturer = lecturerList.find((entry: any) => lecturerIdOf(entry) === String(schedule.instructorId));
     const courseClass = courseClassList.find((c: any) => courseClassIdOf(c) === String(schedule.courseClassId));
     const course = courseList.find((c: any) => String(c.courseId || c.id) === String(courseClass?.courseId || courseClass?.id));
+    const semester = semesters.find((item: any) => String(item.semesterId || item.id) === String(schedule.semesterId || selectedSemesterId));
 
     const departmentId =
       schedule.departmentId ||
@@ -160,17 +183,10 @@ export default function TimetableBuilder() {
       course?.departmentName ||
       courseClass?.department?.name;
 
-    let eventDate = schedule.date;
-    if (!eventDate) {
-      const today = new Date();
-      const currentDay = today.getDay() === 0 ? 7 : today.getDay();
-      const targetDay = schedule.dayOfWeek || 1;
-      const diff = targetDay - currentDay;
-      const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() + diff);
-      eventDate = targetDate.toISOString().split('T')[0];
-    }
-
+    const isRecurringPattern = !schedule.date && Boolean(schedule.dayOfWeek);
+    const eventDate = schedule.date || toDateOnly(schedule.startDate);
+    const recurStart = toDateOnly(courseClass?.startDate || semester?.startDate || schedule.startDate);
+    const recurEnd = addDaysToDateString(courseClass?.endDate || semester?.endDate || schedule.endDate, 1);
     let start = eventDate;
     let end = eventDate;
     let allDay = true;
@@ -181,12 +197,9 @@ export default function TimetableBuilder() {
       allDay = false;
     }
 
-    return {
+    const baseEvent: any = {
       id: schedule.scheduleId,
       title: `${schedule.courseClassName || schedule.classCode || 'Lớp học'} - ${schedule.roomCode || 'Chưa xếp phòng'}`,
-      start,
-      end,
-      allDay,
       extendedProps: {
         calendar: schedule.mode === 'TH' ? 'Warning' : 'Primary',
         instructorName: schedule.instructorName || lecturer?.fullName || lecturer?.name,
@@ -200,13 +213,34 @@ export default function TimetableBuilder() {
         departmentName: fixMojibakeText(departmentName),
         timeSlotId: schedule.timeSlotId,
         slotCode: schedule.slotCode,
+        dayOfWeek: schedule.dayOfWeek,
         numberOfPeriods: schedule.numberOfPeriods,
         semesterId: schedule.semesterId,
         mode: schedule.mode,
         scheduleStatus: schedule.scheduleStatus,
+        isRecurringPattern,
         isException: schedule.isException === true || String(schedule.note || "").includes("[EXCEPTION]"),
         note: schedule.note
       }
+    };
+
+    if (isRecurringPattern && slot) {
+      return {
+        ...baseEvent,
+        daysOfWeek: [javaDayToFullCalendarDay(Number(schedule.dayOfWeek))],
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        startRecur: recurStart || eventDate,
+        endRecur: recurEnd || undefined,
+        allDay: false,
+      };
+    }
+
+    return {
+      ...baseEvent,
+      start,
+      end,
+      allDay,
     };
   };
 
@@ -346,7 +380,7 @@ export default function TimetableBuilder() {
 
       setEvents(scheduleEvents);
       const firstEventStart = scheduleEvents
-        .map((event: any) => String(event.start || "").slice(0, 10))
+        .map((event: any) => String(event.start || event.startRecur || "").slice(0, 10))
         .filter(Boolean)
         .sort()[0];
       if (firstEventStart) {
@@ -434,8 +468,15 @@ export default function TimetableBuilder() {
     return events
       .filter((event) => String(event.id) !== String(editingScheduleId || ""))
       .filter((event) => {
+        const props = event.extendedProps || {};
         const eventDate = String(event.start || "").split("T")[0];
-        return eventDate === formData.date && String(event.extendedProps?.timeSlotId || "") === String(formData.timeSlotId);
+        const formDate = new Date(`${formData.date}T00:00:00`);
+        const formDayOfWeek = formDate.getDay() === 0 ? 7 : formDate.getDay();
+        const sameConcreteDate = eventDate === formData.date;
+        const sameRecurringDay =
+          props.isRecurringPattern === true &&
+          Number(props.dayOfWeek || 0) === formDayOfWeek;
+        return (sameConcreteDate || sameRecurringDay) && String(props.timeSlotId || "") === String(formData.timeSlotId);
       })
       .flatMap((event) => {
         const props = event.extendedProps || {};
@@ -520,6 +561,99 @@ export default function TimetableBuilder() {
       remaining: Math.max(required - scheduled, 0),
     };
   }, [formData.courseClassId, periodProgressByClass]);
+
+  const selectedScheduleCourseClass = useMemo(() => {
+    const targetId =
+      autoScheduleCourseClassId ||
+      (viewMode === "COURSE_CLASS" && filterId !== "ALL" ? filterId : "");
+    if (!targetId) return null;
+    return courseClasses.find((courseClass) => courseClassIdOf(courseClass) === String(targetId)) || null;
+  }, [autoScheduleCourseClassId, courseClasses, filterId, viewMode]);
+
+  const selectedAutoScheduleInstructor = useMemo(
+    () => lecturers.find((lecturer) => lecturerIdOf(lecturer) === String(autoScheduleInstructorId)) || null,
+    [autoScheduleInstructorId, lecturers]
+  );
+
+  const effectiveScheduleInstructorName =
+    selectedAutoScheduleInstructor?.fullName ||
+    selectedAutoScheduleInstructor?.name ||
+    selectedScheduleCourseClass?.assignedInstructorName;
+
+  const selectedScheduleProgress = useMemo(() => {
+    const id = selectedScheduleCourseClass ? courseClassIdOf(selectedScheduleCourseClass) : "";
+    const progress = periodProgressByClass.get(id) || { scheduled: 0, required: 0 };
+    return {
+      ...progress,
+      remaining: Math.max((progress.required || 0) - (progress.scheduled || 0), 0),
+    };
+  }, [periodProgressByClass, selectedScheduleCourseClass]);
+
+  const selectedScheduleStudentCount = Number(
+    selectedScheduleCourseClass?.currentStudent ??
+    selectedScheduleCourseClass?.currentStudents ??
+    selectedScheduleCourseClass?.currentEnrollment ??
+    0
+  );
+
+  const scheduleReadinessChecks = useMemo(() => {
+    if (!selectedScheduleCourseClass) return [];
+    return [
+      {
+        ok: Boolean(selectedAutoScheduleInstructor || selectedScheduleCourseClass.hasTeachingAssignment),
+        key: "assignment",
+        label: "Đã phân công giảng viên",
+        detail: effectiveScheduleInstructorName || "Chưa có giảng viên phụ trách",
+      },
+      {
+        ok: selectedScheduleStudentCount > 0,
+        key: "students",
+        label: "Đã có sinh viên trong lớp học phần",
+        detail: `${selectedScheduleStudentCount}/${selectedScheduleCourseClass.maxStudent ?? selectedScheduleCourseClass.maxStudents ?? "?"} sinh viên`,
+      },
+      {
+        ok: selectedScheduleProgress.remaining > 0,
+        key: "periods",
+        label: "Còn thiếu mẫu lịch tuần",
+        detail: `${selectedScheduleProgress.scheduled}/${selectedScheduleProgress.required} tiết/tuần`,
+      },
+      {
+        ok: rooms.length > 0 && timeSlots.length > 0,
+        key: "resources",
+        label: "Có phòng học và ca học khả dụng",
+        detail: `${rooms.length} phòng, ${timeSlots.length} ca học`,
+      },
+    ];
+  }, [effectiveScheduleInstructorName, rooms.length, selectedAutoScheduleInstructor, selectedScheduleCourseClass, selectedScheduleProgress, selectedScheduleStudentCount, timeSlots.length]);
+
+  const readinessLabel = (check: { key?: string; label: string }) => {
+    switch (check.key) {
+      case "assignment":
+        return "Đã phân công giảng viên";
+      case "students":
+        return "Đã có sinh viên trong lớp học phần";
+      case "periods":
+        return "Còn thiếu tiết lịch gốc";
+      case "resources":
+        return "Có phòng học và ca học khả dụng";
+      default:
+        return fixMojibakeText(check.label);
+    }
+  };
+
+  const readinessDetail = (check: { key?: string; detail: string }) => {
+    if (check.key === "periods") {
+      return `${selectedScheduleProgress.scheduled}/${selectedScheduleProgress.required} tiết`;
+    }
+    return fixMojibakeText(check.detail);
+  };
+
+  const autoScheduleProgressText = `Tiến độ lịch gốc: ${selectedScheduleProgress.scheduled}/${selectedScheduleProgress.required} tiết.`;
+
+  const canAutoScheduleSelectedClass =
+    Boolean(selectedScheduleCourseClass) &&
+    scheduleReadinessChecks.length > 0 &&
+    scheduleReadinessChecks.every((check) => check.ok);
 
   const resetModalFields = () => {
     setServerScheduleError("");
@@ -796,6 +930,12 @@ export default function TimetableBuilder() {
     setFilterId("ALL");
   };
 
+  useEffect(() => {
+    if (viewMode === "COURSE_CLASS" && filterId !== "ALL") {
+      setAutoScheduleCourseClassId(filterId);
+    }
+  }, [filterId, viewMode]);
+
   const handleAutoSchedule = async () => {
     if (!selectedSemesterId) {
       toast.error("Vui lòng chọn học kỳ");
@@ -803,6 +943,25 @@ export default function TimetableBuilder() {
     }
     try {
       setIsAutoScheduling(true);
+      const targetCourseClassId =
+        autoScheduleCourseClassId ||
+        (viewMode === "COURSE_CLASS" && filterId !== "ALL" ? filterId : "");
+      if (targetCourseClassId) {
+        if (!canAutoScheduleSelectedClass) {
+          const missing = scheduleReadinessChecks.filter((check) => !check.ok).map((check) => check.label).join(", ");
+          toast.error(`Chưa thể xếp lịch: ${missing || "lớp học phần chưa đủ dữ liệu"}`);
+          return;
+        }
+        setAutoScheduleStatus("Đang xếp lịch gốc cho lớp học phần...");
+        const response = await scheduleApi.generateCourseClassAutoSchedule(
+          targetCourseClassId,
+          autoScheduleInstructorId || undefined
+        );
+        const created = response?.data?.data ?? response?.data ?? 0;
+        toast.success(Number(created) > 0 ? "Đã tạo lịch gốc cho lớp học phần" : "Lớp học phần đã đủ mẫu lịch gốc");
+        await fetchInitialData();
+        return;
+      }
       setAutoScheduleStatus("Đang xếp lịch gốc theo phân công...");
       await scheduleApi.generateAutoSchedule(selectedSemesterId);
       toast.success("Đã hoàn tất tự động xếp lịch gốc!");
@@ -821,6 +980,11 @@ export default function TimetableBuilder() {
     }
     setFormData(nextFormData);
   };
+
+  const autoScheduleButtonLabel =
+    selectedScheduleCourseClass
+      ? "Xếp lịch lớp đang chọn"
+      : "Tự động xếp lịch gốc";
 
   return (
     <div className="flex h-[calc(100vh-140px)] min-h-[680px] w-full max-w-full flex-col gap-4 overflow-hidden text-[14px]">
@@ -940,6 +1104,124 @@ export default function TimetableBuilder() {
                 <span>Tự động xếp lịch gốc</span>
               </>
             )}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-shrink-0 rounded-2xl border border-emerald-100 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase text-emerald-700">
+                Thuật toán lịch gốc
+              </span>
+              <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-700">
+                Greedy weekly pattern + hard constraints
+              </span>
+            </div>
+            <h2 className="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+              {selectedScheduleCourseClass
+                ? `${selectedScheduleCourseClass.classCode} - ${fixMojibakeText(selectedScheduleCourseClass.courseName || "")}`
+                : "Chọn lớp học phần để xếp lịch gốc"}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Lịch gốc chỉ sinh cho lớp học phần đã mở trong học kỳ, đã có giảng viên phụ trách và sinh viên trong lớp.
+              Hệ thống xếp số tiết/tuần theo tín chỉ, ưu tiên phòng gợi ý của lớp, rồi kiểm tra trùng phòng, giảng viên, lớp học phần và ngày nghỉ.
+            </p>
+            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(260px,1.2fr)_minmax(220px,0.8fr)]">
+              <div>
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Lớp học phần cần xếp
+                </div>
+                <Select
+                  value={autoScheduleCourseClassId || ""}
+                  onValueChange={(value) => {
+                    setAutoScheduleCourseClassId(value);
+                    setViewMode("COURSE_CLASS");
+                    setFilterId(value);
+                  }}
+                >
+                  <SelectTrigger className="h-10 bg-white dark:bg-slate-950">
+                    <SelectValue placeholder="Chọn lớp học phần" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courseClasses.map((courseClass) => (
+                      <SelectItem key={courseClassIdOf(courseClass)} value={courseClassIdOf(courseClass)}>
+                        {courseClass.classCode} - {fixMojibakeText(courseClass.courseName || "Lớp học phần")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Giảng viên phụ trách
+                </div>
+                <Select
+                  value={autoScheduleInstructorId || "ASSIGNED"}
+                  onValueChange={(value) => setAutoScheduleInstructorId(value === "ASSIGNED" ? "" : value)}
+                >
+                  <SelectTrigger className="h-10 bg-white dark:bg-slate-950">
+                    <SelectValue placeholder="Chọn giảng viên" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ASSIGNED">Dùng giảng viên đã phân công</SelectItem>
+                    {lecturers.map((lecturer) => (
+                      <SelectItem key={lecturerIdOf(lecturer)} value={lecturerIdOf(lecturer)}>
+                        {fixMojibakeText(lecturer.fullName || lecturer.name || "Giảng viên")} ({lecturer.instructorCode || lecturer.employeeCode || "GV"})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid min-w-[280px] gap-2 text-sm sm:grid-cols-2 xl:min-w-[520px]">
+            {selectedScheduleCourseClass ? (
+              scheduleReadinessChecks.map((check) => (
+                <div
+                  key={check.key || check.label}
+                  className={`rounded-xl border p-3 ${
+                    check.ok
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100"
+                      : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-semibold">
+                    {check.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                    {readinessLabel(check)}
+                  </div>
+                  <p className="mt-1 text-xs opacity-80">{readinessDetail(check)}</p>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full rounded-xl border border-dashed p-4 text-sm text-slate-500 dark:text-slate-400">
+                Chọn lớp học phần ở ô bên trái. Nếu chưa có sinh viên hoặc giảng viên, hãy hoàn tất ở trang lớp học phần trước khi xếp lịch.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm dark:border-slate-800">
+          <div className="text-slate-500 dark:text-slate-400">
+            {selectedScheduleCourseClass
+              ? autoScheduleProgressText
+              : "Không chọn lớp học phần thì nút tự động sẽ chạy toàn bộ học kỳ."}
+          </div>
+          <div className="hidden">
+            {selectedScheduleCourseClass
+              ? `Tiến độ mẫu lịch: ${selectedScheduleProgress.scheduled}/${selectedScheduleProgress.required} tiết/tuần.`
+              : "Không chọn lớp học phần thì nút tự động sẽ chạy toàn bộ học kỳ."}
+          </div>
+          <button
+            type="button"
+            onClick={handleAutoSchedule}
+            disabled={isAutoScheduling || (Boolean(selectedScheduleCourseClass) && !canAutoScheduleSelectedClass)}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isAutoScheduling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
+            {selectedScheduleCourseClass ? "Xếp lịch gốc cho lớp này" : "Xếp lịch gốc toàn học kỳ"}
           </button>
         </div>
       </div>

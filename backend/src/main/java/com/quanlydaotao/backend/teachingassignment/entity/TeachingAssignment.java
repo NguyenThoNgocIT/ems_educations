@@ -28,7 +28,7 @@ public class TeachingAssignment extends SoftDeleteEntity {
     @Column(name = "CourseClassId", nullable = false)
     private UUID courseClassId;
 
-    @Column(name = "ClassId", nullable = false)
+    @Column(name = "ClassId")
     private UUID classId;
 
     @Column(name = "SemesterId", nullable = false)
