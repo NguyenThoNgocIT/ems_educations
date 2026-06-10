@@ -7,11 +7,8 @@ const CACHE_PREFIX = 'semesters';
 
 export const semesterApi = {
   getAll: async (params?: { keyword?: string; schoolYearId?: string; isActive?: boolean }): Promise<Semester[]> => {
-    const cacheKey = `${CACHE_PREFIX}_${JSON.stringify(params || {})}`;
-    return withCache(cacheKey, async () => {
-      const response = await request.get('/api/v1/semesters/admin', { params });
-      return unwrapApiResponse<Semester[]>(response);
-    });
+    const response = await request.get('/api/v1/semesters/admin', { params });
+    return unwrapApiResponse<Semester[]>(response);
   },
   getById: (id: string) => request.get(`/api/v1/semesters/admin/${id}`),
   create: async (data: any) => {

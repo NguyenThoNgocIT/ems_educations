@@ -42,9 +42,7 @@ export const courseClassApi = {
   getById: async (id: string) => unwrapApiResponse<any>(await request.get(`/api/v1/courses/classes/${id}`)),
   getByCourse: async (courseId: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/${courseId}/classes`)),
   getBySemester: async (semesterId: string) => {
-    return withCache(`${COURSE_CLASS_CACHE_PREFIX}_semester_${semesterId}`, async () => {
-      return unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/classes/semester/${semesterId}`));
-    });
+    return unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/classes/semester/${semesterId}`));
   },
   getStudents: async (id: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/classes/${id}/students`)),
   addStudent: async (id: string, data: { studentId: string; registrationPeriodId?: string; registrationType?: number; status?: number; isPaid?: boolean }) => {

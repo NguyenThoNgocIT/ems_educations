@@ -168,6 +168,9 @@ export default function TimetableCalendar({
             const date = arg.date;
             const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
             const dayName = days[date.getDay()];
+            if (arg.view.type === 'dayGridMonth') {
+              return dayName;
+            }
             const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
             return `${dayName} ${formattedDate}`;
           }}
