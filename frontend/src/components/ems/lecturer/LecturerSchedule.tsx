@@ -22,33 +22,53 @@ export default function LecturerSchedule() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [currentRange, setCurrentRange] = useState<{ start: Date; end: Date } | null>(null);
-  const [employeeId, setEmployeeId] = useState<string | null>(user?.id || null);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
 
+  // Luôn fetch /me khi mount để lấy employeeId chính xác
   useEffect(() => {
+    console.log('[LecturerSchedule] mount, user:', user?.username, 'user.id:', user?.id);
+    
+    // Nếu user.id đã có thì dùng ngay
     if (user?.id) {
+      console.log('[LecturerSchedule] using user.id:', user.id);
       setEmployeeId(user.id);
       return;
     }
-    if (!user) return;
-    console.log('[LecturerSchedule] user.id missing, fetching from /me...');
+    
+    // Luôn fetch /me để lấy employeeId mới nhất
+    if (!user) {
+      console.log('[LecturerSchedule] no user, skip');
+      return;
+    }
+    
+    console.log('[LecturerSchedule] fetching /me to get employeeId...');
     request.get('/api/auth/me').then((res: any) => {
-      console.log('[LecturerSchedule] /me response:', res);
+      console.log('[LecturerSchedule] /me response:', JSON.stringify(res));
       const empId = res?.data?.employeeId;
       console.log('[LecturerSchedule] empId from /me:', empId);
       if (empId) {
-        setEmployeeId(empId);
-        updateUser({ id: empId });
+        setEmployeeId(String(empId));
+        updateUser({ id: String(empId) });
+      } else {
+        console.warn('[LecturerSchedule] empId is null/undefined in /me response!');
       }
-    }).catch(() => {});
-  }, [user?.id]);
+    }).catch((err: any) => {
+      console.error('[LecturerSchedule] /me failed:', err?.message);
+    });
+  }, [user?.id, user?.username]);
 
   const fetchScheduleForRange = async (start: Date, end: Date) => {
-    if (!employeeId) return;
+    if (!employeeId) {
+      console.warn('[LecturerSchedule] fetchScheduleForRange called but employeeId is null!');
+      return;
+    }
 
     const midDate = new Date((start.getTime() + end.getTime()) / 2);
     const month = midDate.getMonth() + 1;
     const year = midDate.getFullYear();
+
+    console.log('[LecturerSchedule] calling calendar API:', { employeeId, month, year });
 
     try {
       const res = await scheduleApi.getCalendar({
@@ -56,13 +76,13 @@ export default function LecturerSchedule() {
         month: month,
         year: year
       });
-      console.log('[LecturerSchedule] calling calendar API:', { employeeId, month, year });
-      const calendarDays = res?.data || [];
-      console.log('[LecturerSchedule] calendarDays received:', calendarDays.length, 'days, events:', calendarDays.filter((d: any) => d.items?.length > 0));
+      const calendarDays: any[] = res?.data || [];
+      console.log('[LecturerSchedule] calendarDays:', calendarDays.length, 'days,', 
+        calendarDays.filter((d: any) => d.items?.length > 0).length, 'with events');
       const scheduleEvents: any[] = [];
 
       calendarDays.forEach((day: any) => {
-        day.items.forEach((item: any) => {
+        (day.items || []).forEach((item: any) => {
           const start = item.startTime ? `${day.date}T${item.startTime}` : `${day.date}T07:00:00`;
           const end = item.endTime ? `${day.date}T${item.endTime}` : `${day.date}T10:00:00`;
 
@@ -79,6 +99,7 @@ export default function LecturerSchedule() {
           });
         });
       });
+      console.log('[LecturerSchedule] setting', scheduleEvents.length, 'events');
       setEvents(scheduleEvents);
     } catch (error) {
       console.error("Lỗi khi tải lịch dạy", error);
@@ -87,6 +108,7 @@ export default function LecturerSchedule() {
   };
 
   useEffect(() => {
+    console.log('[LecturerSchedule] effect triggered, employeeId:', employeeId, 'currentRange:', currentRange ? 'set' : 'null');
     if (currentRange && employeeId) {
       fetchScheduleForRange(currentRange.start, currentRange.end);
     }

@@ -120,8 +120,21 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
                     response.getCourseClassName(),
                     response.getReason());
             notificationService.createNotificationForRole("ADMIN", title, content, "SCHEDULE_ADJUSTMENT", "HIGH");
+
+            // Gửi thông báo cho giảng viên gửi yêu cầu
+            Employee employee = employeeRepository.findById(entity.getRequestedByInstructorId()).orElse(null);
+            if (employee != null) {
+                User user = userRepository.findByPersonPersonId(employee.getPerson().getPersonId()).orElse(null);
+                if (user != null) {
+                    String userTitle = "Gửi yêu cầu điều chỉnh lịch giảng dạy";
+                    String userContent = String.format("Bạn đã gửi yêu cầu %s cho lớp %s thành công cho Admin.",
+                            requestTypeLabel,
+                            response.getClassCode());
+                    notificationService.createNotificationForUser(user.getUserId(), userTitle, userContent, "SCHEDULE_ADJUSTMENT", "NORMAL");
+                }
+            }
         } catch (Exception ex) {
-            log.error("Failed to create notification for admin: {}", ex.getMessage(), ex);
+            log.error("Failed to create notification: {}", ex.getMessage(), ex);
         }
         return response;
     }
