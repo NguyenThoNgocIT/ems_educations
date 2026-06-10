@@ -18,6 +18,9 @@ export type StudentScheduleItem = {
   mode: 'LT' | 'TH' | 'Online';
   overrideType?: string;
   isCancelled?: boolean;
+  date: string | null;
+  startTime: string | null;
+  endTime: string | null;
 };
 
 export type StudentGradeItem = {

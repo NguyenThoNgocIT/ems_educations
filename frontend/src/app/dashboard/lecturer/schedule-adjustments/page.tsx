@@ -97,10 +97,10 @@ export default function LecturerRequestsPage() {
                   <tr key={req.requestId} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
                     <td className="px-6 py-4 font-medium">{getTypeLabel(req.requestType)}</td>
                     <td className="px-6 py-4 text-slate-500">
-                      {req.absentDate ? <>{req.absentDate}<br/><span className="text-xs opacity-70">Ca: {req.absentTimeSlotId}</span></> : '-'}
+                      {req.absentDate ? <>{req.absentDate}<br/><span className="text-xs opacity-70">Ca: {req.absentSlotCode || req.absentTimeSlotId}</span></> : '-'}
                     </td>
                     <td className="px-6 py-4 text-slate-500">
-                      {req.proposedDate ? <>{req.proposedDate}<br/><span className="text-xs opacity-70">Ca: {req.proposedTimeSlotId}</span></> : '-'}
+                      {req.proposedDate ? <>{req.proposedDate}<br/><span className="text-xs opacity-70">Ca: {req.proposedSlotCode || req.proposedTimeSlotId}</span></> : '-'}
                     </td>
                     <td className="px-6 py-4 max-w-[200px] truncate" title={req.reason}>{req.reason}</td>
                     <td className="px-6 py-4">{getStatusBadge(req.status)}</td>
