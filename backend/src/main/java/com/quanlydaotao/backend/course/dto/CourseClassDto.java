@@ -17,9 +17,17 @@ public class CourseClassDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private UUID semesterId;
+    private String semesterCode;
+    private String semesterName;
     private UUID courseId;
+    private String courseCode;
     private String courseName;
+    private UUID departmentId;
     private Double credits;
+    private Double theoryHours;
+    private Double practiceHours;
+    private String roomCode;
+    private String roomName;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

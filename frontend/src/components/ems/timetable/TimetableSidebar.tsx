@@ -1,6 +1,7 @@
 import React from 'react';
-import { Search, CalendarDays, Clock, Users } from 'lucide-react';
+import { Search, CalendarDays, Clock, Users, UserCheck, AlertTriangle } from 'lucide-react';
 import { Input } from "@/components/ui/input";
+import { fixMojibakeText } from "@/utils/text";
 
 interface Props {
   courseClasses: any[];
@@ -23,10 +24,12 @@ export default function TimetableSidebar({
 }: Props) {
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
   const filteredClasses = courseClasses.filter((courseClass) => {
+    const courseName = fixMojibakeText(courseClass.courseName || "").toLowerCase();
+    const classCode = String(courseClass.classCode || "").toLowerCase();
     const matchesSearch =
       !normalizedSearchTerm ||
-      courseClass.courseName?.toLowerCase().includes(normalizedSearchTerm) ||
-      courseClass.classCode?.toLowerCase().includes(normalizedSearchTerm);
+      courseName.includes(normalizedSearchTerm) ||
+      classCode.includes(normalizedSearchTerm);
 
     return matchesSearch && !completedCourseClassIds.has(courseClassIdOf(courseClass));
   });
@@ -36,7 +39,7 @@ export default function TimetableSidebar({
       <div className="border-b border-border bg-white/40 p-4 dark:bg-gray-900/40">
         <h2 className="flex items-center gap-2 text-[14px] font-bold text-foreground">
           <CalendarDays className="text-brand-500" size={20} />
-          Lớp chưa có lịch
+          Lớp học phần chưa đủ lịch
         </h2>
 
         <div className="relative mt-4">
@@ -57,19 +60,20 @@ export default function TimetableSidebar({
       >
         {filteredClasses.length === 0 ? (
           <div className="py-10 text-center text-[14px] text-muted-foreground">
-            Không còn lớp chưa có lịch.
+            Không còn lớp học phần chưa đủ lịch.
           </div>
         ) : (
           filteredClasses.map((courseClass) => {
             const courseClassId = courseClassIdOf(courseClass);
             const progress = periodProgressByClass.get(courseClassId) || { scheduled: 0, required: 0 };
+            const lecturerName = fixMojibakeText(courseClass.assignedInstructorName || "Đã phân công");
 
             return (
               <div
                 key={courseClassId}
                 className="fc-event group relative cursor-grab rounded-xl border border-border bg-card p-3 shadow-sm transition-all duration-200 hover:border-brand-400 hover:shadow-md active:cursor-grabbing dark:hover:border-brand-500/50"
                 data-id={courseClassId}
-                data-title={`${courseClass.classCode} - ${courseClass.courseName}`}
+                data-title={`${courseClass.classCode} - ${fixMojibakeText(courseClass.courseName)}`}
               >
                 <div className="mb-1 flex items-start justify-between">
                   <span className="rounded bg-brand-50 px-2 py-0.5 text-[13px] font-bold text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
@@ -80,12 +84,22 @@ export default function TimetableSidebar({
                   </span>
                 </div>
                 <h3 className="mt-2 line-clamp-2 text-[14px] font-semibold text-foreground">
-                  {courseClass.courseName}
+                  {fixMojibakeText(courseClass.courseName)}
                 </h3>
+                <div className={`mt-2 flex items-center gap-1.5 text-[12px] font-semibold ${
+                  courseClass.hasTeachingAssignment ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'
+                }`}>
+                  {courseClass.hasTeachingAssignment ? <UserCheck size={13} /> : <AlertTriangle size={13} />}
+                  <span className="truncate">
+                    {courseClass.hasTeachingAssignment ? `GV: ${lecturerName}` : 'Chưa phân công giảng viên'}
+                  </span>
+                </div>
                 <div className="mt-2 flex items-center justify-between gap-2 text-[13px] text-muted-foreground">
                   <span className="flex min-w-0 items-center gap-1.5">
                     <Users size={13} className="shrink-0" />
-                    <span className="truncate">{courseClass.currentStudents || 0}/{courseClass.maxStudents || 40} Sinh viên</span>
+                    <span className="truncate">
+                      {courseClass.currentStudent ?? courseClass.currentStudents ?? 0}/{courseClass.maxStudent ?? courseClass.maxStudents ?? 40} sinh viên
+                    </span>
                   </span>
                   <span className="shrink-0 rounded-md bg-emerald-50 px-2 py-0.5 text-[12px] font-bold text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20">
                     {progress.scheduled}/{progress.required} tiết

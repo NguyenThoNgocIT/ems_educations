@@ -39,10 +39,14 @@ interface CourseClass {
   courseCode?: string;
   courseName: string;
   semesterId?: string;
+  semesterCode?: string;
   semesterName: string;
   roomId?: string;
   roomCode?: string;
   roomName: string;
+  credits?: number;
+  theoryHours?: number;
+  practiceHours?: number;
   maxStudent: number;
   currentStudent: number;
   status: string;
@@ -100,8 +104,12 @@ const normalizeCourseClass = (item: any): CourseClass => {
     classCode: item.classCode || item.code || '',
     courseCode: fixMojibakeText(item.courseCode),
     courseName: fixMojibakeText(courseLabel),
+    semesterCode: item.semesterCode,
     semesterName: fixMojibakeText(semesterLabel),
     roomName: fixMojibakeText(roomLabel),
+    credits: Number(item.credits ?? 0),
+    theoryHours: Number(item.theoryHours ?? 0),
+    practiceHours: Number(item.practiceHours ?? 0),
     maxStudent: Number(item.maxStudent ?? item.maxStudents ?? 0),
     currentStudent: Number(item.currentStudent ?? item.currentEnrollment ?? 0),
     status: item.status || (item.isActive === false ? 'INACTIVE' : 'ACTIVE'),
@@ -146,6 +154,7 @@ export default function CourseClassesPage() {
   const [targetCourseClassId, setTargetCourseClassId] = useState('');
   const [transferLoading, setTransferLoading] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
+  const [editingAssignmentId, setEditingAssignmentId] = useState('');
   const [addStudentLoading, setAddStudentLoading] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState('');
 
@@ -251,6 +260,15 @@ export default function CourseClassesPage() {
     return map;
   }, [departments]);
 
+  const semesterMap = useMemo(() => {
+    const map = new Map<string, any>();
+    semesters.forEach((semester) => {
+      const id = getSemesterId(semester);
+      if (id) map.set(id, semester);
+    });
+    return map;
+  }, [semesters]);
+
   const lecturerMap = useMemo(() => {
     const map = new Map<string, any>();
     lecturers.forEach((lecturer) => {
@@ -329,6 +347,61 @@ export default function CourseClassesPage() {
     });
   }, [classStudents, courseMap, selectedClass?.courseId, students]);
 
+  const formatDateInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const parseDateInput = (value?: string) => {
+    if (!value) return null;
+    const parsed = new Date(`${value}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const addDays = (value: string, days: number) => {
+    const date = parseDateInput(value);
+    if (!date) return '';
+    date.setDate(date.getDate() + days);
+    return formatDateInput(date);
+  };
+
+  const getCourseTotalPeriods = (courseId: string) => {
+    const course = courseMap.get(courseId);
+    const theoryHours = Number(course?.theoryHours ?? 0);
+    const practiceHours = Number(course?.practiceHours ?? 0);
+    const configuredPeriods = theoryHours + practiceHours;
+    if (configuredPeriods > 0) return Math.ceil(configuredPeriods);
+    return Math.max(1, Math.ceil(Number(course?.credits ?? 0) * 15));
+  };
+
+  const getPlannedDateRange = (courseId: string, semesterId: string, currentStartDate?: string) => {
+    const semester = semesterMap.get(semesterId);
+    const startDate = currentStartDate || semester?.startDate || '';
+    if (!courseId || !startDate) return { startDate, endDate: '' };
+    const weeks = Math.max(1, Math.ceil(getCourseTotalPeriods(courseId) / 3));
+    let endDate = addDays(startDate, (weeks - 1) * 7);
+    if (semester?.endDate && endDate && endDate > semester.endDate) {
+      endDate = semester.endDate;
+    }
+    return { startDate, endDate };
+  };
+
+  const updateCourseClassPlanning = (updates: Partial<typeof formData>) => {
+    setFormData((current) => {
+      const next = { ...current, ...updates };
+      const shouldRecalculate = Boolean(next.courseId && next.semesterId) && (!editingClass || updates.courseId || updates.semesterId || !next.endDate);
+      if (!shouldRecalculate) return next;
+      const planned = getPlannedDateRange(next.courseId, next.semesterId, next.startDate);
+      return {
+        ...next,
+        startDate: next.startDate || planned.startDate,
+        endDate: planned.endDate || next.endDate,
+      };
+    });
+  };
+
   const handleSort = (column: keyof CourseClass) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -361,6 +434,7 @@ export default function CourseClassesPage() {
     setStudentsLoading(true);
     setDetailsLoading(true);
     setAssignmentForm({ instructorId: '', classId: '', note: '' });
+    setEditingAssignmentId('');
     setSelectedStudentId('');
     try {
       const [rows, assignments, schedules] = await Promise.all([
@@ -389,6 +463,20 @@ export default function CourseClassesPage() {
     }
   };
 
+  const resetAssignmentForm = () => {
+    setEditingAssignmentId('');
+    setAssignmentForm({ instructorId: '', classId: '', note: '' });
+  };
+
+  const handleEditAssignment = (assignment: TeachingAssignmentResponse) => {
+    setEditingAssignmentId(assignment.assignmentId);
+    setAssignmentForm({
+      instructorId: assignment.instructorId || '',
+      classId: assignment.classId || '',
+      note: assignment.note || '',
+    });
+  };
+
   const handleAssignInstructor = async () => {
     if (!selectedClass) return;
     if (!assignmentForm.instructorId || !assignmentForm.classId) {
@@ -398,19 +486,42 @@ export default function CourseClassesPage() {
 
     setAssignLoading(true);
     try {
-      await teachingAssignmentApi.assign({
+      const payload = {
         instructorId: assignmentForm.instructorId,
         courseClassId: selectedClass.id,
         classId: assignmentForm.classId,
         semesterId: selectedClass.semesterId || '',
         note: assignmentForm.note.trim() || undefined,
         isActive: true,
-      });
-      toast.success('Đã phân công giảng viên cho lớp học phần');
+      };
+      if (editingAssignmentId) {
+        await teachingAssignmentApi.update(editingAssignmentId, payload);
+        toast.success('Đã cập nhật phân công giảng dạy');
+      } else {
+        await teachingAssignmentApi.assign(payload);
+        toast.success('Đã phân công giảng viên cho lớp học phần');
+      }
+      resetAssignmentForm();
       await refreshSelectedClassDetails();
     } catch (error: any) {
       console.error(error);
       toast.error(error.response?.data?.message || 'Phân công giảng dạy thất bại');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleDeleteAssignment = async (assignment: TeachingAssignmentResponse) => {
+    if (!confirm('Hủy phân công giảng viên phụ trách lớp học phần này?')) return;
+    setAssignLoading(true);
+    try {
+      await teachingAssignmentApi.delete(assignment.assignmentId);
+      toast.success('Đã hủy phân công giảng dạy');
+      resetAssignmentForm();
+      await refreshSelectedClassDetails();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Hủy phân công giảng dạy thất bại');
     } finally {
       setAssignLoading(false);
     }
@@ -436,8 +547,9 @@ export default function CourseClassesPage() {
       await fetchCourseClasses();
       await refreshSelectedClassDetails();
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.response?.data?.message || 'Thêm sinh viên vào lớp học phần thất bại');
+      const responseData = error.response?.data;
+      console.error('Course class add student failed', { responseData, status: error.response?.status });
+      toast.error(responseData?.message || responseData?.error || 'Thêm sinh viên vào lớp học phần thất bại');
     } finally {
       setAddStudentLoading(false);
     }
@@ -666,10 +778,17 @@ export default function CourseClassesPage() {
                   className="mt-1.5"
                 />
               </div>
-              <Button onClick={handleAssignInstructor} disabled={assignLoading || detailsLoading}>
-                <UserCheck className="mr-2 h-4 w-4" />
-                {assignLoading ? 'Đang phân công...' : 'Lưu phân công'}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={handleAssignInstructor} disabled={assignLoading || detailsLoading}>
+                  <UserCheck className="mr-2 h-4 w-4" />
+                  {assignLoading ? 'Đang lưu...' : editingAssignmentId ? 'Cập nhật phân công' : 'Lưu phân công'}
+                </Button>
+                {editingAssignmentId && (
+                  <Button type="button" variant="outline" onClick={resetAssignmentForm} disabled={assignLoading}>
+                    Hủy sửa
+                  </Button>
+                )}
+              </div>
 
               <div className="rounded-lg border">
                 {classAssignments.length === 0 ? (
@@ -679,14 +798,26 @@ export default function CourseClassesPage() {
                     const lecturer = lecturerMap.get(assignment.instructorId);
                     const adminClass = administrativeClassMap.get(assignment.classId);
                     return (
-                      <div key={assignment.assignmentId} className="border-b p-4 last:border-b-0">
-                        <p className="font-semibold">
-                          {fixMojibakeText(lecturer?.fullName || lecturer?.name || assignment.instructorId)}
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Lớp hành chính: {fixMojibakeText(adminClass?.classCode || (adminClass as any)?.className || (adminClass as any)?.name || assignment.classId)}
-                        </p>
-                        {assignment.note && <p className="mt-1 text-sm">{fixMojibakeText(assignment.note)}</p>}
+                      <div key={assignment.assignmentId} className="flex flex-col gap-3 border-b p-4 last:border-b-0 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="font-semibold">
+                            {fixMojibakeText(lecturer?.fullName || lecturer?.name || assignment.instructorId)}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Lớp hành chính: {fixMojibakeText(adminClass?.classCode || (adminClass as any)?.className || (adminClass as any)?.name || assignment.classId)}
+                          </p>
+                          {assignment.note && <p className="mt-1 text-sm">{fixMojibakeText(assignment.note)}</p>}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button type="button" variant="outline" size="sm" onClick={() => handleEditAssignment(assignment)} disabled={assignLoading}>
+                            <Edit className="mr-1 h-4 w-4" />
+                            Sửa
+                          </Button>
+                          <Button type="button" variant="outline" size="sm" className="text-destructive" onClick={() => handleDeleteAssignment(assignment)} disabled={assignLoading}>
+                            <Trash2 className="mr-1 h-4 w-4" />
+                            Hủy
+                          </Button>
+                        </div>
                       </div>
                     );
                   })
@@ -1117,7 +1248,7 @@ export default function CourseClassesPage() {
 
             <div>
               <Label htmlFor="courseId">Môn học *</Label>
-              <Select value={formData.courseId} onValueChange={(value) => setFormData({ ...formData, courseId: value || '' })} disabled={fetchingLookups}>
+              <Select value={formData.courseId} onValueChange={(value) => updateCourseClassPlanning({ courseId: value || '' })} disabled={fetchingLookups}>
                 <SelectTrigger className="mt-1.5">
                   <SelectValue placeholder={fetchingLookups ? 'Đang tải môn học...' : 'Chọn môn học'} />
                 </SelectTrigger>
@@ -1138,7 +1269,7 @@ export default function CourseClassesPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="semesterId">Học kỳ *</Label>
-                <Select value={formData.semesterId} onValueChange={(value) => setFormData({ ...formData, semesterId: value || '' })} disabled={fetchingLookups}>
+                <Select value={formData.semesterId} onValueChange={(value) => updateCourseClassPlanning({ semesterId: value || '' })} disabled={fetchingLookups}>
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder={fetchingLookups ? 'Đang tải học kỳ...' : 'Chọn học kỳ'} />
                   </SelectTrigger>
@@ -1174,6 +1305,18 @@ export default function CourseClassesPage() {
                     })}
                   </SelectContent>
                 </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Phòng ở bước này là phòng ưu tiên. Trùng phòng theo thứ/tiết sẽ được kiểm tra khi xếp lịch gốc hoặc duyệt lịch bù.
+                </p>
+                {formData.roomId && (() => {
+                  const room = rooms.find((item) => getRoomId(item) === formData.roomId);
+                  const capacity = Number(room?.capacity ?? 0);
+                  return capacity > 0 ? (
+                    <p className={`mt-1 text-xs ${capacity < formData.maxStudent ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Sức chứa phòng: {capacity} chỗ.
+                    </p>
+                  ) : null;
+                })()}
               </div>
             </div>
 
@@ -1183,7 +1326,7 @@ export default function CourseClassesPage() {
                 <DatePicker
                   id="startDate"
                   value={formData.startDate}
-                  onChange={(value) => setFormData({ ...formData, startDate: value })}
+                  onChange={(value) => updateCourseClassPlanning({ startDate: value, endDate: '' })}
                   placeholder="Chọn ngày"
                   className="mt-1.5"
                 />
@@ -1198,6 +1341,9 @@ export default function CourseClassesPage() {
                   placeholder="Chọn ngày"
                   className="mt-1.5"
                 />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Tự tính theo số tiết môn học, mặc định 3 tiết/tuần; có thể chỉnh nếu kế hoạch đào tạo khác.
+                </p>
               </div>
 
               <div>

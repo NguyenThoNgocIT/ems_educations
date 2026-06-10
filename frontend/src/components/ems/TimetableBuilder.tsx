@@ -13,8 +13,10 @@ import { timeSlotApi } from "@/api/timeSlot";
 import { lecturerApi } from "@/api/lecturer";
 import { semesterApi } from "@/api/semester";
 import { departmentApi } from "@/api/department";
+import { teachingAssignmentApi } from "@/api/teaching-assignment";
 import { toast } from "sonner";
 import { Filter, Bot, Loader2, CalendarRange, MapPin } from "lucide-react";
+import { fixMojibakeText } from "@/utils/text";
 
 // UI Components
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,10 +36,18 @@ const courseClassIdOf = (courseClass: any) => String(courseClass?.courseClassId 
 const roomIdOf = (room: any) => String(room?.roomId || room?.id || "");
 const timeSlotIdOf = (timeSlot: any) => String(timeSlot?.timeSlotId || timeSlot?.id || "");
 const lecturerIdOf = (lecturer: any) => String(lecturer?.employeeId || lecturer?.id || "");
+const assignmentInstructorIdOf = (assignment: any) => String(assignment?.instructorId || "");
+const assignmentCourseClassIdOf = (assignment: any) => String(assignment?.courseClassId || "");
 
 const unwrapResponseData = (response: any) => response?.data?.data || response?.data || response || {};
 
 const requiredPeriodsOf = (courseClass: any) => {
+  const theoryHours = Number(courseClass?.theoryHours || courseClass?.course?.theoryHours || 0);
+  const practiceHours = Number(courseClass?.practiceHours || courseClass?.course?.practiceHours || 0);
+  const configuredHours = theoryHours + practiceHours;
+  if (configuredHours > 0) {
+    return Math.max(1, Math.ceil(configuredHours));
+  }
   const credits = Number(courseClass?.credits || 0);
   return Math.max(1, Math.ceil((credits || 3) * 15));
 };
@@ -186,7 +196,7 @@ export default function TimetableBuilder() {
         courseName: schedule.courseName,
         courseClassId: schedule.courseClassId,
         departmentId,
-        departmentName,
+        departmentName: fixMojibakeText(departmentName),
         timeSlotId: schedule.timeSlotId,
         slotCode: schedule.slotCode,
         numberOfPeriods: schedule.numberOfPeriods,
@@ -250,14 +260,15 @@ export default function TimetableBuilder() {
   const fetchInitialData = async () => {
     if (!selectedSemesterId) return;
     try {
-      const [schedulesResult, classesResult, roomsResult, slotsResult, lecturersResult, coursesResult, departmentsResult] = await Promise.allSettled([
+      const [schedulesResult, classesResult, roomsResult, slotsResult, lecturersResult, coursesResult, departmentsResult, assignmentsResult] = await Promise.allSettled([
         scheduleApi.getAll(),
         courseClassApi.getBySemester(selectedSemesterId),
         roomApi.getAll(),
         timeSlotApi.getAll(),
         lecturerApi.getAll(),
         courseApi.getAll(),
-        departmentApi.getAll({ isActive: true })
+        departmentApi.getAll({ isActive: true }),
+        teachingAssignmentApi.search({ semesterId: selectedSemesterId, isActive: true })
       ]);
 
       if (schedulesResult.status === "rejected") {
@@ -271,6 +282,7 @@ export default function TimetableBuilder() {
       const lecturersRes = getSettledValue<any[]>(lecturersResult, lecturers);
       const coursesRes = getSettledValue<AxiosResponse<any>>(coursesResult, { data: [] } as any);
       const departmentsList = getSettledValue<any[]>(departmentsResult, []);
+      const assignmentList = getSettledValue<any[]>(assignmentsResult, []);
       const listSlots = sortTimeSlots(toArray(slotsRes));
       const schedulesList = toArray(schedulesRes);
       let classesList = toArray(classesRes);
@@ -279,35 +291,49 @@ export default function TimetableBuilder() {
       if (classesList.length === 0) {
         classesList = toArray(await courseClassApi.getAll());
       }
+      classesList = classesList.filter((courseClass: any) =>
+        !courseClass.semesterId || String(courseClass.semesterId) === String(selectedSemesterId)
+      );
       
-      // Keep schedules visible even if an older API response omits semesterId.
-      const matchingSemesterSchedules = schedulesList.filter(
-        (s: any) => String(s.semesterId || "") === String(selectedSemesterId)
-      );
-      const schedulesWithoutSemester = schedulesList.filter((s: any) => !s.semesterId);
       const semesterCourseClassIds = new Set(classesList.map((courseClass: any) => courseClassIdOf(courseClass)).filter(Boolean));
-      const relatedSchedules = schedulesList.filter((schedule: any) =>
-        semesterCourseClassIds.has(String(schedule.courseClassId || ""))
+      const orphanSemesterSchedules = schedulesList.filter((schedule: any) =>
+        String(schedule.semesterId || "") === String(selectedSemesterId)
+        && !semesterCourseClassIds.has(String(schedule.courseClassId || ""))
       );
-      const semesterSchedules = matchingSemesterSchedules.length > 0
-        ? matchingSemesterSchedules
-        : relatedSchedules.length > 0
-          ? relatedSchedules
-          : schedulesList;
+      const semesterSchedules = schedulesList.filter((schedule: any) =>
+        semesterCourseClassIds.has(String(schedule.courseClassId || ""))
+        && (!schedule.semesterId || String(schedule.semesterId) === String(selectedSemesterId))
+      );
 
       const lecturersList = toArray(lecturersRes);
       const departmentListItems = toArray(departmentsList);
+      const assignments = toArray(assignmentList);
+      const lecturerById = new Map<string, any>(lecturersList.map((lecturer: any) => [lecturerIdOf(lecturer), lecturer]));
+      const assignmentByCourseClassId = new Map<string, any>(
+        assignments.map((assignment: any) => [assignmentCourseClassIdOf(assignment), assignment])
+      );
+      classesList = classesList.map((courseClass: any) => {
+        const assignment = assignmentByCourseClassId.get(courseClassIdOf(courseClass));
+        const lecturer = assignment ? lecturerById.get(assignmentInstructorIdOf(assignment)) : null;
+        return {
+          ...courseClass,
+          assignedInstructorId: assignment?.instructorId,
+          assignedInstructorName: lecturer?.fullName || lecturer?.name,
+          hasTeachingAssignment: Boolean(assignment),
+        };
+      });
+
       const scheduleEvents = semesterSchedules.map((s: any) => buildCalendarEvent(s, listSlots, lecturersList, classesList, courseList));
 
       console.info("[TimetableBuilder] calendar data loaded", {
         selectedSemesterId,
         schedulesTotal: schedulesList.length,
         schedulesVisible: scheduleEvents.length,
-        schedulesMissingSemester: schedulesWithoutSemester.length,
-        matchingSemesterSchedules: matchingSemesterSchedules.length,
-        relatedSchedules: relatedSchedules.length,
+        orphanSemesterSchedules: orphanSemesterSchedules.length,
+        relatedSchedules: semesterSchedules.length,
         classes: classesList.length,
         lecturers: lecturersList.length,
+        assignments: assignments.length,
       });
 
       setEvents(scheduleEvents);
@@ -527,11 +553,16 @@ export default function TimetableBuilder() {
     info.revert();
     
     resetModalFields();
+    const selectedClass = courseClasses.find((courseClass: any) => courseClassIdOf(courseClass) === String(courseClassId));
     setFormData(prev => ({ 
       ...prev, 
       date: dateStr,
       courseClassId: courseClassId,
-      timeSlotId: matchedSlot?.timeSlotId || ""
+      timeSlotId: matchedSlot?.timeSlotId || "",
+      instructorId: selectedClass?.assignedInstructorId || "",
+      instructorName: selectedClass?.assignedInstructorName || "",
+      roomId: selectedClass?.roomId || "",
+      semesterId: selectedClass?.semesterId || selectedSemesterId,
     }));
     openModal();
   };
@@ -755,30 +786,15 @@ export default function TimetableBuilder() {
     }
     try {
       setIsAutoScheduling(true);
-      setAutoScheduleStatus("Đang khởi tạo thuật toán...");
+      setAutoScheduleStatus("Đang xếp lịch gốc theo phân công...");
       await scheduleApi.generateAutoSchedule(selectedSemesterId);
-
-      const interval = setInterval(async () => {
-        try {
-          const res = await scheduleApi.getAutoScheduleStatus(selectedSemesterId);
-          const statusName = res.data?.data;
-          setAutoScheduleStatus("Trạng thái: " + statusName);
-          
-          if (statusName === "NOT_SOLVING") {
-            clearInterval(interval);
-            setIsAutoScheduling(false);
-            toast.success("Đã hoàn tất tự động xếp lịch!");
-            fetchInitialData();
-          }
-        } catch (e) {
-          clearInterval(interval);
-          setIsAutoScheduling(false);
-        }
-      }, 3000);
-
+      toast.success("Đã hoàn tất tự động xếp lịch gốc!");
+      await fetchInitialData();
     } catch (error: any) {
+      toast.error(error.response?.data?.message || "Không thể chạy tự động xếp lịch gốc");
+    } finally {
       setIsAutoScheduling(false);
-      toast.error("Không thể chạy tự động xếp lịch");
+      setAutoScheduleStatus("");
     }
   };
 
@@ -904,7 +920,7 @@ export default function TimetableBuilder() {
             ) : (
               <>
                 <Bot className="w-5 h-5" />
-                <span>AI Xếp Lịch Tự Động</span>
+                <span>Tự động xếp lịch gốc</span>
               </>
             )}
           </button>

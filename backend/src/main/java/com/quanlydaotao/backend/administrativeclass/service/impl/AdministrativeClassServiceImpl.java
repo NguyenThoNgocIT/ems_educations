@@ -94,6 +94,9 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
             administrativeClass.setClassCode(classCode);
         }
         administrativeClassMapper.updateEntityFromDto(request, administrativeClass);
+        administrativeClass.setMajorId(request.getMajorId());
+        administrativeClass.setSpecializationId(request.getSpecializationId());
+        administrativeClass.setAdvisorId(request.getAdvisorId());
         if (StringUtils.hasText(request.getClassCode())) administrativeClass.setClassCode(normalizeCode(request.getClassCode()));
         if (StringUtils.hasText(request.getClassName())) administrativeClass.setClassName(request.getClassName().trim());
         if (StringUtils.hasText(request.getClassPhase())) administrativeClass.setClassPhase(resolveClassPhase(request.getClassPhase()));
@@ -237,6 +240,13 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
         }
         if (request.getAdvisorId() != null && !instructorProfileRepository.existsById(request.getAdvisorId())) {
             throw new ResourceNotFoundException("Không tìm thấy cố vấn học tập");
+        }
+        if (request.getAdvisorId() != null && request.getDepartmentId() != null) {
+            InstructorProfile advisor = instructorProfileRepository.findById(request.getAdvisorId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cố vấn học tập"));
+            if (advisor.getDepartmentId() != null && !request.getDepartmentId().equals(advisor.getDepartmentId())) {
+                throw new BusinessException("Cố vấn học tập phải thuộc cùng khoa với lớp hành chính");
+            }
         }
         validateMajorAndSpecialization(request.getDepartmentId(), request.getMajorId(), request.getSpecializationId(), resolveClassPhase(request.getClassPhase()));
         if (request.getAdvisorId() != null) {

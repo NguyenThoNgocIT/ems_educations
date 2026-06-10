@@ -72,6 +72,7 @@ const getMajorId = (major: Major) => major.majorId || major.id || "";
 const getCohortId = (cohort: AcademicCohort) => cohort.academicCohortId || cohort.cohortId || cohort.id || "";
 const getSpecializationId = (specialization: Specialization) => specialization.specializationId || specialization.id || "";
 const getClassId = (item: AdministrativeClass) => item.classId || item.id || "";
+const getLecturerId = (lecturer: LecturerListItem) => lecturer.employeeId || lecturer.id || "";
 const labelOf = (code?: string, name?: string) => [code, name].filter(Boolean).join(" - ");
 
 const getSpecializations = async (): Promise<Specialization[]> => {
@@ -163,7 +164,7 @@ export default function ClassesPage() {
     const editingId = editingClass ? getClassId(editingClass) : "";
     return lecturers.filter((lecturer) => {
       if (formData.departmentId && lecturer.departmentId && lecturer.departmentId !== formData.departmentId) return false;
-      const assignedClass = advisorClassById.get(lecturer.id);
+      const assignedClass = advisorClassById.get(getLecturerId(lecturer));
       return !assignedClass || getClassId(assignedClass) === editingId;
     });
   }, [advisorClassById, editingClass, formData.departmentId, lecturers]);
@@ -333,9 +334,9 @@ export default function ClassesPage() {
       className: formData.className.trim(),
       departmentId: formData.departmentId,
       academicCohortId: formData.academicCohortId,
-      majorId: formData.classPhase === "SPECIALIZATION" ? formData.majorId : undefined,
-      specializationId: formData.classPhase === "SPECIALIZATION" ? formData.specializationId : undefined,
-      advisorId: formData.advisorId || undefined,
+      majorId: (formData.classPhase === "SPECIALIZATION" ? formData.majorId : null) as any,
+      specializationId: (formData.classPhase === "SPECIALIZATION" ? formData.specializationId : null) as any,
+      advisorId: (formData.advisorId || null) as any,
       classPhase: formData.classPhase,
       maxSize: Number(formData.maxSize),
       status: Number(formData.status),
@@ -762,9 +763,10 @@ export default function ClassesPage() {
                   <SelectContent>
                     <SelectItem value="none">Chưa gán cố vấn</SelectItem>
                     {availableAdvisors.map((lecturer) => {
-                      const assignedClass = advisorClassById.get(lecturer.id);
+                      const lecturerId = getLecturerId(lecturer);
+                      const assignedClass = advisorClassById.get(lecturerId);
                       return (
-                        <SelectItem key={lecturer.id} value={lecturer.id}>
+                        <SelectItem key={lecturerId} value={lecturerId}>
                           {labelOf(lecturer.instructorCode, lecturer.fullName)}
                           {assignedClass ? ` - đang cố vấn ${assignedClass.classCode}` : ""}
                         </SelectItem>

@@ -1,10 +1,16 @@
 package com.quanlydaotao.backend.trainingprogramcourse.entity;
 
 import com.quanlydaotao.backend.infrastructure.persistence.base.SoftDeleteEntity;
+import com.quanlydaotao.backend.course.entity.Course;
+import com.quanlydaotao.backend.semester.entity.Semester;
+import com.quanlydaotao.backend.trainingprogram.entity.TrainingProgram;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -55,4 +61,20 @@ public class TrainingProgramCourse extends SoftDeleteEntity {
 
     @Column(name = "CoursePhase", length = 30)
     private String coursePhase;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "TrainingProgramId", insertable = false, updatable = false)
+    private TrainingProgram trainingProgram;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "CourseId", insertable = false, updatable = false)
+    private Course course;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "SemesterId", insertable = false, updatable = false)
+    private Semester semester;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "PrerequisiteCourseId", insertable = false, updatable = false)
+    private Course prerequisiteCourse;
 }

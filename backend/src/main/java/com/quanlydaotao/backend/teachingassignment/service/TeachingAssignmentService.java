@@ -10,4 +10,8 @@ public interface TeachingAssignmentService {
     List<TeachingAssignmentResponse> search(UUID instructorId, UUID courseClassId, UUID classId, UUID semesterId, Boolean isActive);
 
     TeachingAssignmentResponse assign(TeachingAssignmentRequest request);
+
+    TeachingAssignmentResponse update(UUID assignmentId, TeachingAssignmentRequest request);
+
+    void delete(UUID assignmentId);
 }

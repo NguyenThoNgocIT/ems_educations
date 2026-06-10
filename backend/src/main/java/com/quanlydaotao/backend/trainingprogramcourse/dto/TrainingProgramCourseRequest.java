@@ -1,32 +1,24 @@
 package com.quanlydaotao.backend.trainingprogramcourse.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class TrainingProgramCourseResponse {
+public class TrainingProgramCourseRequest {
+    @NotNull(message = "Chương trình đào tạo không được để trống")
     private UUID trainingProgramId;
-    private String trainingProgramCode;
-    private String trainingProgramName;
+
+    @NotNull(message = "Môn học không được để trống")
     private UUID courseId;
-    private String courseCode;
-    private String courseName;
-    private String courseType;
+
     private UUID semesterId;
-    private String semesterCode;
-    private String semesterName;
     private Boolean isRequired;
     private String groupCode;
     private BigDecimal credits;
     private UUID prerequisiteCourseId;
-    private String prerequisiteCourseCode;
-    private String prerequisiteCourseName;
     private Boolean isPrerequisiteRequired;
     private String note;
     private Integer sortOrder;

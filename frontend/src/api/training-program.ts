@@ -36,3 +36,53 @@ export const trainingProgramApi = {
     clearCache(CACHE_PREFIX);
   },
 };
+
+export interface TrainingProgramCourseRequest {
+  trainingProgramId: string;
+  courseId: string;
+  semesterId?: string;
+  isRequired?: boolean;
+  groupCode?: string;
+  credits?: number;
+  prerequisiteCourseId?: string;
+  isPrerequisiteRequired?: boolean;
+  note?: string;
+  sortOrder?: number;
+  status?: string;
+  coursePhase?: string;
+  isActive?: boolean;
+}
+
+export const trainingProgramCourseApi = {
+  search: async (params?: {
+    trainingProgramId?: string;
+    semesterId?: string;
+    coursePhase?: string;
+    isRequired?: boolean;
+    isActive?: boolean;
+  }) => {
+    const response = await request.get('/api/v1/training-program-courses/admin', { params, timeout: 10000 });
+    return unwrapApiResponse<any[]>(response);
+  },
+
+  create: async (data: TrainingProgramCourseRequest) => {
+    const response = await request.post('/api/v1/training-program-courses/admin', data);
+    return unwrapApiResponse<any>(response);
+  },
+
+  update: async (trainingProgramId: string, courseId: string, data: TrainingProgramCourseRequest) => {
+    const response = await request.put(`/api/v1/training-program-courses/admin/${trainingProgramId}/${courseId}`, data);
+    return unwrapApiResponse<any>(response);
+  },
+
+  delete: async (trainingProgramId: string, courseId: string) => {
+    await request.delete(`/api/v1/training-program-courses/admin/${trainingProgramId}/${courseId}`);
+  },
+
+  getByStudent: async (studentId: string, semesterId?: string) => {
+    const response = await request.get(`/api/v1/training-program-courses/admin/by-student/${studentId}`, {
+      params: { semesterId },
+    });
+    return unwrapApiResponse<any[]>(response);
+  },
+};

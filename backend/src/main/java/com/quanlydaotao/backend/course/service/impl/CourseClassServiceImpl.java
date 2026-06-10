@@ -13,6 +13,8 @@ import com.quanlydaotao.backend.course.repository.CourseClassRepository;
 import com.quanlydaotao.backend.course.repository.CourseRegistrationRepository;
 import com.quanlydaotao.backend.course.repository.CourseRepository;
 import com.quanlydaotao.backend.course.service.CourseClassService;
+import com.quanlydaotao.backend.facility.entity.Room;
+import com.quanlydaotao.backend.facility.repository.RoomRepository;
 import com.quanlydaotao.backend.person.entity.Person;
 import com.quanlydaotao.backend.registrationperiod.entity.RegistrationPeriod;
 import com.quanlydaotao.backend.registrationperiod.repository.RegistrationPeriodRepository;
@@ -28,10 +30,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +54,7 @@ public class CourseClassServiceImpl implements CourseClassService {
     private final RegistrationPeriodRepository registrationPeriodRepository;
     private final TrainingProgramCourseRepository trainingProgramCourseRepository;
     private final ScheduleRepository scheduleRepository;
+    private final RoomRepository roomRepository;
     private final CourseClassMapper courseClassMapper;
 
     @Override
@@ -59,7 +69,9 @@ public class CourseClassServiceImpl implements CourseClassService {
         if (Boolean.FALSE.equals(course.getIsActive())) {
             throw new BusinessException("Không thể mở lớp cho môn học đang ngừng hoạt động");
         }
+        applyDefaultDateRange(courseClassDto, course, semester);
         validateCapacity(courseClassDto);
+        validatePreferredRoom(courseClassDto);
         validateDateRange(courseClassDto, semester);
         String classCode = normalizeCode(courseClassDto.getClassCode());
 
@@ -74,7 +86,7 @@ public class CourseClassServiceImpl implements CourseClassService {
         courseClass.setClassCode(classCode);
         courseClass.setCurrentStudent(0);
         courseClass.setIsActive(true);
-        return courseClassMapper.toDto(courseClassRepository.save(courseClass));
+        return toResponse(courseClassRepository.save(courseClass));
     }
 
     @Override
@@ -82,25 +94,25 @@ public class CourseClassServiceImpl implements CourseClassService {
     public CourseClassDto getCourseClassById(UUID id) {
         CourseClass courseClass = courseClassRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học phần"));
-        return courseClassMapper.toDto(courseClass);
+        return toResponse(courseClass);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseClassDto> getAllCourseClasses() {
-        return courseClassMapper.toDtoList(courseClassRepository.findAll());
+        return toResponseList(courseClassRepository.findAll());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseClassDto> getCourseClassesByCourse(UUID courseId) {
-        return courseClassMapper.toDtoList(courseClassRepository.findByCourseId(courseId));
+        return toResponseList(courseClassRepository.findByCourseId(courseId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseClassDto> getCourseClassesBySemester(UUID semesterId) {
-        return courseClassMapper.toDtoList(courseClassRepository.findBySemesterId(semesterId));
+        return toResponseList(courseClassRepository.findBySemesterId(semesterId));
     }
 
     @Override
@@ -209,10 +221,17 @@ public class CourseClassServiceImpl implements CourseClassService {
                 : courseClass.getClassCode();
         Semester semester = semesterRepository.findById(semesterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy học kỳ"));
-        if (!courseRepository.existsById(courseId)) {
-            throw new ResourceNotFoundException("Không tìm thấy môn học");
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy môn học"));
+        if (courseClassDto.getStartDate() == null) {
+            courseClassDto.setStartDate(courseClass.getStartDate());
         }
+        if (courseClassDto.getEndDate() == null) {
+            courseClassDto.setEndDate(courseClass.getEndDate());
+        }
+        applyDefaultDateRange(courseClassDto, course, semester);
         validateCapacity(courseClassDto);
+        validatePreferredRoom(courseClassDto);
         validateDateRange(courseClassDto, semester);
         int currentCount = (int) courseRegistrationRepository.countByCourseClassIdAndIsActiveTrue(id);
         if (courseClassDto.getMaxStudent() != null && currentCount > courseClassDto.getMaxStudent()) {
@@ -226,7 +245,7 @@ public class CourseClassServiceImpl implements CourseClassService {
 
         courseClassMapper.updateEntityFromDto(courseClassDto, courseClass);
         courseClass.setClassCode(classCode);
-        return courseClassMapper.toDto(courseClassRepository.save(courseClass));
+        return toResponse(courseClassRepository.save(courseClass));
     }
 
     @Override
@@ -237,6 +256,104 @@ public class CourseClassServiceImpl implements CourseClassService {
         courseClass.setIsActive(false);
         courseClass.setDeletedAt(LocalDateTime.now());
         courseClassRepository.save(courseClass);
+    }
+
+    private CourseClassDto toResponse(CourseClass courseClass) {
+        CourseClassDto dto = courseClassMapper.toDto(courseClass);
+        enrichCourseClassDto(dto);
+        return dto;
+    }
+
+    private List<CourseClassDto> toResponseList(List<CourseClass> courseClasses) {
+        List<CourseClassDto> responses = courseClassMapper.toDtoList(courseClasses);
+        if (responses.isEmpty()) {
+            return responses;
+        }
+        Set<UUID> semesterIds = responses.stream()
+                .map(CourseClassDto::getSemesterId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Set<UUID> roomIds = responses.stream()
+                .map(CourseClassDto::getRoomId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, Semester> semestersById = semesterRepository.findAllById(semesterIds)
+                .stream()
+                .collect(Collectors.toMap(Semester::getSemesterId, Function.identity()));
+        Map<UUID, Room> roomsById = roomRepository.findAllById(roomIds)
+                .stream()
+                .collect(Collectors.toMap(Room::getRoomId, Function.identity()));
+
+        responses.forEach(dto -> {
+            Semester semester = semestersById.get(dto.getSemesterId());
+            if (semester != null) {
+                dto.setSemesterCode(semester.getCode());
+                dto.setSemesterName(semester.getName());
+            }
+            Room room = roomsById.get(dto.getRoomId());
+            if (room != null) {
+                dto.setRoomCode(room.getCode());
+                dto.setRoomName(StringUtils.hasText(room.getName()) ? room.getName() : room.getCode());
+            }
+        });
+        return responses;
+    }
+
+    private void enrichCourseClassDto(CourseClassDto dto) {
+        if (dto.getSemesterId() != null) {
+            semesterRepository.findById(dto.getSemesterId()).ifPresent(semester -> {
+                dto.setSemesterCode(semester.getCode());
+                dto.setSemesterName(semester.getName());
+            });
+        }
+        if (dto.getRoomId() != null) {
+            roomRepository.findById(dto.getRoomId()).ifPresent(room -> {
+                dto.setRoomCode(room.getCode());
+                dto.setRoomName(StringUtils.hasText(room.getName()) ? room.getName() : room.getCode());
+            });
+        }
+    }
+
+    private void applyDefaultDateRange(CourseClassDto request, Course course, Semester semester) {
+        if (request.getStartDate() == null) {
+            request.setStartDate(semester.getStartDate());
+        }
+        if (request.getEndDate() != null || request.getStartDate() == null) {
+            return;
+        }
+        int totalPeriods = resolveTotalPeriods(course);
+        int weeks = Math.max(1, (int) Math.ceil(totalPeriods / 3.0));
+        LocalDate estimatedEndDate = request.getStartDate().plusWeeks(weeks - 1L);
+        if (semester.getEndDate() != null && estimatedEndDate.isAfter(semester.getEndDate())) {
+            estimatedEndDate = semester.getEndDate();
+        }
+        request.setEndDate(estimatedEndDate);
+    }
+
+    private int resolveTotalPeriods(Course course) {
+        double configuredPeriods = defaultZero(course.getTheoryHours()) + defaultZero(course.getPracticeHours());
+        if (configuredPeriods > 0) {
+            return Math.max(1, (int) Math.ceil(configuredPeriods));
+        }
+        return Math.max(1, (int) Math.ceil(defaultZero(course.getCredits()) * 15));
+    }
+
+    private double defaultZero(Double value) {
+        return value == null ? 0 : value;
+    }
+
+    private void validatePreferredRoom(CourseClassDto request) {
+        if (request.getRoomId() == null) {
+            return;
+        }
+        Room room = roomRepository.findById(request.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng học"));
+        if (Boolean.FALSE.equals(room.getIsActive())) {
+            throw new BusinessException("Phòng học đang ngừng hoạt động");
+        }
+        if (room.getCapacity() != null && request.getMaxStudent() != null && room.getCapacity() < request.getMaxStudent()) {
+            throw new BusinessException("Sức chứa phòng học nhỏ hơn sĩ số tối đa của lớp học phần");
+        }
     }
 
     private void validateRequired(CourseClassDto request) {
@@ -295,7 +412,28 @@ public class CourseClassServiceImpl implements CourseClassService {
         if (!activePeriods.isEmpty()) {
             return activePeriods.get(0);
         }
+        if (activePeriods.isEmpty()) {
+            return createDefaultAdminRegistrationPeriod(semesterId);
+        }
         throw new BusinessException("Chưa có đợt đăng ký trong học kỳ này để ghi nhận sinh viên vào lớp học phần");
+    }
+
+    private RegistrationPeriod createDefaultAdminRegistrationPeriod(UUID semesterId) {
+        Semester semester = semesterRepository.findById(semesterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy học kỳ"));
+        RegistrationPeriod period = new RegistrationPeriod();
+        String semesterCode = StringUtils.hasText(semester.getCode())
+                ? semester.getCode()
+                : semesterId.toString().substring(0, 8).toUpperCase(Locale.ROOT);
+        period.setCode("ADMIN-" + semesterCode);
+        period.setName("Đợt gán học phần mặc định - " + semester.getName());
+        period.setSemesterId(semesterId);
+        period.setStartDate(semester.getStartDate().atStartOfDay());
+        period.setEndDate(semester.getEndDate().atTime(LocalTime.MAX));
+        period.setStatus(1);
+        period.setAllowRetake(false);
+        period.setIsActive(true);
+        return registrationPeriodRepository.save(period);
     }
 
     private void validateStudentCanJoinCourseClass(Student student, CourseClass courseClass) {

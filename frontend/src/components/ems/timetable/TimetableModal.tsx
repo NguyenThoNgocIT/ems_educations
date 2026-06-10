@@ -207,7 +207,9 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
                     ...formData,
                     courseClassId: val,
                     roomId: nextClass?.roomId || formData.roomId,
-                    semesterId: nextClass?.semesterId || formData.semesterId
+                    semesterId: nextClass?.semesterId || formData.semesterId,
+                    instructorId: nextClass?.assignedInstructorId || formData.instructorId || "",
+                    instructorName: nextClass?.assignedInstructorName || formData.instructorName || ""
                   });
                 }}
               >

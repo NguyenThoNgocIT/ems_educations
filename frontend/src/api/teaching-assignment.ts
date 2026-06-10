@@ -32,4 +32,13 @@ export const teachingAssignmentApi = {
     const response = await request.post('/api/v1/teaching-assignments/admin', data);
     return unwrapApiResponse<TeachingAssignmentResponse>(response);
   },
+
+  update: async (assignmentId: string, data: TeachingAssignmentRequest): Promise<TeachingAssignmentResponse> => {
+    const response = await request.put(`/api/v1/teaching-assignments/admin/${assignmentId}`, data);
+    return unwrapApiResponse<TeachingAssignmentResponse>(response);
+  },
+
+  delete: async (assignmentId: string): Promise<void> => {
+    await request.delete(`/api/v1/teaching-assignments/admin/${assignmentId}`);
+  },
 };

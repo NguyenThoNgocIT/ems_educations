@@ -2,9 +2,11 @@
 
 import { Bell, BellOff, X } from "lucide-react";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
-import { Dropdown } from "../ui/dropdown/Dropdown";
+import React, { useEffect, useState } from "react";
+
 import { notificationApi, NotificationItem } from "@/api/notification";
+import { fixMojibakeText } from "@/utils/text";
+import { Dropdown } from "../ui/dropdown/Dropdown";
 
 function formatTime(dateStr: string) {
   try {
@@ -33,30 +35,35 @@ export default function NotificationDropdown({ href = "/dashboard/student/notifi
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchUnreadCount = async () => {
     try {
       const countRes = await notificationApi.getUnreadCount();
-      if (countRes && typeof countRes.count === "number") {
-        setUnreadCount(countRes.count);
+      setUnreadCount(typeof countRes?.count === "number" ? countRes.count : 0);
+    } catch (error: any) {
+      if (error?.code !== "ECONNABORTED") {
+        console.warn("Không thể tải số thông báo chưa đọc:", error);
       }
-
-      const listRes = await notificationApi.getNotifications();
-      if (Array.isArray(listRes)) {
-        setNotifications(listRes);
-      }
-    } catch (err) {
-      console.error("Lỗi khi tải thông báo:", err);
     }
   };
 
-  // Poll for unread count and notifications every 15 seconds
+  const fetchNotifications = async () => {
+    try {
+      await fetchUnreadCount();
+      const listRes = await notificationApi.getNotifications();
+      setNotifications(Array.isArray(listRes) ? listRes : []);
+    } catch (error: any) {
+      if (error?.code !== "ECONNABORTED") {
+        console.warn("Không thể tải thông báo:", error);
+      }
+    }
+  };
+
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000);
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch immediately when user opens dropdown
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
@@ -70,12 +77,12 @@ export default function NotificationDropdown({ href = "/dashboard/student/notifi
       await notificationApi.markAsRead(id);
       setNotifications((prev) =>
         prev.map((item) =>
-          item.userNotificationId === id ? { ...item, isRead: true } : item
-        )
+          item.userNotificationId === id ? { ...item, isRead: true } : item,
+        ),
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (err) {
-      console.error("Lỗi khi đánh dấu đã đọc:", err);
+    } catch (error) {
+      console.warn("Không thể đánh dấu đã đọc:", error);
     }
   };
 
@@ -84,8 +91,8 @@ export default function NotificationDropdown({ href = "/dashboard/student/notifi
       await notificationApi.markAllAsRead();
       setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
       setUnreadCount(0);
-    } catch (err) {
-      console.error("Lỗi khi đánh dấu tất cả đã đọc:", err);
+    } catch (error) {
+      console.warn("Không thể đánh dấu tất cả đã đọc:", error);
     }
   };
 
@@ -99,7 +106,7 @@ export default function NotificationDropdown({ href = "/dashboard/student/notifi
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900 animate-pulse">
+          <span className="absolute -right-1 -top-1 flex h-5 w-5 animate-pulse items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -150,32 +157,32 @@ export default function NotificationDropdown({ href = "/dashboard/student/notifi
               </span>
               <p className="mt-2 text-xs font-semibold text-slate-900 dark:text-slate-100">Chưa có thông báo</p>
               <p className="mt-0.5 text-[10px] text-slate-500">
-                Bạn sẽ nhận được thông báo khi có các hoạt động mới trên hệ thống.
+                Bạn sẽ nhận được thông báo khi có hoạt động mới trên hệ thống.
               </p>
             </div>
           ) : (
-            <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="max-h-[300px] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
               {notifications.map((item) => (
                 <div
                   key={item.userNotificationId}
                   onClick={() => handleMarkAsRead(item.userNotificationId, item.isRead)}
-                  className={`flex gap-3 p-3 transition hover:bg-slate-50 dark:hover:bg-slate-850 cursor-pointer ${
+                  className={`flex cursor-pointer gap-3 p-3 transition hover:bg-slate-50 dark:hover:bg-slate-850 ${
                     !item.isRead ? "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.02]" : ""
                   }`}
                 >
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-1">
-                      <p className={`text-xs text-slate-950 dark:text-white leading-5 ${
+                      <p className={`text-xs leading-5 text-slate-950 dark:text-white ${
                         !item.isRead ? "font-bold" : "font-semibold"
                       }`}>
-                        {item.title}
+                        {fixMojibakeText(item.title)}
                       </p>
                       {!item.isRead && (
-                        <span className="h-2 w-2 rounded-full bg-emerald-600 shrink-0 mt-1.5" />
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-600" />
                       )}
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      {item.content}
+                    <p className="mt-0.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                      {fixMojibakeText(item.content)}
                     </p>
                     <span className="mt-1 block text-[10px] text-slate-400">
                       {formatTime(item.createdAt)}

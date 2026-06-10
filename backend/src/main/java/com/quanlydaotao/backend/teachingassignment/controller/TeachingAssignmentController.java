@@ -10,7 +10,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -40,5 +48,23 @@ public class TeachingAssignmentController {
     @Operation(summary = "Admin phân công giảng viên cho lớp học phần")
     public ResponseEntity<ApiResponse<TeachingAssignmentResponse>> assign(@Valid @RequestBody TeachingAssignmentRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Phân công giảng dạy thành công", service.assign(request)));
+    }
+
+    @PutMapping("/admin/{assignmentId}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
+    @Operation(summary = "Admin cập nhật phân công giảng dạy")
+    public ResponseEntity<ApiResponse<TeachingAssignmentResponse>> update(
+            @PathVariable UUID assignmentId,
+            @Valid @RequestBody TeachingAssignmentRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật phân công giảng dạy thành công",
+                service.update(assignmentId, request)));
+    }
+
+    @DeleteMapping("/admin/{assignmentId}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
+    @Operation(summary = "Admin hủy phân công giảng dạy")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID assignmentId) {
+        service.delete(assignmentId);
+        return ResponseEntity.ok(ApiResponse.success("Hủy phân công giảng dạy thành công", null));
     }
 }

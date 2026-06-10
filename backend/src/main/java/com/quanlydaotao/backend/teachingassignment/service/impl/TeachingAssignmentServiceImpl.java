@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,18 +41,58 @@ public class TeachingAssignmentServiceImpl implements TeachingAssignmentService 
     @Transactional
     public TeachingAssignmentResponse assign(TeachingAssignmentRequest request) {
         validateReferences(request);
-        repository.findByInstructorIdAndCourseClassIdAndClassIdAndSemesterId(
-                request.getInstructorId(), request.getCourseClassId(), request.getClassId(), request.getSemesterId()
-        ).ifPresent(existing -> {
+        var existingAssignment = repository.findByInstructorIdAndCourseClassIdAndClassIdAndSemesterId(
+                request.getInstructorId(), request.getCourseClassId(), request.getClassId(), request.getSemesterId());
+        if (existingAssignment.isPresent() && Boolean.TRUE.equals(existingAssignment.get().getIsActive())) {
             throw new BusinessException("Phân công giảng dạy đã tồn tại");
-        });
+        }
         if (repository.existsByCourseClassIdAndSemesterIdAndIsActiveTrue(request.getCourseClassId(), request.getSemesterId())) {
             throw new BusinessException("Lớp học phần đã có giảng viên được phân công");
         }
-        TeachingAssignment assignment = new TeachingAssignment();
+        TeachingAssignment assignment = existingAssignment.orElseGet(TeachingAssignment::new);
         mapper.updateEntityFromDto(request, assignment);
         assignment.setIsActive(request.getIsActive() == null || request.getIsActive());
+        assignment.setDeletedAt(null);
         return mapper.toDto(repository.save(assignment));
+    }
+
+    @Override
+    @Transactional
+    public TeachingAssignmentResponse update(UUID assignmentId, TeachingAssignmentRequest request) {
+        TeachingAssignment assignment = repository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phân công giảng dạy"));
+        validateReferences(request);
+        boolean courseClassAlreadyAssigned = repository
+                .search(null, request.getCourseClassId(), null, request.getSemesterId(), true)
+                .stream()
+                .anyMatch(existing -> !existing.getAssignmentId().equals(assignmentId));
+        if (courseClassAlreadyAssigned) {
+            throw new BusinessException("Lớp học phần đã có giảng viên được phân công");
+        }
+        repository.findByInstructorIdAndCourseClassIdAndClassIdAndSemesterId(
+                        request.getInstructorId(), request.getCourseClassId(), request.getClassId(), request.getSemesterId())
+                .filter(existing -> !existing.getAssignmentId().equals(assignmentId))
+                .filter(existing -> Boolean.TRUE.equals(existing.getIsActive()))
+                .ifPresent(existing -> {
+                    throw new BusinessException("Phân công giảng dạy đã tồn tại");
+                });
+
+        mapper.updateEntityFromDto(request, assignment);
+        assignment.setIsActive(request.getIsActive() == null || request.getIsActive());
+        if (Boolean.TRUE.equals(assignment.getIsActive())) {
+            assignment.setDeletedAt(null);
+        }
+        return mapper.toDto(repository.save(assignment));
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID assignmentId) {
+        TeachingAssignment assignment = repository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phân công giảng dạy"));
+        assignment.setIsActive(false);
+        assignment.setDeletedAt(LocalDateTime.now());
+        repository.save(assignment);
     }
 
     private void validateReferences(TeachingAssignmentRequest request) {
