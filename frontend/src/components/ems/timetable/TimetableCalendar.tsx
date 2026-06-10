@@ -96,10 +96,12 @@ export default function TimetableCalendar({
         </div>
 
         <div className={`mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold 2xl:gap-x-3 ${palette.meta}`}>
-          <span className="flex min-w-0 items-center gap-1">
-            <Repeat2 size={13} className="shrink-0" />
-            <span className="truncate">{isException ? "Ngoại lệ" : "Lặp hàng tuần"}</span>
-          </span>
+          {isException ? (
+            <span className="flex min-w-0 items-center gap-1">
+              <Repeat2 size={13} className="shrink-0" />
+              <span className="truncate">Ngoại lệ</span>
+            </span>
+          ) : null}
           {!showLecturerIdentity && eventInfo.event.extendedProps.instructorName ? (
             <span className="flex min-w-0 items-center gap-1">
               <Users size={13} className="shrink-0" />
