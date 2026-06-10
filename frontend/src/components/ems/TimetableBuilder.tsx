@@ -17,6 +17,7 @@ import { teachingAssignmentApi } from "@/api/teaching-assignment";
 import { toast } from "sonner";
 import { Filter, Bot, Loader2, CalendarRange, MapPin } from "lucide-react";
 import { fixMojibakeText } from "@/utils/text";
+import { clearCache } from "@/utils/cache";
 
 // UI Components
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -239,12 +240,19 @@ export default function TimetableBuilder() {
 
   // Tải danh sách học kỳ khi component mount
   useEffect(() => {
+    clearCache(); // Force clear lookup cache on load to guarantee fresh data for builder
     const fetchSemesters = async () => {
       try {
         const semestersList = await semesterApi.getAll();
         setSemesters(semestersList || []);
         if (semestersList && semestersList.length > 0) {
-          const activeSem = semestersList.find((s: any) => s.status || s.isActive);
+          const todayStr = new Date().toISOString().split('T')[0];
+          const currentSem = semestersList.find((s: any) => {
+            const start = s.startDate ? String(s.startDate).slice(0, 10) : "";
+            const end = s.endDate ? String(s.endDate).slice(0, 10) : "";
+            return start && end && todayStr >= start && todayStr <= end;
+          });
+          const activeSem = currentSem || semestersList.find((s: any) => s.status || s.isActive);
           const defaultSemId = (activeSem ? activeSem.semesterId : semestersList[0].semesterId) || "";
           setSelectedSemesterId(defaultSemId);
           setFormData(prev => ({ ...prev, semesterId: defaultSemId }));
@@ -823,7 +831,7 @@ export default function TimetableBuilder() {
           <CalendarRange className="w-4 h-4" />
           <span>Học kỳ:</span>
           <Select value={selectedSemesterId} onValueChange={(val) => { setSelectedSemesterId(val); setFormData(prev => ({ ...prev, semesterId: val })); }}>
-            <SelectTrigger className="ml-0 h-9 w-[min(180px,calc(100vw-3rem))] bg-white dark:bg-gray-900 rounded-lg border-gray-200 dark:border-gray-700 md:ml-2">
+            <SelectTrigger className="ml-0 h-9 w-[min(280px,calc(100vw-3rem))] bg-white dark:bg-gray-900 rounded-lg border-gray-200 dark:border-gray-700 md:ml-2">
               <SelectValue placeholder="Chọn học kỳ" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">

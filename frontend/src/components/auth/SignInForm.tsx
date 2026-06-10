@@ -116,17 +116,17 @@ export default function SignInForm() {
           "branch-management": "/dashboard/branch-management",
           teacher: "/dashboard/lecturer",
           instructor: "/dashboard/lecturer",
-          lecturer: "/dashboard/lecturer",
           student: "/dashboard/student",
           staff: "/dashboard/admin",
           consultant: "/dashboard/consultant",
           parents: "/dashboard/parents",
         };
 
-        if (authData.requirePasswordChange) {
-          router.push("/change-password");
-          return;
-        }
+        // Skip force password change redirect
+        // if (authData.requirePasswordChange) {
+        //   router.push("/change-password");
+        //   return;
+        // }
 
         router.push(roleMap[userRole] || "/dashboard/admin");
       }

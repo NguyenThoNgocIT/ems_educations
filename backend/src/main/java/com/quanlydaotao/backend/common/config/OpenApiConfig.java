@@ -37,7 +37,7 @@ public class OpenApiConfig {
                                                 .scheme("bearer")
                                                 .bearerFormat("JWT")))
                                 .security(List.of(new io.swagger.v3.oas.models.security.SecurityRequirement().addList("bearerAuth")));
-        ///  link truy cập swagger api là localhost:8080/swagger-ui/index.html
+        ///  link truy cập swagger api là localhost:8081/swagger-ui/index.html
     }
     @Bean
     public GroupedOpenApi groupedOpenApi(){
