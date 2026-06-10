@@ -66,7 +66,7 @@ export default function SessionActionModal({ isOpen, onClose, eventData, onAdjus
               </div>
               <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
                 <Clock size={16} className="text-emerald-500" />
-                <span className="font-medium">Ca dạy: {eventData.timeSlotId ? `Ca ${eventData.timeSlotId}` : 'Chưa xác định'} ({eventData.periods || 3} tiết)</span>
+                <span className="font-medium">Ca dạy: {eventData.timeSlotLabel || 'Chưa xác định'} ({eventData.periods || 3} tiết)</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
                 <MapPin size={16} className="text-emerald-500" />

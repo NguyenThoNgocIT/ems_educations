@@ -260,7 +260,7 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
         ...buildValidationPayload(),
         reason: reason.trim(),
       });
-      toast.success('Đã gửi yêu cầu điều chỉnh lịch');
+      toast.success('Bạn đã gửi yêu cầu thành công cho Admin!');
       onSuccess();
       onClose();
     } catch (error: any) {

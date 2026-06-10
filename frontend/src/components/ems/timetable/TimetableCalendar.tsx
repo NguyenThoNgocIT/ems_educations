@@ -5,6 +5,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin, { EventReceiveArg } from "@fullcalendar/interaction";
 import { DateSelectArg, EventClickArg, EventContentArg } from "@fullcalendar/core";
 import { BookOpen, Clock, MapPin, Repeat2, Users } from 'lucide-react';
+import viLocale from '@fullcalendar/core/locales/vi';
 
 interface Props {
   events: any[];
@@ -160,8 +161,16 @@ export default function TimetableCalendar({
           allDaySlot={false}
           height="100%"
           nowIndicator
+          locales={[viLocale]}
           locale="vi"
           dayHeaderFormat={{ weekday: 'short', day: '2-digit', month: 'numeric' }}
+          dayHeaderContent={(arg) => {
+            const date = arg.date;
+            const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+            const dayName = days[date.getDay()];
+            const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+            return `${dayName} ${formattedDate}`;
+          }}
           buttonText={{
             today: 'Hôm nay',
             month: 'Tháng',

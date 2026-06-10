@@ -8,6 +8,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { EventContentArg } from "@fullcalendar/core";
 import { scheduleApi } from "@/api/schedule";
 import { BookOpen, Clock, MapPin } from 'lucide-react';
+import viLocale from '@fullcalendar/core/locales/vi';
 import { toast } from "sonner";
 import AdjustmentModal from './AdjustmentModal';
 import SessionActionModal from './SessionActionModal';
@@ -33,23 +34,38 @@ export default function LecturerSchedule() {
   const [jumpedToFirstSchedule, setJumpedToFirstSchedule] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
 
+  // Luôn fetch /me khi mount để lấy employeeId chính xác
   useEffect(() => {
+    console.log('[LecturerSchedule] mount, user:', user?.username, 'user.id:', user?.id);
+    
+    // Nếu user.id đã có thì dùng ngay
     if (user?.id) {
+      console.log('[LecturerSchedule] using user.id:', user.id);
       setEmployeeId(user.id);
       return;
     }
-    if (!user) return;
-    console.log('[LecturerSchedule] user.id missing, fetching from /me...');
+    
+    // Luôn fetch /me để lấy employeeId mới nhất
+    if (!user) {
+      console.log('[LecturerSchedule] no user, skip');
+      return;
+    }
+    
+    console.log('[LecturerSchedule] fetching /me to get employeeId...');
     request.get('/api/auth/me').then((res: any) => {
-      console.log('[LecturerSchedule] /me response:', res);
+      console.log('[LecturerSchedule] /me response:', JSON.stringify(res));
       const empId = res?.data?.employeeId;
       console.log('[LecturerSchedule] empId from /me:', empId);
       if (empId) {
-        setEmployeeId(empId);
-        updateUser({ id: empId });
+        setEmployeeId(String(empId));
+        updateUser({ id: String(empId) });
+      } else {
+        console.warn('[LecturerSchedule] empId is null/undefined in /me response!');
       }
-    }).catch(() => {});
-  }, [user?.id]);
+    }).catch((err: any) => {
+      console.error('[LecturerSchedule] /me failed:', err?.message);
+    });
+  }, [user?.id, user?.username]);
 
   useEffect(() => {
     if (!employeeId || jumpedToFirstSchedule) return;
@@ -79,11 +95,16 @@ export default function LecturerSchedule() {
   }, [employeeId, jumpedToFirstSchedule]);
 
   const fetchScheduleForRange = async (start: Date, end: Date) => {
-    if (!employeeId) return;
+    if (!employeeId) {
+      console.warn('[LecturerSchedule] fetchScheduleForRange called but employeeId is null!');
+      return;
+    }
 
     const midDate = new Date((start.getTime() + end.getTime()) / 2);
     const month = midDate.getMonth() + 1;
     const year = midDate.getFullYear();
+
+    console.log('[LecturerSchedule] calling calendar API:', { employeeId, month, year });
 
     try {
       const res = await scheduleApi.getCalendar({
@@ -91,13 +112,13 @@ export default function LecturerSchedule() {
         month: month,
         year: year
       });
-      console.log('[LecturerSchedule] calling calendar API:', { employeeId, month, year });
-      const calendarDays = res?.data?.data || res?.data || [];
-      console.log('[LecturerSchedule] calendarDays received:', calendarDays.length, 'days, events:', calendarDays.filter((d: any) => d.items?.length > 0));
+      const calendarDays: any[] = res?.data?.data || res?.data || [];
+      console.log('[LecturerSchedule] calendarDays:', calendarDays.length, 'days,', 
+        calendarDays.filter((d: any) => d.items?.length > 0).length, 'with events');
       const scheduleEvents: any[] = [];
 
       calendarDays.forEach((day: any) => {
-        day.items.forEach((item: any) => {
+        (day.items || []).forEach((item: any) => {
           const start = item.startTime ? `${day.date}T${item.startTime}` : `${day.date}T07:00:00`;
           const end = item.endTime ? `${day.date}T${item.endTime}` : `${day.date}T10:00:00`;
 
@@ -117,6 +138,7 @@ export default function LecturerSchedule() {
           });
         });
       });
+      console.log('[LecturerSchedule] setting', scheduleEvents.length, 'events');
       setEvents(scheduleEvents);
     } catch (error) {
       console.error("Lỗi khi tải lịch dạy", error);
@@ -125,6 +147,7 @@ export default function LecturerSchedule() {
   };
 
   useEffect(() => {
+    console.log('[LecturerSchedule] effect triggered, employeeId:', employeeId, 'currentRange:', currentRange ? 'set' : 'null');
     if (currentRange && employeeId) {
       fetchScheduleForRange(currentRange.start, currentRange.end);
     }
@@ -254,6 +277,7 @@ export default function LecturerSchedule() {
               courseClassName: props.courseClassName,
               date: props.date,
               timeSlotId: props.timeSlotId,
+              timeSlotLabel: props.timeSlotLabel,
               periods: props.periods || 3,
               roomCode: props.roomCode,
               requestType: 'RESCHEDULE',
@@ -269,16 +293,23 @@ export default function LecturerSchedule() {
           slotDuration="01:00:00"
           slotLabelInterval="01:00:00"
           allDaySlot={false}
-          hiddenDays={[0]}
           height="800px"
           nowIndicator
+          locales={[viLocale]}
+          locale="vi"
           dayHeaderFormat={{ weekday: 'short', day: '2-digit', month: 'numeric' }}
+          dayHeaderContent={(arg) => {
+            const date = arg.date;
+            const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+            const dayName = days[date.getDay()];
+            const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+            return `${dayName} ${formattedDate}`;
+          }}
           slotLabelFormat={{
             hour: '2-digit',
             minute: '2-digit',
             hour12: false,
           }}
-          locale="vi"
           buttonText={{
             today: 'Hôm nay',
             month: 'Tháng',
@@ -295,6 +326,7 @@ export default function LecturerSchedule() {
               courseName: props.courseName,
               date: info.event.startStr.split('T')[0],
               timeSlotId: props.timeSlotId,
+              timeSlotLabel: props.timeSlotLabel,
               periods: props.periods || 3,
               roomCode: props.roomCode
             });

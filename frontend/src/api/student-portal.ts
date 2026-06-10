@@ -276,6 +276,9 @@ function normalizeSchedule(item: StudentPortalScheduleApiItem): StudentScheduleI
     mode: normalizeScheduleMode(item.mode),
     overrideType: item.overrideType || undefined,
     isCancelled: item.isCancelled ?? undefined,
+    date: item.date,
+    startTime: item.startTime,
+    endTime: item.endTime,
   };
 }
 
