@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -65,8 +66,9 @@ public class ScheduleServiceImpl implements ScheduleService {
         Schedule schedule = scheduleMapper.toEntity(dto);
         
         // Load các entity liên quan để đảm bảo tồn tại
-        schedule.setCourseClass(courseClassRepository.findById(dto.getCourseClassId())
-                .orElseThrow(() -> new ResourceNotFoundException("Lớp học phần không tồn tại")));
+        CourseClass courseClass = courseClassRepository.findById(dto.getCourseClassId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lớp học phần không tồn tại"));
+        schedule.setCourseClass(courseClass);
         
         if (dto.getInstructorId() != null) {
             schedule.setInstructor(employeeRepository.findById(dto.getInstructorId())
@@ -79,7 +81,74 @@ public class ScheduleServiceImpl implements ScheduleService {
         schedule.setTimeSlot(timeSlotRepository.findById(dto.getTimeSlotId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ca học không tồn tại")));
 
-        return scheduleMapper.toDto(scheduleRepository.save(schedule));
+        Schedule savedFirst = scheduleRepository.save(schedule);
+
+        // TỰ ĐỘNG SINH CÁC BUỔI TIẾP THEO CHO ĐỦ SỐ TIẾT
+        double theory = 0.0;
+        double practice = 0.0;
+        double credits = 3.0;
+        if (courseClass.getCourse() != null) {
+            theory = courseClass.getCourse().getTheoryHours() != null ? courseClass.getCourse().getTheoryHours() : 0.0;
+            practice = courseClass.getCourse().getPracticeHours() != null ? courseClass.getCourse().getPracticeHours() : 0.0;
+            credits = courseClass.getCourse().getCredits() != null ? courseClass.getCourse().getCredits() : 3.0;
+        }
+        int requiredPeriods = (int) Math.max(1, Math.ceil(theory + practice));
+        if (requiredPeriods == 0) {
+            requiredPeriods = (int) Math.max(1, Math.ceil(credits * 15));
+        }
+
+        // Đếm số tiết đã lên lịch trước đó (chỉ đếm các lịch Active)
+        List<Schedule> existingSchedules = scheduleRepository.findByCourseClassCourseClassId(courseClass.getCourseClassId());
+        int scheduledPeriods = 0;
+        for (Schedule s : existingSchedules) {
+            if (s.getIsActive() != null && s.getIsActive() && !s.getScheduleId().equals(savedFirst.getScheduleId())) {
+                scheduledPeriods += s.getNumberOfPeriods() != null ? s.getNumberOfPeriods() : 0;
+            }
+        }
+
+        int currentSessionPeriods = savedFirst.getNumberOfPeriods() != null ? savedFirst.getNumberOfPeriods() : 2;
+        int totalScheduledAfterFirst = scheduledPeriods + currentSessionPeriods;
+
+        if (totalScheduledAfterFirst < requiredPeriods && savedFirst.getDate() != null) {
+            int remainingPeriods = requiredPeriods - totalScheduledAfterFirst;
+            int additionalSessions = (int) Math.ceil((double) remainingPeriods / currentSessionPeriods);
+
+            LocalDate baseDate = savedFirst.getDate();
+            for (int i = 1; i <= additionalSessions; i++) {
+                LocalDate targetDate = baseDate.plusWeeks(i);
+                
+                int periodsForThisSession = currentSessionPeriods;
+                if (i == additionalSessions && (remainingPeriods % currentSessionPeriods != 0)) {
+                    periodsForThisSession = remainingPeriods % currentSessionPeriods;
+                }
+
+                Schedule nextSchedule = new Schedule();
+                nextSchedule.setCourseClass(courseClass);
+                nextSchedule.setInstructor(savedFirst.getInstructor());
+                nextSchedule.setRoom(savedFirst.getRoom());
+                nextSchedule.setTimeSlot(savedFirst.getTimeSlot());
+                nextSchedule.setSemesterId(savedFirst.getSemesterId());
+                nextSchedule.setDayOfWeek(savedFirst.getDayOfWeek());
+                nextSchedule.setDate(targetDate);
+                nextSchedule.setNumberOfPeriods(periodsForThisSession);
+                nextSchedule.setMode(savedFirst.getMode());
+                nextSchedule.setScheduleStatus(savedFirst.getScheduleStatus());
+                nextSchedule.setScheduleType(savedFirst.getScheduleType());
+                nextSchedule.setShift(savedFirst.getShift());
+                nextSchedule.setNote(savedFirst.getNote());
+                nextSchedule.setIsActive(true);
+                if (savedFirst.getTimeSlot() != null) {
+                    nextSchedule.setStartDate(targetDate.atTime(savedFirst.getTimeSlot().getStartTime()));
+                    nextSchedule.setEndDate(targetDate.atTime(savedFirst.getTimeSlot().getEndTime()));
+                }
+
+                scheduleRepository.save(nextSchedule);
+            }
+        }
+
+        updateCourseClassDates(courseClass.getCourseClassId());
+
+        return scheduleMapper.toDto(savedFirst);
     }
 
     @Override
@@ -88,7 +157,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học"));
         
-        validateSchedule(dto, id);
+        UUID oldCourseClassId = schedule.getCourseClass() != null ? schedule.getCourseClass().getCourseClassId() : null;
         
         scheduleMapper.updateEntityFromDto(dto, schedule);
         
@@ -109,7 +178,14 @@ public class ScheduleServiceImpl implements ScheduleService {
         schedule.setTimeSlot(timeSlotRepository.findById(dto.getTimeSlotId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ca học không tồn tại")));
 
-        return scheduleMapper.toDto(scheduleRepository.save(schedule));
+        Schedule saved = scheduleRepository.save(schedule);
+        
+        updateCourseClassDates(dto.getCourseClassId());
+        if (oldCourseClassId != null && !oldCourseClassId.equals(dto.getCourseClassId())) {
+            updateCourseClassDates(oldCourseClassId);
+        }
+
+        return scheduleMapper.toDto(saved);
     }
 
     @Override
@@ -117,7 +193,39 @@ public class ScheduleServiceImpl implements ScheduleService {
     public void delete(UUID id) {
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch học"));
+        UUID courseClassId = schedule.getCourseClass() != null ? schedule.getCourseClass().getCourseClassId() : null;
         scheduleRepository.delete(schedule);
+        if (courseClassId != null) {
+            updateCourseClassDates(courseClassId);
+        }
+    }
+
+    private void updateCourseClassDates(UUID courseClassId) {
+        if (courseClassId == null) {
+            return;
+        }
+        CourseClass courseClass = courseClassRepository.findById(courseClassId).orElse(null);
+        if (courseClass == null) {
+            return;
+        }
+        List<Schedule> schedules = scheduleRepository.findByCourseClassCourseClassId(courseClassId);
+        LocalDate minDate = null;
+        LocalDate maxDate = null;
+        for (Schedule s : schedules) {
+            if (Boolean.TRUE.equals(s.getIsActive()) && s.getDate() != null
+                    && (s.getScheduleStatus() == null || !s.getScheduleStatus().equals("CANCELLED"))) {
+                LocalDate date = s.getDate();
+                if (minDate == null || date.isBefore(minDate)) {
+                    minDate = date;
+                }
+                if (maxDate == null || date.isAfter(maxDate)) {
+                    maxDate = date;
+                }
+            }
+        }
+        courseClass.setStartDate(minDate);
+        courseClass.setEndDate(maxDate);
+        courseClassRepository.save(courseClass);
     }
 
     private void validateSchedule(ScheduleDto dto, UUID currentScheduleId) {

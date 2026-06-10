@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
 
 import com.quanlydaotao.backend.employee.repository.EmployeeRepository;
 import com.quanlydaotao.backend.employee.entity.Employee;
@@ -78,6 +80,7 @@ public class AutoScheduleService {
                 continue;
             }
             createFixedSessions(courseClass, semester, instructor, rooms, timeSlots, remainingPeriods);
+            updateCourseClassDates(courseClass.getCourseClassId());
         }
     }
 
@@ -231,10 +234,45 @@ public class AutoScheduleService {
     @Transactional
     public void saveSolution(SchedulePlan solution) {
         // AI found a solution, save it to DB
+        Set<UUID> classIds = new HashSet<>();
         for (Schedule schedule : solution.getScheduleList()) {
             if (schedule.getRoom() != null && schedule.getTimeSlot() != null && schedule.getDayOfWeek() != null) {
                 scheduleRepository.save(schedule);
+                if (schedule.getCourseClass() != null) {
+                    classIds.add(schedule.getCourseClass().getCourseClassId());
+                }
             }
         }
+        for (UUID classId : classIds) {
+            updateCourseClassDates(classId);
+        }
+    }
+
+    private void updateCourseClassDates(UUID courseClassId) {
+        if (courseClassId == null) {
+            return;
+        }
+        CourseClass courseClass = courseClassRepository.findById(courseClassId).orElse(null);
+        if (courseClass == null) {
+            return;
+        }
+        List<Schedule> schedules = scheduleRepository.findByCourseClassCourseClassId(courseClassId);
+        LocalDate minDate = null;
+        LocalDate maxDate = null;
+        for (Schedule s : schedules) {
+            if (Boolean.TRUE.equals(s.getIsActive()) && s.getDate() != null
+                    && (s.getScheduleStatus() == null || !s.getScheduleStatus().equals("CANCELLED"))) {
+                LocalDate date = s.getDate();
+                if (minDate == null || date.isBefore(minDate)) {
+                    minDate = date;
+                }
+                if (maxDate == null || date.isAfter(maxDate)) {
+                    maxDate = date;
+                }
+            }
+        }
+        courseClass.setStartDate(minDate);
+        courseClass.setEndDate(maxDate);
+        courseClassRepository.save(courseClass);
     }
 }
