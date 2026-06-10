@@ -123,7 +123,8 @@ public class ScheduleServiceImpl implements ScheduleService {
     private void validateSchedule(ScheduleDto dto, UUID currentScheduleId) {
         if (dto.getDate() != null) {
             validateScheduleByDate(dto, currentScheduleId);
-        } else {
+        }
+        if (dto.getDayOfWeek() != null) {
             validateScheduleByDayOfWeek(dto, currentScheduleId);
         }
         validateInstructorAssignmentAndLeave(dto);

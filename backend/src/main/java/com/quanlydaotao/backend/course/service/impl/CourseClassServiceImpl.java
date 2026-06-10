@@ -210,6 +210,23 @@ public class CourseClassServiceImpl implements CourseClassService {
 
     @Override
     @Transactional
+    public void removeStudentFromCourseClass(UUID courseRegistrationId) {
+        CourseRegistration registration = courseRegistrationRepository.findById(courseRegistrationId)
+                .orElseThrow(() -> new ResourceNotFoundException("KhÃ´ng tÃ¬m tháº¥y Ä‘Äƒng kÃ½ há»c pháº§n"));
+        if (Boolean.FALSE.equals(registration.getIsActive())) {
+            return;
+        }
+        CourseClass courseClass = courseClassRepository.findById(registration.getCourseClassId())
+                .orElseThrow(() -> new ResourceNotFoundException("KhÃ´ng tÃ¬m tháº¥y lá»›p há»c pháº§n"));
+        registration.setIsActive(false);
+        registration.setDeletedAt(LocalDateTime.now());
+        registration.setStatus(2);
+        courseRegistrationRepository.save(registration);
+        refreshCourseClassStudentCount(courseClass);
+    }
+
+    @Override
+    @Transactional
     public CourseClassDto updateCourseClass(UUID id, CourseClassDto courseClassDto) {
         CourseClass courseClass = courseClassRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học phần"));

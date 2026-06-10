@@ -1,6 +1,6 @@
 import { request } from '@/utils/request';
 import { unwrapApiResponse } from '@/api/response';
-import { withCache, clearCache } from '@/utils/cache';
+import { clearCache } from '@/utils/cache';
 import type { AccountCreationResponse } from '@/types/api';
 import type {
   InstructorAdminCreateRequest,
@@ -18,10 +18,10 @@ const normalizeLecturer = (lecturer: InstructorAdminResponse): LecturerListItem 
 
 export const lecturerApi = {
   getAll: async (): Promise<LecturerListItem[]> => {
-    return withCache(CACHE_PREFIX, async () => {
-      const response = await request.get('/api/v1/instructors/admin');
-      return unwrapApiResponse<InstructorAdminResponse[]>(response).map(normalizeLecturer);
-    });
+    const response = await request.get('/api/v1/instructors/admin', { params: { size: 500 } });
+    const data = unwrapApiResponse<InstructorAdminResponse[] | { content?: InstructorAdminResponse[] }>(response);
+    const rows = Array.isArray(data) ? data : data.content || [];
+    return rows.map(normalizeLecturer);
   },
 
   getById: async (id: string): Promise<LecturerListItem> => {

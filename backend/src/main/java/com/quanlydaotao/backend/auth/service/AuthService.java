@@ -81,7 +81,8 @@ public class AuthService {
         String jwt = tokenProvider.generateToken(authentication);
         String refreshToken = UUID.randomUUID().toString();
 
-        User user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow();
+        User user = userRepository.findByUsernameOrEmail(loginRequest.getUsername(), loginRequest.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
         String fullName = user.getPerson() != null ? user.getPerson().getFullName() : user.getUsername();
 
         user.setLastLoginAt(LocalDateTime.now());

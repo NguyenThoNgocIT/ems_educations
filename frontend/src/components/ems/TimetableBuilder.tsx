@@ -337,6 +337,15 @@ export default function TimetableBuilder() {
       });
 
       setEvents(scheduleEvents);
+      const firstEventStart = scheduleEvents
+        .map((event: any) => String(event.start || "").slice(0, 10))
+        .filter(Boolean)
+        .sort()[0];
+      if (firstEventStart) {
+        window.setTimeout(() => {
+          calendarRef.current?.getApi().gotoDate(firstEventStart);
+        }, 0);
+      }
       setCourseClasses(classesList);
       setCourses(courseList);
       setRooms(toArray(roomsRes));

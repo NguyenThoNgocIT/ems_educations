@@ -59,6 +59,10 @@ export const courseClassApi = {
     clearCache(COURSE_CLASS_CACHE_PREFIX);
     return unwrapApiResponse<any>(response);
   },
+  removeStudent: async (registrationId: string) => {
+    await request.delete(`/api/v1/courses/classes/registrations/${registrationId}`);
+    clearCache(COURSE_CLASS_CACHE_PREFIX);
+  },
   create: async (data: any) => {
     const response = unwrapApiResponse<any>(await request.post('/api/v1/courses/classes', data));
     clearCache(COURSE_CLASS_CACHE_PREFIX);

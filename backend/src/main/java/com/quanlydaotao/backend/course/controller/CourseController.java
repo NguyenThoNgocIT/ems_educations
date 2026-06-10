@@ -130,6 +130,14 @@ public class CourseController {
         return ResponseEntity.ok(courseClassService.transferStudentCourseClass(registrationId, request.getTargetCourseClassId()));
     }
 
+    @DeleteMapping("/classes/registrations/{registrationId}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
+    @Operation(summary = "Admin gỡ sinh viên khỏi lớp học phần", description = "Xóa mềm đăng ký học phần của sinh viên và cập nhật lại sĩ số lớp học phần")
+    public ResponseEntity<ApiResponse<Void>> removeStudentFromCourseClass(@PathVariable UUID registrationId) {
+        courseClassService.removeStudentFromCourseClass(registrationId);
+        return ResponseEntity.ok(ApiResponse.success("Gỡ sinh viên khỏi lớp học phần thành công", null));
+    }
+
     @PutMapping("/classes/{id}")
     @Operation(summary = "Cập nhật lớp học phần", description = "Cập nhật sĩ số, phòng học, trạng thái lớp")
     public ResponseEntity<CourseClassDto> updateCourseClass(@PathVariable UUID id, @RequestBody CourseClassDto courseClassDto) {

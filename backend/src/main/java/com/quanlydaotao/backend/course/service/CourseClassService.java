@@ -16,6 +16,7 @@ public interface CourseClassService {
     List<CourseClassStudentResponse> getStudentsByCourseClass(UUID courseClassId);
     CourseClassStudentResponse addStudentToCourseClass(UUID courseClassId, AdminAddCourseClassStudentRequest request);
     CourseClassStudentResponse transferStudentCourseClass(UUID courseRegistrationId, UUID targetCourseClassId);
+    void removeStudentFromCourseClass(UUID courseRegistrationId);
     CourseClassDto updateCourseClass(UUID id, CourseClassDto courseClassDto);
     void deleteCourseClass(UUID id);
 }

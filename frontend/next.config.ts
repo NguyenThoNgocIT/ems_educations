@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const apiBaseUrl = (
   process.env.BACKEND_API_BASE_URL ||
@@ -26,7 +27,7 @@ const nextConfig: NextConfig = {
   },
 
   turbopack: {
-    root: ".",
+    root: path.resolve(__dirname),
     rules: {
       "*.svg": {
         loaders: ["@svgr/webpack"],

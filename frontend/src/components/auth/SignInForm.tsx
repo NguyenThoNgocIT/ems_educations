@@ -55,10 +55,11 @@ export default function SignInForm() {
     setIsLoading(true);
 
     try {
-      const data: any = await authLogin({
+      const response: any = await authLogin({
         username: username.trim(),
         password,
       });
+      const data = response?.data ? response : { success: true, data: response };
 
       if (!data?.success) {
         throw new Error(data?.message || "Đăng nhập thất bại");
@@ -112,13 +113,21 @@ export default function SignInForm() {
         const roleMap: Record<string, string> = {
           admin: "/dashboard/admin",
           "branch-management": "/dashboard/branch-management",
-          teacher: "/dashboard/teacher",
+          teacher: "/dashboard/lecturer",
+          instructor: "/dashboard/lecturer",
+          lecturer: "/dashboard/lecturer",
           student: "/dashboard/student",
+          staff: "/dashboard/admin",
           consultant: "/dashboard/consultant",
           parents: "/dashboard/parents",
         };
 
-        router.push(roleMap[userRole] || `/dashboard/${userRole}`);
+        if (authData.requirePasswordChange) {
+          router.push("/change-password");
+          return;
+        }
+
+        router.push(roleMap[userRole] || "/dashboard/admin");
       }
     } catch (err: any) {
       setError(getLoginErrorMessage(err));

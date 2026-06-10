@@ -139,7 +139,21 @@ public class AutoScheduleService {
     }
 
     private boolean isAvailable(CourseClass courseClass, Employee instructor, Room room, TimeSlot timeSlot, LocalDate date) {
+        Integer dayOfWeek = toSystemDayOfWeek(date);
         if (courseClass.getMaxStudent() != null && room.getCapacity() != null && room.getCapacity() < courseClass.getMaxStudent()) {
+            return false;
+        }
+        UUID probeId = UUID.randomUUID();
+        if (scheduleRepository.existsByRoomRoomIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
+                room.getRoomId(), courseClass.getSemesterId(), dayOfWeek, timeSlot.getTimeSlotId(), probeId)) {
+            return false;
+        }
+        if (scheduleRepository.existsByCourseClassCourseClassIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
+                courseClass.getCourseClassId(), courseClass.getSemesterId(), dayOfWeek, timeSlot.getTimeSlotId(), probeId)) {
+            return false;
+        }
+        if (scheduleRepository.existsByInstructorEmployeeIdAndSemesterIdAndDayOfWeekAndTimeSlotTimeSlotIdAndScheduleIdNot(
+                instructor.getEmployeeId(), courseClass.getSemesterId(), dayOfWeek, timeSlot.getTimeSlotId(), probeId)) {
             return false;
         }
         if (scheduleRepository.hasRoomConflict(room.getRoomId(), date, timeSlot.getTimeSlotId())

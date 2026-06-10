@@ -16,7 +16,16 @@ import java.util.UUID;
 public interface InstructorProfileRepository extends JpaRepository<InstructorProfile, UUID> {
     Optional<InstructorProfile> findByInstructorCode(String instructorCode);
 
-    List<InstructorProfile> findAllByIsActiveTrueAndDeletedAtIsNull();
+    @Query("""
+            SELECT i
+            FROM InstructorProfile i
+            JOIN FETCH i.employee e
+            JOIN FETCH e.person p
+            WHERE i.isActive = true
+              AND i.deletedAt IS NULL
+            ORDER BY i.instructorCode ASC
+            """)
+    List<InstructorProfile> findAllActiveForAdmin();
 
     Optional<InstructorProfile> findByEmployeeEmployeeId(UUID employeeId);
 

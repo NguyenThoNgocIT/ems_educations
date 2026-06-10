@@ -132,6 +132,7 @@ const getSemesterId = (semester: any) => semester.semesterId || semester.id || '
 const getRoomId = (room: any) => room.roomId || room.id || '';
 const getAdminClassId = (classItem: AdministrativeClass) => classItem.classId || classItem.id || '';
 const getLecturerId = (lecturer: any) => lecturer.employeeId || lecturer.id || '';
+const getStudentId = (student: StudentListItem | CourseClassStudent) => student.studentId || (student as any).id || '';
 
 export default function CourseClassesPage() {
   const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
@@ -338,14 +339,24 @@ export default function CourseClassesPage() {
   }, [courseClasses, selectedClass]);
 
   const availableStudents = useMemo(() => {
-    const selectedStudentIds = new Set(classStudents.map((student) => student.studentId).filter(Boolean));
+    const selectedStudentIds = new Set(classStudents.map((student) => getStudentId(student)).filter(Boolean));
     const selectedCourse = selectedClass?.courseId ? courseMap.get(selectedClass.courseId) : null;
     return students.filter((student) => {
-      if (!student.studentId || selectedStudentIds.has(student.studentId)) return false;
+      const studentId = getStudentId(student);
+      if (!studentId || selectedStudentIds.has(studentId)) return false;
       if (selectedCourse?.departmentId && student.departmentId && selectedCourse.departmentId !== student.departmentId) return false;
       return true;
     });
   }, [classStudents, courseMap, selectedClass?.courseId, students]);
+
+  const compatibleAdministrativeClasses = useMemo(() => {
+    const selectedCourse = selectedClass?.courseId ? courseMap.get(selectedClass.courseId) : null;
+    return administrativeClasses.filter((classItem) => {
+      if (classItem.isActive === false) return false;
+      if (selectedCourse?.departmentId && classItem.departmentId && selectedCourse.departmentId !== classItem.departmentId) return false;
+      return true;
+    });
+  }, [administrativeClasses, courseMap, selectedClass?.courseId]);
 
   const formatDateInput = (date: Date) => {
     const year = date.getFullYear();
@@ -555,6 +566,23 @@ export default function CourseClassesPage() {
     }
   };
 
+  const handleRemoveStudentFromCourseClass = async (student: CourseClassStudent) => {
+    if (!student.courseRegistrationId) {
+      toast.error('Không tìm thấy mã đăng ký học phần của sinh viên');
+      return;
+    }
+    if (!confirm(`Gỡ sinh viên ${student.studentCode || student.fullName || ''} khỏi lớp học phần ${selectedClass?.classCode || ''}?`)) return;
+
+    try {
+      await courseClassApi.removeStudent(student.courseRegistrationId);
+      toast.success('Đã gỡ sinh viên khỏi lớp học phần');
+      await fetchCourseClasses();
+      await refreshSelectedClassDetails();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Gỡ sinh viên khỏi lớp học phần thất bại');
+    }
+  };
+
   const openTransferModal = (student: CourseClassStudent) => {
     if (!student.courseRegistrationId) {
       toast.error('Không tìm thấy mã đăng ký học phần của sinh viên');
@@ -757,7 +785,7 @@ export default function CourseClassesPage() {
                       <SelectValue placeholder="Chọn lớp hành chính" />
                     </SelectTrigger>
                     <SelectContent className="max-h-[320px]">
-                      {administrativeClasses.map((classItem) => {
+                      {compatibleAdministrativeClasses.map((classItem) => {
                         const id = getAdminClassId(classItem);
                         return (
                           <SelectItem key={id} value={id}>
@@ -1068,7 +1096,7 @@ export default function CourseClassesPage() {
                   </SelectTrigger>
                   <SelectContent className="max-h-[320px]">
                     {availableStudents.map((student) => (
-                      <SelectItem key={student.studentId} value={student.studentId}>
+                      <SelectItem key={getStudentId(student)} value={getStudentId(student)}>
                         {student.studentCode || 'Chưa có mã'} - {fixMojibakeText(student.fullName || 'Sinh viên')}
                       </SelectItem>
                     ))}
@@ -1131,6 +1159,15 @@ export default function CourseClassesPage() {
                           title="Chuyển lớp học phần"
                         >
                           <ArrowRightLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => handleRemoveStudentFromCourseClass(student)}
+                          title="Gỡ khỏi lớp học phần"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </td>
                     </tr>

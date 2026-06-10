@@ -15,6 +15,13 @@ import { useAuth } from '@/context/AuthContext';
 import { request } from '@/utils/request';
 import { fixMojibakeText } from '@/utils/text';
 
+const toArray = (value: any) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  return [];
+};
+
 export default function LecturerSchedule() {
   const { user, updateUser } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
@@ -23,6 +30,7 @@ export default function LecturerSchedule() {
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [currentRange, setCurrentRange] = useState<{ start: Date; end: Date } | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(user?.id || null);
+  const [jumpedToFirstSchedule, setJumpedToFirstSchedule] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
 
   useEffect(() => {
@@ -42,6 +50,33 @@ export default function LecturerSchedule() {
       }
     }).catch(() => {});
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!employeeId || jumpedToFirstSchedule) return;
+    let mounted = true;
+
+    scheduleApi.getByInstructor(employeeId)
+      .then((res) => {
+        if (!mounted) return;
+        const firstDate = toArray(res)
+          .map((item: any) => String(item.date || item.startDate || "").slice(0, 10))
+          .filter(Boolean)
+          .sort()[0];
+        if (firstDate) {
+          calendarRef.current?.getApi().gotoDate(firstDate);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (mounted) {
+          setJumpedToFirstSchedule(true);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId, jumpedToFirstSchedule]);
 
   const fetchScheduleForRange = async (start: Date, end: Date) => {
     if (!employeeId) return;

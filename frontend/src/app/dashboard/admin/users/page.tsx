@@ -65,7 +65,7 @@ export default function UsersPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await userAdminApi.getAll({ keyword: search || undefined, isActive: true });
+      const data = await userAdminApi.getAll({ keyword: search || undefined });
       setRows(data.map(normalizeUser));
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Không thể tải danh sách tài khoản");

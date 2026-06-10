@@ -280,8 +280,8 @@ function normalizeSchedule(item: StudentPortalScheduleApiItem): StudentScheduleI
 }
 
 function toDayLabel(dayOfWeek: number | null) {
-  if (dayOfWeek === 1) return 'Chủ nhật';
-  if (dayOfWeek && dayOfWeek >= 2 && dayOfWeek <= 7) return `Thứ ${dayOfWeek}`;
+  if (dayOfWeek === 7) return 'Chủ nhật';
+  if (dayOfWeek && dayOfWeek >= 1 && dayOfWeek <= 6) return `Thứ ${dayOfWeek + 1}`;
   return 'Chưa xếp ngày';
 }
 

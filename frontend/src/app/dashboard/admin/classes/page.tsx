@@ -16,8 +16,10 @@ import { departmentApi } from "@/api/department";
 import { lecturerApi } from "@/api/lecturer";
 import { majorApi } from "@/api/major";
 import { unwrapApiResponse } from "@/api/response";
+import { semesterApi } from "@/api/semester";
 import { studentApi } from "@/api/student";
 import { request } from "@/utils/request";
+import { clearCache } from "@/utils/cache";
 import type { AcademicCohort, AdministrativeClass, Department, Major, Specialization } from "@/types/lookup";
 import type { LecturerListItem } from "@/types/instructor";
 import type { StudentListItem } from "@/types/student";
@@ -73,6 +75,8 @@ const getCohortId = (cohort: AcademicCohort) => cohort.academicCohortId || cohor
 const getSpecializationId = (specialization: Specialization) => specialization.specializationId || specialization.id || "";
 const getClassId = (item: AdministrativeClass) => item.classId || item.id || "";
 const getLecturerId = (lecturer: LecturerListItem) => lecturer.employeeId || lecturer.id || "";
+const getStudentId = (student: StudentListItem) => student.studentId || student.id || "";
+const getSemesterId = (semester: any) => semester.semesterId || semester.id || "";
 const labelOf = (code?: string, name?: string) => [code, name].filter(Boolean).join(" - ");
 
 const getSpecializations = async (): Promise<Specialization[]> => {
@@ -96,6 +100,7 @@ export default function ClassesPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [majors, setMajors] = useState<Major[]>([]);
   const [cohorts, setCohorts] = useState<AcademicCohort[]>([]);
+  const [semesters, setSemesters] = useState<any[]>([]);
   const [specializations, setSpecializations] = useState<Specialization[]>([]);
   const [lecturers, setLecturers] = useState<LecturerListItem[]>([]);
   const [students, setStudents] = useState<StudentListItem[]>([]);
@@ -113,6 +118,11 @@ export default function ClassesPage() {
   const [editingClass, setEditingClass] = useState<AdministrativeClass | null>(null);
   const [viewingClass, setViewingClass] = useState<AdministrativeClass | null>(null);
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  const [studentClassAssignments, setStudentClassAssignments] = useState<any[]>([]);
+  const [studentClassLoading, setStudentClassLoading] = useState(false);
+  const [selectedSemesterId, setSelectedSemesterId] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [assignStudentLoading, setAssignStudentLoading] = useState(false);
   const [formData, setFormData] = useState<ClassFormData>(initialForm);
 
   const departmentMap = useMemo(
@@ -130,6 +140,10 @@ export default function ClassesPage() {
   const specializationMap = useMemo(
     () => new Map(specializations.map((item) => [getSpecializationId(item), item])),
     [specializations],
+  );
+  const semesterMap = useMemo(
+    () => new Map(semesters.map((item) => [getSemesterId(item), item])),
+    [semesters],
   );
   const advisorClassById = useMemo(() => {
     const map = new Map<string, AdministrativeClass>();
@@ -202,7 +216,10 @@ export default function ClassesPage() {
 
   const viewingClassStudents = useMemo(() => {
     if (!viewingClass) return [];
-    const rows = studentsByClassId.get(getClassId(viewingClass)) ?? [];
+    const assignmentStudentIds = new Set(studentClassAssignments.filter((item) => item.isActive !== false).map((item) => item.studentId).filter(Boolean));
+    const rows = assignmentStudentIds.size > 0
+      ? students.filter((student) => assignmentStudentIds.has(getStudentId(student)))
+      : studentsByClassId.get(getClassId(viewingClass)) ?? [];
     const search = studentSearchTerm.trim().toLowerCase();
     if (!search) return rows;
     return rows.filter((student) =>
@@ -210,7 +227,21 @@ export default function ClassesPage() {
         String(value || "").toLowerCase().includes(search),
       ),
     );
-  }, [studentSearchTerm, studentsByClassId, viewingClass]);
+  }, [studentClassAssignments, studentSearchTerm, students, studentsByClassId, viewingClass]);
+
+  const assignableStudents = useMemo(() => {
+    if (!viewingClass) return [];
+    const currentStudentIds = new Set(viewingClassStudents.map((student) => getStudentId(student)));
+    return students.filter((student) => {
+      const studentId = getStudentId(student);
+      if (!studentId || currentStudentIds.has(studentId)) return false;
+      if (viewingClass.departmentId && student.departmentId && student.departmentId !== viewingClass.departmentId) return false;
+      if (viewingClass.academicCohortId && student.academicCohortId && student.academicCohortId !== viewingClass.academicCohortId) return false;
+      if (viewingClass.majorId && student.majorId && student.majorId !== viewingClass.majorId) return false;
+      if (viewingClass.specializationId && (student as any).specializationId && (student as any).specializationId !== viewingClass.specializationId) return false;
+      return true;
+    });
+  }, [students, viewingClass, viewingClassStudents]);
 
   const setField = <K extends keyof ClassFormData>(key: K, value: ClassFormData[K]) => {
     setFormData((current) => ({ ...current, [key]: value }));
@@ -219,11 +250,12 @@ export default function ClassesPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [classRows, departmentRows, majorRows, cohortRows, specializationRows, lecturerRows, studentRows] = await Promise.all([
+      const [classRows, departmentRows, majorRows, cohortRows, semesterRows, specializationRows, lecturerRows, studentRows] = await Promise.all([
         administrativeClassApi.getAll({ isActive: true }),
         departmentApi.getAll({ isActive: true }),
         majorApi.getAll({ isActive: true }),
         academicCohortApi.getAll({ isActive: true }),
+        semesterApi.getAll({ isActive: true }),
         getSpecializations(),
         lecturerApi.getAll().catch(() => []),
         studentApi.getAll().catch(() => []),
@@ -232,9 +264,14 @@ export default function ClassesPage() {
       setDepartments(departmentRows || []);
       setMajors(majorRows || []);
       setCohorts(cohortRows || []);
+      setSemesters(semesterRows || []);
       setSpecializations(specializationRows || []);
       setLecturers(lecturerRows || []);
       setStudents(studentRows || []);
+      if (!selectedSemesterId) {
+        const activeSemester = (semesterRows || []).find((item: any) => item.status || item.isActive) || semesterRows?.[0];
+        if (activeSemester) setSelectedSemesterId(getSemesterId(activeSemester));
+      }
     } catch (error) {
       console.error(error);
       toast.error("Không thể tải dữ liệu lớp hành chính");
@@ -280,8 +317,35 @@ export default function ClassesPage() {
   const openStudentDialog = (item: AdministrativeClass) => {
     setViewingClass(item);
     setStudentSearchTerm("");
+    setSelectedStudentId("");
     setStudentModalOpen(true);
   };
+
+  const fetchStudentClassAssignments = async (classId: string, semesterId: string) => {
+    if (!classId || !semesterId) {
+      setStudentClassAssignments([]);
+      return;
+    }
+    setStudentClassLoading(true);
+    try {
+      const response = await request.get("/api/v1/student-classes/admin", {
+        params: { classId, semesterId },
+      });
+      const data = unwrapApiResponse<any>(response);
+      setStudentClassAssignments(Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : []);
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể tải lịch sử sinh viên của lớp hành chính");
+      setStudentClassAssignments([]);
+    } finally {
+      setStudentClassLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!studentModalOpen || !viewingClass) return;
+    void fetchStudentClassAssignments(getClassId(viewingClass), selectedSemesterId);
+  }, [selectedSemesterId, studentModalOpen, viewingClass]);
 
   const handleDepartmentChange = (departmentId: string) => {
     setFormData((current) => ({
@@ -377,6 +441,58 @@ export default function ClassesPage() {
       await loadData();
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Không thể ngừng hoạt động lớp");
+    }
+  };
+
+  const handleAssignStudentToClass = async () => {
+    if (!viewingClass || !selectedStudentId || !selectedSemesterId) {
+      toast.error("Vui lòng chọn học kỳ hiệu lực và sinh viên cần gán");
+      return;
+    }
+    setAssignStudentLoading(true);
+    try {
+      await request.post("/api/v1/student-classes/admin", {
+        studentId: selectedStudentId,
+        classId: getClassId(viewingClass),
+        semesterId: selectedSemesterId,
+        status: "ACTIVE",
+        isActive: true,
+        note: "Admin gán sinh viên vào lớp hành chính",
+      });
+      clearCache("students");
+      setSelectedStudentId("");
+      await Promise.all([
+        loadData(),
+        fetchStudentClassAssignments(getClassId(viewingClass), selectedSemesterId),
+      ]);
+      toast.success("Đã gán sinh viên vào lớp hành chính");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Gán sinh viên vào lớp hành chính thất bại");
+    } finally {
+      setAssignStudentLoading(false);
+    }
+  };
+
+  const handleRemoveStudentFromClass = async (student: StudentListItem) => {
+    if (!viewingClass || !selectedSemesterId) return;
+    const studentId = getStudentId(student);
+    const assignment = studentClassAssignments.find((item) => item.studentId === studentId && item.isActive !== false);
+    if (!assignment?.studentClassId) {
+      toast.error("Không tìm thấy bản ghi phân lớp active của sinh viên trong học kỳ đang chọn");
+      return;
+    }
+    if (!confirm(`Gỡ sinh viên ${student.studentCode || student.fullName} khỏi lớp ${viewingClass.classCode}?`)) return;
+
+    try {
+      await request.delete(`/api/v1/student-classes/admin/${assignment.studentClassId}`);
+      clearCache("students");
+      await Promise.all([
+        loadData(),
+        fetchStudentClassAssignments(getClassId(viewingClass), selectedSemesterId),
+      ]);
+      toast.success("Đã gỡ sinh viên khỏi lớp hành chính ở học kỳ đang chọn");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Gỡ sinh viên khỏi lớp hành chính thất bại");
     }
   };
 
@@ -840,11 +956,60 @@ export default function ClassesPage() {
             <DialogTitle>Sinh viên hiện tại của lớp {viewingClass?.classCode}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="grid gap-3 rounded-lg border bg-muted/30 p-3 md:grid-cols-[220px_minmax(0,1fr)_auto] md:items-end">
+              <div>
+                <Label>Học kỳ hiệu lực</Label>
+                <Select value={selectedSemesterId} onValueChange={setSelectedSemesterId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Chọn học kỳ" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[320px]">
+                    {semesters.map((semester) => {
+                      const semesterId = getSemesterId(semester);
+                      return (
+                        <SelectItem key={semesterId} value={semesterId}>
+                          {labelOf(semester.code, semester.name) || semesterId}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Gán sinh viên vào lớp</Label>
+                <Select
+                  value={selectedStudentId}
+                  onValueChange={setSelectedStudentId}
+                  disabled={assignStudentLoading || assignableStudents.length === 0}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder={assignableStudents.length === 0 ? "Không còn sinh viên phù hợp" : "Chọn sinh viên"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[320px]">
+                    {assignableStudents.map((student) => {
+                      const studentId = getStudentId(student);
+                      return (
+                        <SelectItem key={studentId} value={studentId}>
+                          {student.studentCode || "Chưa có mã"} - {student.fullName || "Sinh viên"}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Backend kiểm tra khoa, khóa, ngành/chuyên ngành và sĩ số; bản ghi cũ cùng học kỳ được lưu thành lịch sử.
+                </p>
+              </div>
+              <Button onClick={handleAssignStudentToClass} disabled={assignStudentLoading || !selectedStudentId || !selectedSemesterId}>
+                <UserCheck className="mr-2 h-4 w-4" />
+                {assignStudentLoading ? "Đang gán..." : "Gán sinh viên"}
+              </Button>
+            </div>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="font-semibold">{viewingClass?.className}</p>
                 <p className="text-sm text-muted-foreground">
-                  {viewingClassStudents.length}/{studentsByClassId.get(getClassId(viewingClass || {}))?.length || 0} sinh viên phù hợp bộ lọc
+                  {studentClassLoading ? "Đang tải danh sách..." : `${viewingClassStudents.length} sinh viên trong học kỳ ${semesterMap.get(selectedSemesterId)?.code || ""}`}
                 </p>
               </div>
               <div className="relative w-full md:w-80">
@@ -867,12 +1032,19 @@ export default function ClassesPage() {
                     <th className="px-4 py-3 text-left font-semibold">Email đào tạo</th>
                     <th className="px-4 py-3 text-left font-semibold">Số điện thoại</th>
                     <th className="px-4 py-3 text-left font-semibold">Trạng thái</th>
+                    <th className="px-4 py-3 text-right font-semibold">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {viewingClassStudents.length === 0 ? (
+                  {studentClassLoading ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                      <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                        Đang tải sinh viên của lớp...
+                      </td>
+                    </tr>
+                  ) : viewingClassStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
                         Chưa có sinh viên hiện tại trong lớp này.
                       </td>
                     </tr>
@@ -887,6 +1059,11 @@ export default function ClassesPage() {
                           <Badge variant={student.isActive === false ? "secondary" : "default"}>
                             {student.isActive === false ? "Ngừng học" : "Đang học"}
                           </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleRemoveStudentFromClass(student)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </td>
                       </tr>
                     ))

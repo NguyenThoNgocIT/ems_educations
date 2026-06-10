@@ -64,26 +64,46 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AcademicSetupWorkflowTest extends AbstractPostgresIntegrationTest {
-    @Autowired DepartmentService departmentService;
-    @Autowired MajorService majorService;
-    @Autowired AcademicCohortService academicCohortService;
-    @Autowired SchoolYearService schoolYearService;
-    @Autowired SemesterService semesterService;
-    @Autowired CourseService courseService;
-    @Autowired CourseClassService courseClassService;
-    @Autowired CoursePrerequisiteService coursePrerequisiteService;
-    @Autowired AdministrativeClassService administrativeClassService;
-    @Autowired StudentClassService studentClassService;
-    @Autowired TrainingProgramService trainingProgramService;
-    @Autowired TeachingAssignmentService teachingAssignmentService;
-    @Autowired TrainingProgramCourseRepository trainingProgramCourseRepository;
-    @Autowired EquivalentCourseRepository equivalentCourseRepository;
-    @Autowired PersonRepository personRepository;
-    @Autowired EmployeeRepository employeeRepository;
-    @Autowired InstructorProfileRepository instructorProfileRepository;
-    @Autowired StudentRepository studentRepository;
-    @Autowired RegistrationPeriodRepository registrationPeriodRepository;
-    @Autowired CourseRegistrationRepository courseRegistrationRepository;
+    @Autowired
+    DepartmentService departmentService;
+    @Autowired
+    MajorService majorService;
+    @Autowired
+    AcademicCohortService academicCohortService;
+    @Autowired
+    SchoolYearService schoolYearService;
+    @Autowired
+    SemesterService semesterService;
+    @Autowired
+    CourseService courseService;
+    @Autowired
+    CourseClassService courseClassService;
+    @Autowired
+    CoursePrerequisiteService coursePrerequisiteService;
+    @Autowired
+    AdministrativeClassService administrativeClassService;
+    @Autowired
+    StudentClassService studentClassService;
+    @Autowired
+    TrainingProgramService trainingProgramService;
+    @Autowired
+    TeachingAssignmentService teachingAssignmentService;
+    @Autowired
+    TrainingProgramCourseRepository trainingProgramCourseRepository;
+    @Autowired
+    EquivalentCourseRepository equivalentCourseRepository;
+    @Autowired
+    PersonRepository personRepository;
+    @Autowired
+    EmployeeRepository employeeRepository;
+    @Autowired
+    InstructorProfileRepository instructorProfileRepository;
+    @Autowired
+    StudentRepository studentRepository;
+    @Autowired
+    RegistrationPeriodRepository registrationPeriodRepository;
+    @Autowired
+    CourseRegistrationRepository courseRegistrationRepository;
 
     @Test
     void adminConfiguresAcademicStructureAndTeachingAssignment_fullWorkflowIsValid() {
@@ -99,15 +119,22 @@ class AcademicSetupWorkflowTest extends AbstractPostgresIntegrationTest {
         InstructorProfile lecturer = createInstructor(suffix, department.getDepartmentId(), "B");
 
         AdministrativeClassResponse administrativeClass = createAdministrativeClass(
-                suffix, department.getDepartmentId(), major.getMajorId(), cohort.getCohortId(), advisor.getInstructorId(), "FOUNDATION");
+                suffix, department.getDepartmentId(), major.getMajorId(), cohort.getCohortId(),
+                advisor.getInstructorId(), "FOUNDATION");
 
-        TrainingProgramResponse program = createTrainingProgram(suffix, department.getDepartmentId(), major.getMajorId(), cohort.getCohortId());
-        CourseDto foundationCourse = createCourse("F" + suffix, department.getDepartmentId(), "Cơ sở dữ liệu " + suffix);
-        CourseDto specializationCourse = createCourse("S" + suffix, department.getDepartmentId(), "Phát triển phần mềm " + suffix);
-        CourseDto equivalentCourse = createCourse("E" + suffix, department.getDepartmentId(), "Cơ sở dữ liệu tương đương " + suffix);
+        TrainingProgramResponse program = createTrainingProgram(suffix, department.getDepartmentId(),
+                major.getMajorId(), cohort.getCohortId());
+        CourseDto foundationCourse = createCourse("F" + suffix, department.getDepartmentId(),
+                "Cơ sở dữ liệu " + suffix);
+        CourseDto specializationCourse = createCourse("S" + suffix, department.getDepartmentId(),
+                "Phát triển phần mềm " + suffix);
+        CourseDto equivalentCourse = createCourse("E" + suffix, department.getDepartmentId(),
+                "Cơ sở dữ liệu tương đương " + suffix);
 
-        addProgramCourse(program.getTrainingProgramId(), foundationCourse.getId(), semester.getSemesterId(), "FOUNDATION", null, 1);
-        addProgramCourse(program.getTrainingProgramId(), specializationCourse.getId(), semester.getSemesterId(), "SPECIALIZATION", foundationCourse.getId(), 2);
+        addProgramCourse(program.getTrainingProgramId(), foundationCourse.getId(), semester.getSemesterId(),
+                "FOUNDATION", null, 1);
+        addProgramCourse(program.getTrainingProgramId(), specializationCourse.getId(), semester.getSemesterId(),
+                "SPECIALIZATION", foundationCourse.getId(), 2);
         addEquivalentCourse(foundationCourse.getId(), equivalentCourse.getId());
 
         CreatePrerequisiteRequest prerequisiteRequest = new CreatePrerequisiteRequest();
@@ -117,23 +144,30 @@ class AcademicSetupWorkflowTest extends AbstractPostgresIntegrationTest {
         PrerequisiteDto prerequisite = coursePrerequisiteService.addPrerequisite(prerequisiteRequest);
 
         assertThat(prerequisite.getType()).isEqualTo("PREREQUISITE");
-        assertThat(trainingProgramCourseRepository.search(program.getTrainingProgramId(), semester.getSemesterId(), null, null, true))
-                .extracting(TrainingProgramCourse::getCoursePhase)
+        assertThat(trainingProgramCourseRepository.searchResponses(program.getTrainingProgramId(),
+                semester.getSemesterId(), null, null, true))
+                .extracting(
+                        com.quanlydaotao.backend.trainingprogramcourse.dto.TrainingProgramCourseResponse::getCoursePhase)
                 .contains("FOUNDATION", "SPECIALIZATION");
-        assertThat(equivalentCourseRepository.findAll()).anyMatch(item ->
-                foundationCourse.getId().equals(item.getOriginalCourseId())
+        assertThat(equivalentCourseRepository.findAll())
+                .anyMatch(item -> foundationCourse.getId().equals(item.getOriginalCourseId())
                         && equivalentCourse.getId().equals(item.getEquivalentCourseId()));
 
         CourseClassDto courseClass = createCourseClass(suffix, foundationCourse.getId(), semester);
-        Student student = createStudent(suffix, program.getTrainingProgramId(), department.getDepartmentId(), major.getMajorId(), cohort.getCohortId());
-        StudentClassResponse studentClass = assignStudentToAdministrativeClass(student.getStudentId(), administrativeClass.getClassId(), semester.getSemesterId());
-        CourseRegistration registration = assignStudentToCourseClass(student.getStudentId(), courseClass.getId(), semester.getSemesterId());
-        TeachingAssignmentResponse assignment = assignLecturer(lecturer.getInstructorId(), courseClass.getId(), administrativeClass.getClassId(), semester.getSemesterId());
+        Student student = createStudent(suffix, program.getTrainingProgramId(), department.getDepartmentId(),
+                major.getMajorId(), cohort.getCohortId());
+        StudentClassResponse studentClass = assignStudentToAdministrativeClass(student.getStudentId(),
+                administrativeClass.getClassId(), semester.getSemesterId());
+        CourseRegistration registration = assignStudentToCourseClass(student.getStudentId(), courseClass.getId(),
+                semester.getSemesterId());
+        TeachingAssignmentResponse assignment = assignLecturer(lecturer.getInstructorId(), courseClass.getId(),
+                administrativeClass.getClassId(), semester.getSemesterId());
 
         assertThat(studentClass.getIsActive()).isTrue();
         assertThat(registration.getCourseClassId()).isEqualTo(courseClass.getId());
         assertThat(assignment.getInstructorId()).isEqualTo(lecturer.getInstructorId());
-        assertThat(teachingAssignmentService.search(lecturer.getInstructorId(), null, null, semester.getSemesterId(), true))
+        assertThat(teachingAssignmentService.search(lecturer.getInstructorId(), null, null, semester.getSemesterId(),
+                true))
                 .singleElement()
                 .satisfies(item -> {
                     assertThat(item.getCourseClassId()).isEqualTo(courseClass.getId());
@@ -141,7 +175,8 @@ class AcademicSetupWorkflowTest extends AbstractPostgresIntegrationTest {
                     assertThat(item.getIsActive()).isTrue();
                 });
 
-        assertDuplicateAndInvalidRulesAreBlocked(suffix, department, major, cohort, semester, advisor, administrativeClass, courseClass, specializationCourse);
+        assertDuplicateAndInvalidRulesAreBlocked(suffix, department, major, cohort, semester, advisor,
+                administrativeClass, courseClass, specializationCourse);
     }
 
     private void assertDuplicateAndInvalidRulesAreBlocked(
@@ -155,7 +190,8 @@ class AcademicSetupWorkflowTest extends AbstractPostgresIntegrationTest {
             CourseClassDto courseClass,
             CourseDto specializationCourse) {
         assertThatThrownBy(() -> createAdministrativeClass(
-                suffix + "X", department.getDepartmentId(), major.getMajorId(), cohort.getCohortId(), advisor.getInstructorId(), "FOUNDATION"))
+                suffix + "X", department.getDepartmentId(), major.getMajorId(), cohort.getCohortId(),
+                advisor.getInstructorId(), "FOUNDATION"))
                 .isInstanceOf(BusinessException.class);
 
         assertThatThrownBy(() -> createCourseClass(suffix, courseClass.getCourseId(), semester))
@@ -167,7 +203,8 @@ class AcademicSetupWorkflowTest extends AbstractPostgresIntegrationTest {
         assertThatThrownBy(() -> coursePrerequisiteService.addPrerequisite(selfPrerequisite))
                 .isInstanceOf(BusinessException.class);
 
-        assertThatThrownBy(() -> assignLecturer(UUID.randomUUID(), courseClass.getId(), administrativeClass.getClassId(), semester.getSemesterId()))
+        assertThatThrownBy(() -> assignLecturer(UUID.randomUUID(), courseClass.getId(),
+                administrativeClass.getClassId(), semester.getSemesterId()))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -221,7 +258,8 @@ class AcademicSetupWorkflowTest extends AbstractPostgresIntegrationTest {
         return semesterService.createSemester(request);
     }
 
-    private TrainingProgramResponse createTrainingProgram(String suffix, UUID departmentId, UUID majorId, UUID cohortId) {
+    private TrainingProgramResponse createTrainingProgram(String suffix, UUID departmentId, UUID majorId,
+            UUID cohortId) {
         TrainingProgramRequest request = new TrainingProgramRequest();
         request.setCode("TP" + suffix);
         request.setName("Chương trình workflow " + suffix);
@@ -249,7 +287,8 @@ class AcademicSetupWorkflowTest extends AbstractPostgresIntegrationTest {
         return courseService.createCourse(request);
     }
 
-    private void addProgramCourse(UUID programId, UUID courseId, UUID semesterId, String phase, UUID prerequisiteCourseId, int sortOrder) {
+    private void addProgramCourse(UUID programId, UUID courseId, UUID semesterId, String phase,
+            UUID prerequisiteCourseId, int sortOrder) {
         TrainingProgramCourse item = new TrainingProgramCourse();
         item.setTrainingProgramId(programId);
         item.setCourseId(courseId);
@@ -338,7 +377,8 @@ class AcademicSetupWorkflowTest extends AbstractPostgresIntegrationTest {
         return courseRegistrationRepository.save(registration);
     }
 
-    private TeachingAssignmentResponse assignLecturer(UUID instructorId, UUID courseClassId, UUID classId, UUID semesterId) {
+    private TeachingAssignmentResponse assignLecturer(UUID instructorId, UUID courseClassId, UUID classId,
+            UUID semesterId) {
         TeachingAssignmentRequest request = new TeachingAssignmentRequest();
         request.setInstructorId(instructorId);
         request.setCourseClassId(courseClassId);

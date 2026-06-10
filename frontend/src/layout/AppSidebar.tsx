@@ -70,7 +70,12 @@ const STATIC_ADMIN_PATHS = new Set(
 );
 
 function normalizeRoleCode(role?: string) {
-  return (role || "").toLowerCase().replace(/^role_/, "");
+  return (role || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/^role_/, "")
+    .replace(/\s+/g, "_");
 }
 
 function menuKey(menu: RbacMenuItem) {
@@ -152,10 +157,11 @@ export default function AppSidebar() {
   const { isExpanded, isHovered, isMobileOpen, setIsHovered } = useSidebar();
   const isOpen = isExpanded || isHovered || isMobileOpen;
   const normalizedRoles = [user?.role, ...(user?.roles || [])].map(normalizeRoleCode);
+  const adminRoleCodes = new Set(["admin", "super_admin", "administrator", "quan_tri_vien", "quan_tri_cap_cao"]);
   const isAdmin = Boolean(
     user?.username?.toLowerCase() === "admin"
       || user?.email?.toLowerCase() === "admin@donga.edu.vn"
-      || normalizedRoles.some((role) => ["admin", "super_admin"].includes(role)),
+      || normalizedRoles.some((role) => adminRoleCodes.has(role)),
   );
   const [allowedPaths, setAllowedPaths] = useState<Set<string> | null>(null);
   const [dynamicMenus, setDynamicMenus] = useState<RbacMenuItem[]>([]);
@@ -175,6 +181,11 @@ export default function AppSidebar() {
     menuApi.getMe()
       .then((menus) => {
         if (!mounted) return;
+        if (menus.length === 0) {
+          setAllowedPaths(null);
+          setDynamicMenus([]);
+          return;
+        }
         const paths = new Set(
           menus
             .map((menu) => normalizePath(menu.path || menu.menuUrl))
