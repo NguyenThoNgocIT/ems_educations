@@ -70,7 +70,12 @@ public class RbacAuthorizationFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/auth/")
                 || path.startsWith("/swagger-ui/")
                 || path.startsWith("/v3/api-docs")
-                || path.startsWith("/h2-console");
+                || path.startsWith("/h2-console")
+                || (HttpMethod.GET.matches(request.getMethod()) && (
+                        path.startsWith("/api/v1/rooms")
+                        || path.startsWith("/api/v1/time-slots")
+                        || path.startsWith("/api/v1/buildings")
+                   ));
     }
 
     private PermissionApis findMatchedPermissionApi(HttpServletRequest request) {

@@ -8,6 +8,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { EventContentArg } from "@fullcalendar/core";
 import { scheduleApi } from "@/api/schedule";
 import { BookOpen, Clock, MapPin } from 'lucide-react';
+import viLocale from '@fullcalendar/core/locales/vi';
 import { toast } from "sonner";
 import AdjustmentModal from './AdjustmentModal';
 import SessionActionModal from './SessionActionModal';
@@ -215,6 +216,7 @@ export default function LecturerSchedule() {
               courseClassName: props.courseClassName,
               date: props.date,
               timeSlotId: props.timeSlotId,
+              timeSlotLabel: props.timeSlotLabel,
               periods: props.periods || 3,
               roomCode: props.roomCode,
               requestType: 'RESCHEDULE',
@@ -230,16 +232,23 @@ export default function LecturerSchedule() {
           slotDuration="01:00:00"
           slotLabelInterval="01:00:00"
           allDaySlot={false}
-          hiddenDays={[0]}
           height="800px"
           nowIndicator
+          locales={[viLocale]}
+          locale="vi"
           dayHeaderFormat={{ weekday: 'short', day: '2-digit', month: 'numeric' }}
+          dayHeaderContent={(arg) => {
+            const date = arg.date;
+            const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+            const dayName = days[date.getDay()];
+            const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+            return `${dayName} ${formattedDate}`;
+          }}
           slotLabelFormat={{
             hour: '2-digit',
             minute: '2-digit',
             hour12: false,
           }}
-          locale="vi"
           buttonText={{
             today: 'Hôm nay',
             month: 'Tháng',
@@ -256,6 +265,7 @@ export default function LecturerSchedule() {
               courseName: props.courseName,
               date: info.event.startStr.split('T')[0],
               timeSlotId: props.timeSlotId,
+              timeSlotLabel: props.timeSlotLabel,
               periods: props.periods || 3,
               roomCode: props.roomCode
             });

@@ -66,6 +66,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -208,11 +209,18 @@ public class StudentServiceImpl implements StudentService {
         return studentMapper.toSelfDto(student);
     }
 
+    private boolean isSessionCancelled(UUID scheduleId, LocalDate date, List<TeachingSessionOverride> overrides) {
+        return overrides.stream()
+                .anyMatch(override -> "CANCELLED".equals(override.getOverrideType())
+                        && Objects.equals(override.getOriginalScheduleId(), scheduleId)
+                        && (override.getOriginalDate() == null || Objects.equals(override.getOriginalDate(), date)));
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<StudentPortalScheduleResponse> getCurrentStudentSchedule(String username) {
         Student student = findCurrentStudent(username);
-        Map<UUID, StudentPortalScheduleResponse> schedules = new LinkedHashMap<>();
+        Map<String, StudentPortalScheduleResponse> schedulesMap = new LinkedHashMap<>();
 
         List<CourseClass> courseClasses = courseRegistrationRepository.findByStudentIdAndIsActiveTrue(student.getStudentId()).stream()
                 .map(CourseRegistration::getCourseClass)
@@ -223,25 +231,39 @@ public class StudentServiceImpl implements StudentService {
         
         List<TeachingSessionOverride> overrides = courseClassIds.isEmpty() ? List.of() : 
             overrideRepository.findByCourseClassIdInAndIsActiveTrue(courseClassIds);
-            
-        Set<UUID> cancelledScheduleIds = overrides.stream()
-                .filter(o -> "CANCELLED".equals(o.getOverrideType()) && o.getOriginalScheduleId() != null)
-                .map(TeachingSessionOverride::getOriginalScheduleId)
-                .collect(Collectors.toSet());
 
         courseClasses.forEach(courseClass -> scheduleRepository.findByCourseClassCourseClassId(courseClass.getCourseClassId())
                 .stream()
                 .filter(schedule -> Boolean.TRUE.equals(schedule.getIsActive()))
                 .forEach(schedule -> {
-                    boolean isCancelled = cancelledScheduleIds.contains(schedule.getScheduleId());
-                    schedules.putIfAbsent(schedule.getScheduleId(), toScheduleResponse(schedule, isCancelled));
+                    if (schedule.getDate() != null) {
+                        LocalDate date = schedule.getDate();
+                        boolean isCancelled = isSessionCancelled(schedule.getScheduleId(), date, overrides);
+                        String key = schedule.getScheduleId() + "_" + date;
+                        schedulesMap.putIfAbsent(key, toScheduleResponse(schedule, date, isCancelled));
+                    } else {
+                        Semester semester = semesterRepository.findById(schedule.getSemesterId()).orElse(null);
+                        if (semester != null) {
+                            LocalDate recStart = schedule.getCourseClass().getStartDate() != null ? schedule.getCourseClass().getStartDate() : semester.getStartDate();
+                            LocalDate recEnd = schedule.getCourseClass().getEndDate() != null ? schedule.getCourseClass().getEndDate() : semester.getEndDate();
+                            if (recStart != null && recEnd != null) {
+                                for (LocalDate date = recStart; !date.isAfter(recEnd); date = date.plusDays(1)) {
+                                    if (date.getDayOfWeek().getValue() == schedule.getDayOfWeek()) {
+                                        boolean isCancelled = isSessionCancelled(schedule.getScheduleId(), date, overrides);
+                                        String key = schedule.getScheduleId() + "_" + date;
+                                        schedulesMap.putIfAbsent(key, toScheduleResponse(schedule, date, isCancelled));
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }));
                 
         overrides.stream()
                 .filter(o -> Boolean.TRUE.equals(o.getIsVisible()))
-                .forEach(o -> schedules.putIfAbsent(o.getOverrideId(), toScheduleResponse(o)));
+                .forEach(o -> schedulesMap.putIfAbsent(o.getOverrideId().toString(), toScheduleResponse(o)));
 
-        return schedules.values().stream()
+        return schedulesMap.values().stream()
                 .sorted(Comparator
                         .comparing(StudentPortalScheduleResponse::getDate, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(StudentPortalScheduleResponse::getDayOfWeek, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -394,13 +416,13 @@ public class StudentServiceImpl implements StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Tài khoản hiện tại không phải sinh viên"));
     }
 
-    private StudentPortalScheduleResponse toScheduleResponse(Schedule schedule, boolean isCancelled) {
+    private StudentPortalScheduleResponse toScheduleResponse(Schedule schedule, LocalDate date, boolean isCancelled) {
         CourseClass courseClass = schedule.getCourseClass();
         Course course = courseClass == null ? null : courseClass.getCourse();
         return StudentPortalScheduleResponse.builder()
                 .scheduleId(schedule.getScheduleId())
                 .dayOfWeek(schedule.getDayOfWeek())
-                .date(schedule.getDate())
+                .date(date != null ? date : schedule.getDate())
                 .startTime(schedule.getTimeSlot() == null ? null : schedule.getTimeSlot().getStartTime())
                 .endTime(schedule.getTimeSlot() == null ? null : schedule.getTimeSlot().getEndTime())
                 .courseCode(course == null ? null : course.getCode())

@@ -6,6 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { StudentAcademicResult, StudentRegistration, StudentScheduleItem } from '@/types/student-portal';
 import { BookOpen, CalendarDays, GraduationCap, Search } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const StudentSchedule = dynamic(() => import('@/components/ems/student/StudentSchedule'), {
+  ssr: false,
+});
 
 type SemesterGroup = {
   label: string;
@@ -230,55 +235,13 @@ export default function StudentMySchedulePage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle className="inline-flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-emerald-600" />
-              Bảng thời khóa biểu
+              Thời khóa biểu tuần
             </CardTitle>
-            <span className="text-xs text-slate-500">Sắp theo ngày học trong tuần</span>
+            <span className="text-xs text-slate-500">Xem chi tiết các ca học trong tuần</span>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] border-collapse text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-                <tr>
-                  <th className="w-32 px-4 py-3">Ngày học</th>
-                  <th className="w-40 px-4 py-3">Ca học</th>
-                  <th className="px-4 py-3">Học phần</th>
-                  <th className="w-40 px-4 py-3">Lớp</th>
-                  <th className="w-32 px-4 py-3">Phòng</th>
-                  <th className="w-52 px-4 py-3">Giảng viên</th>
-                  <th className="w-28 px-4 py-3">Hình thức</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSchedules.map((item) => (
-                  <tr key={item.id} className={`border-t border-slate-100 align-top transition hover:bg-emerald-50/40 dark:border-slate-800 dark:hover:bg-emerald-950/10 ${item.isCancelled ? 'opacity-50' : ''}`}>
-                    <td className="px-4 py-4">
-                      {item.isCancelled && <Badge variant="destructive" className="mb-1">Đã hủy</Badge>}
-                      {item.overrideType === 'MAKEUP' && <Badge variant="default" className="mb-1 bg-blue-500 hover:bg-blue-600">Học bù</Badge>}
-                      {item.overrideType === 'ROOM_CHANGE' && <Badge variant="outline" className="mb-1 border-orange-500 text-orange-600">Đổi phòng</Badge>}
-                      {item.overrideType === 'EXTRA' && <Badge variant="default" className="mb-1 bg-purple-500 hover:bg-purple-600">Tăng tiết</Badge>}
-                      <p className={`font-semibold text-slate-950 dark:text-white ${item.isCancelled ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>{item.dayLabel}</p>
-                      <p className={`mt-1 text-xs text-slate-500 ${item.isCancelled ? 'line-through' : ''}`}>{item.dateLabel}</p>
-                    </td>
-                    <td className={`px-4 py-4 font-medium text-slate-700 dark:text-slate-200 ${item.isCancelled ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>{item.time}</td>
-                    <td className="px-4 py-4">
-                      <p className={`font-semibold text-slate-950 dark:text-white ${item.isCancelled ? 'text-slate-400 dark:text-slate-500' : ''}`}>{item.courseName}</p>
-                      <p className={`mt-1 text-xs font-semibold uppercase ${item.isCancelled ? 'text-slate-400' : 'text-emerald-600'}`}>{item.courseCode}</p>
-                    </td>
-                    <td className={`px-4 py-4 text-slate-700 dark:text-slate-200 ${item.isCancelled ? 'text-slate-400 dark:text-slate-500' : ''}`}>{item.classCode}</td>
-                    <td className={`px-4 py-4 text-slate-700 dark:text-slate-200 ${item.isCancelled ? 'text-slate-400 dark:text-slate-500' : (item.overrideType === 'ROOM_CHANGE' ? 'font-bold text-orange-600 dark:text-orange-400' : '')}`}>{item.room}</td>
-                    <td className={`px-4 py-4 text-slate-700 dark:text-slate-200 ${item.isCancelled ? 'text-slate-400 dark:text-slate-500' : ''}`}>{item.lecturer}</td>
-                    <td className="px-4 py-4"><Badge variant="outline">{item.mode}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {filteredSchedules.length === 0 && (
-            <p className="border-t border-slate-100 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800">
-              Không tìm thấy buổi học phù hợp.
-            </p>
-          )}
+        <CardContent className="p-4">
+          <StudentSchedule schedules={filteredSchedules} />
         </CardContent>
       </Card>
     </div>

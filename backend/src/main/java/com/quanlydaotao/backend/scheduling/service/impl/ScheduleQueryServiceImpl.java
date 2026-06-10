@@ -148,18 +148,57 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
                 .toList();
     }
 
+    private boolean isSessionCancelled(UUID scheduleId, LocalDate date, List<TeachingSessionOverride> overrides) {
+        return overrides.stream()
+                .anyMatch(override -> "CANCELLED".equals(override.getOverrideType())
+                        && Objects.equals(override.getOriginalScheduleId(), scheduleId)
+                        && (override.getOriginalDate() == null || Objects.equals(override.getOriginalDate(), date)));
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<ScheduleCalendarDayResponse> getCalendar(UUID instructorId, Integer month, Integer year) {
         LocalDate fromDate = LocalDate.of(year, month, 1);
         LocalDate toDate = fromDate.with(TemporalAdjusters.lastDayOfMonth());
         Map<LocalDate, List<ScheduleCalendarItemDto>> itemsByDate = new LinkedHashMap<>();
-        Set<UUID> cancelledOriginalScheduleIds = cancelledOriginalScheduleIds(overrideRepository.findByInstructorAndDateBetween(instructorId, fromDate, toDate));
-        scheduleRepository.findByInstructorEmployeeIdAndDateBetweenAndIsActiveTrueOrderByDateAsc(instructorId, fromDate, toDate)
-                .stream()
-                .filter(schedule -> !cancelledOriginalScheduleIds.contains(schedule.getScheduleId()))
-                .forEach(schedule -> itemsByDate.computeIfAbsent(schedule.getDate(), key -> new ArrayList<>()).add(toCalendarItem(schedule)));
-        overrideRepository.findByInstructorAndDateBetween(instructorId, fromDate, toDate)
+
+        List<TeachingSessionOverride> allOverrides = overrideRepository.findByInstructorAndDateBetween(instructorId, fromDate, toDate);
+
+        List<Schedule> schedules = scheduleRepository.findByInstructorEmployeeId(instructorId).stream()
+                .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
+                .toList();
+
+        for (Schedule schedule : schedules) {
+            if (schedule.getDate() != null) {
+                LocalDate date = schedule.getDate();
+                if (!date.isBefore(fromDate) && !date.isAfter(toDate)) {
+                    if (!isSessionCancelled(schedule.getScheduleId(), date, allOverrides)) {
+                        itemsByDate.computeIfAbsent(date, key -> new ArrayList<>()).add(toCalendarItem(schedule));
+                    }
+                }
+            } else {
+                Semester semester = semesterRepository.findById(schedule.getSemesterId()).orElse(null);
+                if (semester != null) {
+                    LocalDate recStart = schedule.getCourseClass().getStartDate() != null ? schedule.getCourseClass().getStartDate() : semester.getStartDate();
+                    LocalDate recEnd = schedule.getCourseClass().getEndDate() != null ? schedule.getCourseClass().getEndDate() : semester.getEndDate();
+                    if (recStart != null && recEnd != null) {
+                        LocalDate searchStart = recStart.isAfter(fromDate) ? recStart : fromDate;
+                        LocalDate searchEnd = recEnd.isBefore(toDate) ? recEnd : toDate;
+                        for (LocalDate date = searchStart; !date.isAfter(searchEnd); date = date.plusDays(1)) {
+                            if (date.getDayOfWeek().getValue() == schedule.getDayOfWeek()) {
+                                if (!isSessionCancelled(schedule.getScheduleId(), date, allOverrides)) {
+                                    itemsByDate.computeIfAbsent(date, key -> new ArrayList<>()).add(toCalendarItem(schedule));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add override items (makeup, extra, etc.)
+        allOverrides.stream()
+                .filter(override -> !"CANCELLED".equals(override.getOverrideType()))
                 .forEach(override -> itemsByDate.computeIfAbsent(override.getTeachingDate(), key -> new ArrayList<>()).add(toCalendarItem(override)));
 
         List<ScheduleCalendarDayResponse> days = new ArrayList<>();
@@ -181,15 +220,47 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
         LocalDate fromDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate toDate = fromDate.plusDays(6);
         List<ScheduleWeekItemResponse> items = new ArrayList<>();
-        Set<UUID> cancelledOriginalScheduleIds = cancelledOriginalScheduleIds(overrideRepository.findByInstructorAndDateBetween(instructorId, fromDate, toDate));
-        scheduleRepository.findByInstructorEmployeeIdAndDateBetweenAndIsActiveTrueOrderByDateAsc(instructorId, fromDate, toDate).stream()
-                .filter(schedule -> !cancelledOriginalScheduleIds.contains(schedule.getScheduleId()))
-                .filter(schedule -> semesterId == null || semesterId.equals(schedule.getSemesterId()))
+
+        List<TeachingSessionOverride> allOverrides = overrideRepository.findByInstructorAndDateBetween(instructorId, fromDate, toDate);
+
+        List<Schedule> schedules = scheduleRepository.findByInstructorEmployeeId(instructorId).stream()
+                .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
+                .filter(s -> semesterId == null || semesterId.equals(s.getSemesterId()))
+                .toList();
+
+        for (Schedule schedule : schedules) {
+            if (schedule.getDate() != null) {
+                LocalDate d = schedule.getDate();
+                if (!d.isBefore(fromDate) && !d.isAfter(toDate)) {
+                    if (!isSessionCancelled(schedule.getScheduleId(), d, allOverrides)) {
+                        items.add(toWeekItem(schedule, d));
+                    }
+                }
+            } else {
+                Semester semester = semesterRepository.findById(schedule.getSemesterId()).orElse(null);
+                if (semester != null) {
+                    LocalDate recStart = schedule.getCourseClass().getStartDate() != null ? schedule.getCourseClass().getStartDate() : semester.getStartDate();
+                    LocalDate recEnd = schedule.getCourseClass().getEndDate() != null ? schedule.getCourseClass().getEndDate() : semester.getEndDate();
+                    if (recStart != null && recEnd != null) {
+                        LocalDate searchStart = recStart.isAfter(fromDate) ? recStart : fromDate;
+                        LocalDate searchEnd = recEnd.isBefore(toDate) ? recEnd : toDate;
+                        for (LocalDate d = searchStart; !d.isAfter(searchEnd); d = d.plusDays(1)) {
+                            if (d.getDayOfWeek().getValue() == schedule.getDayOfWeek()) {
+                                if (!isSessionCancelled(schedule.getScheduleId(), d, allOverrides)) {
+                                    items.add(toWeekItem(schedule, d));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        allOverrides.stream()
+                .filter(override -> !"CANCELLED".equals(override.getOverrideType()))
                 .map(this::toWeekItem)
                 .forEach(items::add);
-        overrideRepository.findByInstructorAndDateBetween(instructorId, fromDate, toDate).stream()
-                .map(this::toWeekItem)
-                .forEach(items::add);
+
         return items.stream()
                 .sorted(Comparator.comparing(ScheduleWeekItemResponse::getDate)
                         .thenComparing(item -> item.getTimeSlotLabel() == null ? "" : item.getTimeSlotLabel()))
@@ -317,10 +388,10 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
                 .build();
     }
 
-    private ScheduleWeekItemResponse toWeekItem(Schedule schedule) {
+    private ScheduleWeekItemResponse toWeekItem(Schedule schedule, LocalDate date) {
         Course course = course(schedule.getCourseClass().getCourseId());
         return ScheduleWeekItemResponse.builder()
-                .date(schedule.getDate())
+                .date(date != null ? date : schedule.getDate())
                 .dayLabel(dayLabel(schedule.getDayOfWeek()))
                 .courseClassId(schedule.getCourseClass().getCourseClassId())
                 .courseClassCode(schedule.getCourseClass().getClassCode())
