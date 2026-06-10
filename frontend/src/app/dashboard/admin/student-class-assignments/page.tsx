@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +51,7 @@ function formatDate(value?: string) {
   return new Date(value).toLocaleDateString("vi-VN");
 }
 
-export default function StudentClassAssignmentsPage() {
+function StudentClassAssignmentsContent() {
   const searchParams = useSearchParams();
   const initialClassId = searchParams.get("classId") || "";
   const [assignments, setAssignments] = useState<StudentClassAssignment[]>([]);
@@ -598,5 +598,13 @@ export default function StudentClassAssignmentsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function StudentClassAssignmentsPage() {
+  return (
+    <Suspense fallback={<div className="p-4 text-center">Đang tải...</div>}>
+      <StudentClassAssignmentsContent />
+    </Suspense>
   );
 }

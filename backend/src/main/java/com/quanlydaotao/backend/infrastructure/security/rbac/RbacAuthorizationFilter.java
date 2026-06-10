@@ -75,6 +75,7 @@ public class RbacAuthorizationFilter extends OncePerRequestFilter {
                         path.startsWith("/api/v1/rooms")
                         || path.startsWith("/api/v1/time-slots")
                         || path.startsWith("/api/v1/buildings")
+                        || path.startsWith("/api/v1/courses")
                    ));
     }
 
