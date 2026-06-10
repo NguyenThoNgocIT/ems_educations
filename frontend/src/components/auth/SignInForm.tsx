@@ -111,6 +111,7 @@ export default function SignInForm() {
         // Redirect
         const roleMap: Record<string, string> = {
           admin: "/dashboard/admin",
+          lecturer: "/dashboard/lecturer",
           "branch-management": "/dashboard/branch-management",
           teacher: "/dashboard/teacher",
           student: "/dashboard/student",

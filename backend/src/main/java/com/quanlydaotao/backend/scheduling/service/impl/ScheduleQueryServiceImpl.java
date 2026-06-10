@@ -367,19 +367,17 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
     }
 
     private ScheduleCalendarItemDto toCalendarItem(TeachingSessionOverride override) {
-        CourseClass courseClass = courseClass(override.getCourseClassId());
-        Course course = course(courseClass.getCourseId());
         TimeSlot slot = slotById(override.getTimeSlotId());
         return ScheduleCalendarItemDto.builder()
                 .id(override.getOverrideId())
                 .courseClassId(override.getCourseClassId())
-                .courseClassCode(courseClass.getClassCode())
-                .courseClassName(courseClass.getClassCode())
-                .courseName(course.getName())
+                .courseClassCode(courseClassCode(override.getCourseClassId()))
+                .courseClassName(courseClassCode(override.getCourseClassId()))
+                .courseName(course(courseClass(override.getCourseClassId()).getCourseId()).getName())
                 .timeSlotId(override.getTimeSlotId())
-                .timeSlotLabel(timeSlotLabel(slot))
-                .startTime(slot == null ? null : slot.getStartTime())
-                .endTime(slot == null ? null : slot.getEndTime())
+                .timeSlotLabel(slot != null ? timeSlotLabel(slot) : "")
+                .startTime(slot != null ? slot.getStartTime() : null)
+                .endTime(slot != null ? slot.getEndTime() : null)
                 .numberOfPeriods(override.getNumberOfPeriods())
                 .roomId(override.getRoomId())
                 .roomCode(roomCode(override.getRoomId()))

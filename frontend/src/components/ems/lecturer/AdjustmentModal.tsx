@@ -176,7 +176,7 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
         proposedPeriods: requestType === 'EXTRA_SESSION' ? 3 : absentPeriods,
         reason
       });
-      toast.success('Đã gửi yêu cầu thành công!');
+      toast.success('Bạn đã gửi yêu cầu thành công cho Admin!');
       onSuccess();
       onClose();
     } catch (error: any) {
