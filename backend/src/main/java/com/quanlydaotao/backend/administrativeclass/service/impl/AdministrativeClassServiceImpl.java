@@ -5,11 +5,14 @@ import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
 import com.quanlydaotao.backend.administrativeclass.dto.AdministrativeClassRequest;
 import com.quanlydaotao.backend.administrativeclass.dto.AdministrativeClassResponse;
 import com.quanlydaotao.backend.administrativeclass.entity.AdministrativeClass;
+import com.quanlydaotao.backend.academiccohort.entity.AcademicCohort;
 import com.quanlydaotao.backend.academiccohort.repository.AcademicCohortRepository;
 import com.quanlydaotao.backend.administrativeclass.mapper.AdministrativeClassMapper;
 import com.quanlydaotao.backend.administrativeclass.repository.AdministrativeClassRepository;
 import com.quanlydaotao.backend.administrativeclass.service.AdministrativeClassService;
+import com.quanlydaotao.backend.department.entity.Department;
 import com.quanlydaotao.backend.department.repository.DepartmentRepository;
+import com.quanlydaotao.backend.instructor.entity.InstructorProfile;
 import com.quanlydaotao.backend.instructor.repository.InstructorProfileRepository;
 import com.quanlydaotao.backend.major.entity.Major;
 import com.quanlydaotao.backend.major.repository.MajorRepository;
@@ -23,7 +26,12 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,10 +48,11 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
     @Transactional(readOnly = true)
     public List<AdministrativeClassResponse> searchClasses(String keyword, UUID departmentId, UUID majorId, UUID specializationId,
                                                            UUID academicCohortId, String classPhase, Boolean isActive) {
-        return administrativeClassRepository.search(normalizeBlank(keyword), departmentId, majorId, specializationId,
-                        academicCohortId, normalizePhase(classPhase), isActive).stream()
-                .map(this::toResponse)
-                .toList();
+        List<AdministrativeClass> classes = administrativeClassRepository.search(normalizeBlank(keyword), departmentId, majorId, specializationId,
+                academicCohortId, normalizePhase(classPhase), isActive);
+        List<AdministrativeClassResponse> responses = administrativeClassMapper.toDtoList(classes);
+        enrichLookupLabels(responses);
+        return responses;
     }
 
     @Override
@@ -144,6 +153,72 @@ public class AdministrativeClassServiceImpl implements AdministrativeClassServic
                 }
             });
         }
+    }
+
+    private void enrichLookupLabels(List<AdministrativeClassResponse> responses) {
+        if (responses.isEmpty()) {
+            return;
+        }
+
+        Map<UUID, Department> departmentsById = departmentRepository.findAllById(collectIds(responses, AdministrativeClassResponse::getDepartmentId))
+                .stream()
+                .collect(Collectors.toMap(Department::getDepartmentId, Function.identity()));
+        Map<UUID, Major> majorsById = majorRepository.findAllById(collectIds(responses, AdministrativeClassResponse::getMajorId))
+                .stream()
+                .collect(Collectors.toMap(Major::getMajorId, Function.identity()));
+        Map<UUID, Specialization> specializationsById = specializationRepository.findAllById(collectIds(responses, AdministrativeClassResponse::getSpecializationId))
+                .stream()
+                .collect(Collectors.toMap(Specialization::getSpecializationId, Function.identity()));
+        Map<UUID, AcademicCohort> cohortsById = academicCohortRepository.findAllById(collectIds(responses, AdministrativeClassResponse::getAcademicCohortId))
+                .stream()
+                .collect(Collectors.toMap(AcademicCohort::getCohortId, Function.identity()));
+        Set<UUID> advisorIds = collectIds(responses, AdministrativeClassResponse::getAdvisorId);
+        Map<UUID, InstructorProfile> advisorsById = advisorIds.isEmpty()
+                ? Map.of()
+                : instructorProfileRepository.findActiveByEmployeeIds(advisorIds)
+                        .stream()
+                        .collect(Collectors.toMap(InstructorProfile::getEmployeeId, Function.identity()));
+
+        responses.forEach(response -> {
+            Department department = departmentsById.get(response.getDepartmentId());
+            if (department != null) {
+                response.setDepartmentCode(department.getCode());
+                response.setDepartmentName(department.getName());
+            }
+
+            Major major = majorsById.get(response.getMajorId());
+            if (major != null) {
+                response.setMajorCode(major.getCode());
+                response.setMajorName(major.getName());
+            }
+
+            Specialization specialization = specializationsById.get(response.getSpecializationId());
+            if (specialization != null) {
+                response.setSpecializationCode(specialization.getCode());
+                response.setSpecializationName(specialization.getName());
+            }
+
+            AcademicCohort cohort = cohortsById.get(response.getAcademicCohortId());
+            if (cohort != null) {
+                response.setAcademicCohortCode(cohort.getCode());
+                response.setAcademicCohortName(cohort.getName());
+            }
+
+            InstructorProfile advisor = advisorsById.get(response.getAdvisorId());
+            if (advisor != null) {
+                response.setAdvisorCode(advisor.getInstructorCode());
+                if (advisor.getEmployee() != null && advisor.getEmployee().getPerson() != null) {
+                    response.setAdvisorName(advisor.getEmployee().getPerson().getFullName());
+                }
+            }
+        });
+    }
+
+    private Set<UUID> collectIds(List<AdministrativeClassResponse> responses, Function<AdministrativeClassResponse, UUID> extractor) {
+        return responses.stream()
+                .map(extractor)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     private void validateRequired(AdministrativeClassRequest request) {

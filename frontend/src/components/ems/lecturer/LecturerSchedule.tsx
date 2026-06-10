@@ -13,6 +13,7 @@ import AdjustmentModal from './AdjustmentModal';
 import SessionActionModal from './SessionActionModal';
 import { useAuth } from '@/context/AuthContext';
 import { request } from '@/utils/request';
+import { fixMojibakeText } from '@/utils/text';
 
 export default function LecturerSchedule() {
   const { user, updateUser } = useAuth();
@@ -56,7 +57,7 @@ export default function LecturerSchedule() {
         year: year
       });
       console.log('[LecturerSchedule] calling calendar API:', { employeeId, month, year });
-      const calendarDays = res?.data || [];
+      const calendarDays = res?.data?.data || res?.data || [];
       console.log('[LecturerSchedule] calendarDays received:', calendarDays.length, 'days, events:', calendarDays.filter((d: any) => d.items?.length > 0));
       const scheduleEvents: any[] = [];
 
@@ -67,11 +68,14 @@ export default function LecturerSchedule() {
 
           scheduleEvents.push({
             id: item.id,
-            title: `${item.courseClassCode} - ${item.roomCode || ''}`,
+            title: fixMojibakeText(`${item.courseClassCode} - ${item.roomCode || ''}`),
             start,
             end,
             extendedProps: {
               ...item,
+              courseClassName: fixMojibakeText(item.courseClassName || item.courseClassCode || ''),
+              courseName: fixMojibakeText(item.courseName || ''),
+              roomCode: fixMojibakeText(item.roomCode || ''),
               date: day.date,
               periods: item.numberOfPeriods || 3
             }

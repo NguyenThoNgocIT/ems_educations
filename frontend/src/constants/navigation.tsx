@@ -70,7 +70,7 @@ export const adminNavGroups: NavGroup[] = [
     items: [
       { name: "Sinh viên", icon: <Users className={iconClassName} />, path: "/dashboard/admin/students" },
       { name: "Giảng viên", icon: <User className={iconClassName} />, path: "/dashboard/admin/lecturers" },
-      { name: "Phân lớp theo học kỳ", icon: <Layers className={iconClassName} />, path: "/dashboard/admin/student-class-assignments", badge: "NEW" },
+      { name: "Lịch sử lớp hành chính", icon: <Layers className={iconClassName} />, path: "/dashboard/admin/student-class-assignments", badge: "NEW" },
     ],
   },
   {

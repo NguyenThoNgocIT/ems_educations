@@ -7,10 +7,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { userAdminApi, type UserAccount } from "@/api/admin-resources";
+import { fixMojibakeList, fixMojibakeText } from "@/utils/text";
 
 function stripEmailDomain(value?: string) {
   if (!value) return "";
   return value.split("@")[0] || value;
+}
+
+function normalizeUser(row: UserAccount): UserAccount {
+  return {
+    ...row,
+    fullName: fixMojibakeText(row.fullName),
+    fullNameNoAccent: fixMojibakeText(row.fullNameNoAccent),
+    displayCode: fixMojibakeText(row.displayCode),
+    accountType: fixMojibakeText(row.accountType),
+    username: fixMojibakeText(row.username),
+    email: fixMojibakeText(row.email),
+    roles: fixMojibakeList(row.roles),
+  };
 }
 
 function emailEduOf(row: UserAccount) {
@@ -51,7 +65,8 @@ export default function UsersPage() {
   const load = async () => {
     setLoading(true);
     try {
-      setRows(await userAdminApi.getAll({ keyword: search || undefined, isActive: true }));
+      const data = await userAdminApi.getAll({ keyword: search || undefined, isActive: true });
+      setRows(data.map(normalizeUser));
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Không thể tải danh sách tài khoản");
     } finally {

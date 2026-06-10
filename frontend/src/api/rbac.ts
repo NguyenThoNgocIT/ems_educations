@@ -1,4 +1,6 @@
 import { request } from '@/utils/request';
+import { unwrapApiResponse } from '@/api/response';
+import { fixMojibakeText } from '@/utils/text';
 import type {
   Role,
   CreateRoleDto,
@@ -7,26 +9,32 @@ import type {
   CreatePermissionDto,
   UpdatePermissionDto,
   CreateRbacApiDto,
+  RbacApi,
   MenuItem,
   CreateMenuDto,
   UpdateMenuDto,
   UserWithRoles,
 } from '@/types/rbac';
 
+const unwrapData = <T = any>(response: any): T => unwrapApiResponse<T>(response);
+
 const unwrapList = <T = any>(response: any): T[] => {
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response)) return response;
+  const data: any = unwrapData(response);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.content)) return data.content;
   return [];
 };
-
-const unwrapData = <T = any>(response: any): T => response?.data || response;
 
 const normalizePermission = (permission: any): Permission => ({
   ...permission,
   id: permission.id || permission.permissionId || '',
   permissionId: permission.permissionId || permission.id,
   code: permission.code || '',
-  name: permission.name || permission.code || '',
+  name: fixMojibakeText(permission.name || permission.code || ''),
+  description: fixMojibakeText(permission.description),
+  module: fixMojibakeText(permission.module),
+  apiCount: permission.apiCount ?? permission.apis?.length ?? 0,
+  apis: Array.isArray(permission.apis) ? permission.apis.map(normalizeApi) : permission.apis,
 });
 
 const normalizeRole = (role: any): Role => ({
@@ -34,18 +42,26 @@ const normalizeRole = (role: any): Role => ({
   id: role.id || role.roleId || '',
   roleId: role.roleId || role.id,
   code: role.code || '',
-  name: role.name || role.code || '',
+  name: fixMojibakeText(role.name || role.code || ''),
+  description: fixMojibakeText(role.description),
   userCount: role.userCount ?? 0,
   permissionCount: role.permissionCount ?? role.permissions?.length ?? 0,
   permissions: Array.isArray(role.permissions) ? role.permissions.map(normalizePermission) : role.permissions,
+});
+
+const normalizeApi = (api: any, permissionId?: string): RbacApi => ({
+  id: `${api.httpMethod || api.method}:${api.apiPath || api.path}`,
+  method: api.httpMethod || api.method,
+  path: api.apiPath || api.path,
+  permissionId: api.permissionId || permissionId || '',
 });
 
 const normalizeMenu = (menu: any): MenuItem => ({
   ...menu,
   id: menu.id || menu.menuId || '',
   menuId: menu.menuId || menu.id,
-  name: menu.name || menu.menuTitle || '',
-  menuTitle: menu.menuTitle || menu.name || '',
+  name: fixMojibakeText(menu.name || menu.menuTitle || ''),
+  menuTitle: fixMojibakeText(menu.menuTitle || menu.name || ''),
   path: menu.path ?? menu.menuUrl ?? '',
   menuUrl: menu.menuUrl ?? menu.path ?? '',
   icon: menu.icon ?? menu.menuIcon ?? '',
@@ -93,7 +109,19 @@ export const roleApi = {
   // Permission assignment for a role
   getPermissions: async (id: string): Promise<Permission[]> => {
     const response: any = await request.get(`/api/v1/roles/admin/${id}/permissions`);
-    return unwrapList(response).map(normalizePermission);
+    const permissions = unwrapList(response).map(normalizePermission);
+    return Promise.all(
+      permissions.map(async (permission) => {
+        const permissionId = permission.id || permission.permissionId;
+        if (!permissionId) return permission;
+        try {
+          const apis = await permissionApi.getApis(permissionId);
+          return { ...permission, apis, apiCount: apis.length };
+        } catch {
+          return permission;
+        }
+      }),
+    );
   },
 
   updatePermissions: async (id: string, permissionIds: string[]): Promise<Role> => {
@@ -145,13 +173,7 @@ export const permissionApi = {
 
   getApis: async (permissionId: string): Promise<any[]> => {
     const res: any = await request.get(`/api/v1/permissions/admin/${permissionId}/apis`);
-    const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-    return list.map((api: any) => ({
-      id: `${api.httpMethod || api.method}:${api.apiPath || api.path}`,
-      method: api.httpMethod || api.method,
-      path: api.apiPath || api.path,
-      permissionId: api.permissionId || permissionId,
-    }));
+    return unwrapList(res).map((api: any) => normalizeApi(api, permissionId));
   },
 
   addApi: (permissionId: string, data: CreateRbacApiDto): Promise<void> =>
@@ -181,12 +203,12 @@ export const menuApi = {
 
   create: async (data: CreateMenuDto): Promise<MenuItem> => {
     const response: any = await request.post('/api/v1/menus/admin', toBackendMenuPayload(data));
-    return normalizeMenu(response?.data || response);
+    return normalizeMenu(unwrapData(response));
   },
 
   update: async (id: string, data: UpdateMenuDto): Promise<MenuItem> => {
     const response: any = await request.put(`/api/v1/menus/admin/${id}`, toBackendMenuPayload(data));
-    return normalizeMenu(response?.data || response);
+    return normalizeMenu(unwrapData(response));
   },
 
   delete: (id: string): Promise<void> =>
@@ -195,13 +217,13 @@ export const menuApi = {
 
 // ─── User Role Assignment ─────────────────────────────────────────────────────
 export const userRoleApi = {
-  getUserRoles: (userId: string): Promise<UserWithRoles> =>
-    request.get(`/api/v1/users/admin/${userId}/roles`),
+  getUserRoles: async (userId: string): Promise<UserWithRoles> =>
+    unwrapData(await request.get(`/api/v1/users/admin/${userId}/roles`)),
 
-  updateUserRoles: (userId: string, roleIds: string[]): Promise<UserWithRoles> =>
-    request.put(`/api/v1/users/admin/${userId}/roles`, { roleIds }),
+  updateUserRoles: async (userId: string, roleIds: string[]): Promise<UserWithRoles> =>
+    unwrapData(await request.put(`/api/v1/users/admin/${userId}/roles`, { roleIds })),
 
   // Search users (reusing general users endpoint)
-  searchUsers: (params?: { keyword?: string; page?: number; size?: number }): Promise<any> =>
-    request.get('/api/v1/users/admin', { params }),
+  searchUsers: async (params?: { keyword?: string; page?: number; size?: number }): Promise<any> =>
+    unwrapData(await request.get('/api/v1/users/admin', { params })),
 };

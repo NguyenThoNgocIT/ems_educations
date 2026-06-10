@@ -69,6 +69,10 @@ const STATIC_ADMIN_PATHS = new Set(
   ),
 );
 
+function normalizeRoleCode(role?: string) {
+  return (role || "").toLowerCase().replace(/^role_/, "");
+}
+
 function menuKey(menu: RbacMenuItem) {
   return `menu:${menu.id}`;
 }
@@ -147,10 +151,11 @@ export default function AppSidebar() {
   const { user } = useAuth();
   const { isExpanded, isHovered, isMobileOpen, setIsHovered } = useSidebar();
   const isOpen = isExpanded || isHovered || isMobileOpen;
+  const normalizedRoles = [user?.role, ...(user?.roles || [])].map(normalizeRoleCode);
   const isAdmin = Boolean(
-    user?.role?.toLowerCase().replace(/^role_/, "") === "admin"
-      || user?.role?.toLowerCase().replace(/^role_/, "") === "super_admin"
-      || user?.roles?.some((role) => ["admin", "super_admin"].includes(role.toLowerCase().replace(/^role_/, ""))),
+    user?.username?.toLowerCase() === "admin"
+      || user?.email?.toLowerCase() === "admin@donga.edu.vn"
+      || normalizedRoles.some((role) => ["admin", "super_admin"].includes(role)),
   );
   const [allowedPaths, setAllowedPaths] = useState<Set<string> | null>(null);
   const [dynamicMenus, setDynamicMenus] = useState<RbacMenuItem[]>([]);

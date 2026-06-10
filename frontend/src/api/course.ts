@@ -47,6 +47,11 @@ export const courseClassApi = {
     });
   },
   getStudents: async (id: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/classes/${id}/students`)),
+  addStudent: async (id: string, data: { studentId: string; registrationPeriodId?: string; registrationType?: number; status?: number; isPaid?: boolean }) => {
+    const response = unwrapApiResponse<any>(await request.post(`/api/v1/courses/classes/${id}/students`, data));
+    clearCache(COURSE_CLASS_CACHE_PREFIX);
+    return response;
+  },
   transferStudent: async (registrationId: string, targetCourseClassId: string) => {
     const response = await request.put(`/api/v1/courses/classes/registrations/${registrationId}/transfer`, {
       targetCourseClassId,

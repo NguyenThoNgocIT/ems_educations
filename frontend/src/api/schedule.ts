@@ -4,6 +4,8 @@ import type { AxiosRequestConfig } from 'axios';
 export const scheduleApi = {
   getAll: () => apiClient.get('/api/v1/schedules'),
   getByCourseClass: (id: string) => apiClient.get(`/api/v1/schedules/course-class/${id}`),
+  getFixedSessions: (params: { courseClassId: string; fromDate?: string; toDate?: string }) =>
+    apiClient.get('/api/v1/schedules/fixed-sessions', { params }),
   getByInstructor: (id: string) => apiClient.get(`/api/v1/schedules/instructor/${id}`),
   getByRoom: (id: string) => apiClient.get(`/api/v1/schedules/room/${id}`),
   create: (data: any, config?: AxiosRequestConfig) => apiClient.post('/api/v1/schedules', data, config),

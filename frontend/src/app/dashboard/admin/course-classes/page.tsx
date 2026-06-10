@@ -15,14 +15,21 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, RefreshCw, Save, Users, ArrowRightLeft } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, RefreshCw, Save, Users, ArrowRightLeft, UserCheck, CalendarClock } from 'lucide-react';
 import { toast } from 'sonner';
 import { courseApi, courseClassApi } from '@/api/course';
 import { departmentApi } from '@/api/department';
 import { semesterApi } from '@/api/semester';
 import { roomApi } from '@/api/room';
+import { lecturerApi } from '@/api/lecturer';
+import { scheduleApi } from '@/api/schedule';
+import { administrativeClassApi } from '@/api/administrative-class';
+import { teachingAssignmentApi, type TeachingAssignmentResponse } from '@/api/teaching-assignment';
+import { studentApi } from '@/api/student';
 import { unwrapApiResponse } from '@/api/response';
-import type { Department } from '@/types/lookup';
+import type { AdministrativeClass, Department } from '@/types/lookup';
+import type { StudentListItem } from '@/types/student';
+import { fixMojibakeText } from '@/utils/text';
 
 interface CourseClass {
   id: string;
@@ -66,6 +73,18 @@ interface CourseClassStudent {
   registeredAt?: string;
 }
 
+interface ClassScheduleRow {
+  scheduleId?: string;
+  date?: string;
+  dayOfWeek?: number;
+  slotCode?: string;
+  roomCode?: string;
+  instructorName?: string;
+  numberOfPeriods?: number;
+  mode?: string;
+  scheduleStatus?: string;
+}
+
 const getCourseClassId = (item: any) => item.id || item.courseClassId || '';
 
 const normalizeCourseClass = (item: any): CourseClass => {
@@ -79,9 +98,10 @@ const normalizeCourseClass = (item: any): CourseClass => {
     id,
     courseClassId: item.courseClassId || id,
     classCode: item.classCode || item.code || '',
-    courseName: courseLabel,
-    semesterName: semesterLabel,
-    roomName: roomLabel,
+    courseCode: fixMojibakeText(item.courseCode),
+    courseName: fixMojibakeText(courseLabel),
+    semesterName: fixMojibakeText(semesterLabel),
+    roomName: fixMojibakeText(roomLabel),
     maxStudent: Number(item.maxStudent ?? item.maxStudents ?? 0),
     currentStudent: Number(item.currentStudent ?? item.currentEnrollment ?? 0),
     status: item.status || (item.isActive === false ? 'INACTIVE' : 'ACTIVE'),
@@ -102,6 +122,8 @@ const getCourseId = (course: any) => course.id || course.courseId || '';
 const getDepartmentId = (department: Department) => department.departmentId || department.id || '';
 const getSemesterId = (semester: any) => semester.semesterId || semester.id || '';
 const getRoomId = (room: any) => room.roomId || room.id || '';
+const getAdminClassId = (classItem: AdministrativeClass) => classItem.classId || classItem.id || '';
+const getLecturerId = (lecturer: any) => lecturer.employeeId || lecturer.id || '';
 
 export default function CourseClassesPage() {
   const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
@@ -115,11 +137,17 @@ export default function CourseClassesPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedClass, setSelectedClass] = useState<CourseClass | null>(null);
   const [classStudents, setClassStudents] = useState<CourseClassStudent[]>([]);
+  const [classSchedules, setClassSchedules] = useState<ClassScheduleRow[]>([]);
+  const [classAssignments, setClassAssignments] = useState<TeachingAssignmentResponse[]>([]);
   const [studentsLoading, setStudentsLoading] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [transferringStudent, setTransferringStudent] = useState<CourseClassStudent | null>(null);
   const [targetCourseClassId, setTargetCourseClassId] = useState('');
   const [transferLoading, setTransferLoading] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [addStudentLoading, setAddStudentLoading] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
 
   // Dialog & Form states
   const [modalOpen, setModalOpen] = useState(false);
@@ -131,6 +159,14 @@ export default function CourseClassesPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [semesters, setSemesters] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [lecturers, setLecturers] = useState<any[]>([]);
+  const [students, setStudents] = useState<StudentListItem[]>([]);
+  const [administrativeClasses, setAdministrativeClasses] = useState<AdministrativeClass[]>([]);
+  const [assignmentForm, setAssignmentForm] = useState({
+    instructorId: '',
+    classId: '',
+    note: '',
+  });
 
   const [formData, setFormData] = useState({
     classCode: '',
@@ -163,16 +199,22 @@ export default function CourseClassesPage() {
   const fetchLookups = async () => {
     setFetchingLookups(true);
     try {
-      const [courseRes, departmentRes, semesterRes, roomRes] = await Promise.all([
+      const [courseRes, departmentRes, semesterRes, roomRes, lecturerRes, adminClassRes, studentRes] = await Promise.all([
         courseApi.getAll(),
         departmentApi.getAll({ isActive: true }),
         semesterApi.getAll({ isActive: true }),
         roomApi.getAll(),
+        lecturerApi.getAll(),
+        administrativeClassApi.getAll({ isActive: true }),
+        studentApi.getAll(),
       ]);
       setCourses(normalizeList(courseRes));
       setDepartments(departmentRes || []);
       setSemesters(normalizeList(semesterRes));
       setRooms(normalizeList(roomRes));
+      setLecturers(Array.isArray(lecturerRes) ? lecturerRes : []);
+      setAdministrativeClasses(Array.isArray(adminClassRes) ? adminClassRes : []);
+      setStudents(Array.isArray(studentRes) ? studentRes : []);
     } catch (error) {
       console.error(error);
       toast.error('Không thể tải danh sách danh mục');
@@ -209,6 +251,24 @@ export default function CourseClassesPage() {
     return map;
   }, [departments]);
 
+  const lecturerMap = useMemo(() => {
+    const map = new Map<string, any>();
+    lecturers.forEach((lecturer) => {
+      const id = getLecturerId(lecturer);
+      if (id) map.set(id, lecturer);
+    });
+    return map;
+  }, [lecturers]);
+
+  const administrativeClassMap = useMemo(() => {
+    const map = new Map<string, AdministrativeClass>();
+    administrativeClasses.forEach((classItem) => {
+      const id = getAdminClassId(classItem);
+      if (id) map.set(id, classItem);
+    });
+    return map;
+  }, [administrativeClasses]);
+
   const getCourseDepartmentId = (item: CourseClass) => {
     const course = item.courseId ? courseMap.get(item.courseId) : null;
     return String(course?.departmentId || item.courseCode?.split('-')[0] || '');
@@ -217,7 +277,7 @@ export default function CourseClassesPage() {
   const getDepartmentLabel = (item: CourseClass) => {
     const departmentId = getCourseDepartmentId(item);
     const department = departmentMap.get(departmentId);
-    return [department?.code, department?.name].filter(Boolean).join(' - ') || departmentId || 'Chưa rõ khoa';
+    return fixMojibakeText([department?.code, department?.name].filter(Boolean).join(' - ') || departmentId || 'Chưa rõ khoa');
   };
 
   const filteredData = useMemo(() => {
@@ -259,6 +319,16 @@ export default function CourseClassesPage() {
     );
   }, [courseClasses, selectedClass]);
 
+  const availableStudents = useMemo(() => {
+    const selectedStudentIds = new Set(classStudents.map((student) => student.studentId).filter(Boolean));
+    const selectedCourse = selectedClass?.courseId ? courseMap.get(selectedClass.courseId) : null;
+    return students.filter((student) => {
+      if (!student.studentId || selectedStudentIds.has(student.studentId)) return false;
+      if (selectedCourse?.departmentId && student.departmentId && selectedCourse.departmentId !== student.departmentId) return false;
+      return true;
+    });
+  }, [classStudents, courseMap, selectedClass?.courseId, students]);
+
   const handleSort = (column: keyof CourseClass) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -289,15 +359,87 @@ export default function CourseClassesPage() {
   const handleSelectClass = async (item: CourseClass) => {
     setSelectedClass(item);
     setStudentsLoading(true);
+    setDetailsLoading(true);
+    setAssignmentForm({ instructorId: '', classId: '', note: '' });
+    setSelectedStudentId('');
     try {
-      const rows = await courseClassApi.getStudents(item.id);
+      const [rows, assignments, schedules] = await Promise.all([
+        courseClassApi.getStudents(item.id),
+        teachingAssignmentApi.search({ courseClassId: item.id, semesterId: item.semesterId }),
+        scheduleApi.getByCourseClass(item.id),
+      ]);
       setClassStudents(Array.isArray(rows) ? rows : []);
+      setClassAssignments(Array.isArray(assignments) ? assignments : []);
+      setClassSchedules(normalizeList(schedules));
     } catch (error) {
       console.error(error);
       toast.error('Không thể tải danh sách sinh viên của lớp học phần');
       setClassStudents([]);
+      setClassAssignments([]);
+      setClassSchedules([]);
     } finally {
       setStudentsLoading(false);
+      setDetailsLoading(false);
+    }
+  };
+
+  const refreshSelectedClassDetails = async () => {
+    if (selectedClass) {
+      await handleSelectClass(selectedClass);
+    }
+  };
+
+  const handleAssignInstructor = async () => {
+    if (!selectedClass) return;
+    if (!assignmentForm.instructorId || !assignmentForm.classId) {
+      toast.error('Vui lòng chọn giảng viên và lớp hành chính phụ trách');
+      return;
+    }
+
+    setAssignLoading(true);
+    try {
+      await teachingAssignmentApi.assign({
+        instructorId: assignmentForm.instructorId,
+        courseClassId: selectedClass.id,
+        classId: assignmentForm.classId,
+        semesterId: selectedClass.semesterId || '',
+        note: assignmentForm.note.trim() || undefined,
+        isActive: true,
+      });
+      toast.success('Đã phân công giảng viên cho lớp học phần');
+      await refreshSelectedClassDetails();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Phân công giảng dạy thất bại');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleAddStudentToCourseClass = async () => {
+    if (!selectedClass) return;
+    if (!selectedStudentId) {
+      toast.error('Vui lòng chọn sinh viên cần thêm vào lớp học phần');
+      return;
+    }
+
+    setAddStudentLoading(true);
+    try {
+      await courseClassApi.addStudent(selectedClass.id, {
+        studentId: selectedStudentId,
+        registrationType: 0,
+        status: 1,
+        isPaid: false,
+      });
+      toast.success('Đã thêm sinh viên vào lớp học phần');
+      setSelectedStudentId('');
+      await fetchCourseClasses();
+      await refreshSelectedClassDetails();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.response?.data?.message || 'Thêm sinh viên vào lớp học phần thất bại');
+    } finally {
+      setAddStudentLoading(false);
     }
   };
 
@@ -387,11 +529,8 @@ export default function CourseClassesPage() {
     if (!Number.isFinite(formData.maxStudent) || formData.maxStudent <= 0) {
       nextErrors.maxStudent = 'Sĩ số tối đa phải lớn hơn 0';
     }
-    if (formData.currentStudent < 0) {
-      nextErrors.currentStudent = 'Sĩ số hiện tại không được âm';
-    }
-    if (formData.currentStudent > formData.maxStudent) {
-      nextErrors.currentStudent = 'Sĩ số hiện tại không được vượt quá sĩ số tối đa';
+    if (editingClass && editingClass.currentStudent > formData.maxStudent) {
+      nextErrors.maxStudent = 'Sĩ số tối đa không được nhỏ hơn số sinh viên hiện có';
     }
     if (formData.startDate && formData.endDate && formData.startDate > formData.endDate) {
       nextErrors.dateRange = 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc';
@@ -412,7 +551,6 @@ export default function CourseClassesPage() {
         semesterId: formData.semesterId,
         roomId: formData.roomId || null,
         maxStudent: Number(formData.maxStudent),
-        currentStudent: Number(formData.currentStudent),
         status: formData.status,
         startDate: formData.startDate || null,
         endDate: formData.endDate || null,
@@ -454,6 +592,151 @@ export default function CourseClassesPage() {
           </Button>
         </div>
       </div>
+
+      {selectedClass && (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="flex items-center gap-2 text-xl font-bold">
+                    <UserCheck className="h-5 w-5 text-primary" />
+                    Phân công giảng dạy
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Chọn giảng viên phụ trách lớp học phần {selectedClass.classCode}.
+                  </p>
+                </div>
+                <Badge variant="secondary">{classAssignments.length} phân công</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <Label>Giảng viên</Label>
+                  <Select
+                    value={assignmentForm.instructorId}
+                    onValueChange={(value) => setAssignmentForm((prev) => ({ ...prev, instructorId: value }))}
+                    disabled={fetchingLookups || assignLoading}
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue placeholder="Chọn giảng viên" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[320px]">
+                      {lecturers.map((lecturer) => {
+                        const id = getLecturerId(lecturer);
+                        return (
+                          <SelectItem key={id} value={id}>
+                            {fixMojibakeText(lecturer.fullName || lecturer.name || 'Giảng viên')} ({lecturer.instructorCode || lecturer.employeeCode || 'chưa có mã'})
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Lớp hành chính phụ trách</Label>
+                  <Select
+                    value={assignmentForm.classId}
+                    onValueChange={(value) => setAssignmentForm((prev) => ({ ...prev, classId: value }))}
+                    disabled={fetchingLookups || assignLoading}
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue placeholder="Chọn lớp hành chính" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[320px]">
+                      {administrativeClasses.map((classItem) => {
+                        const id = getAdminClassId(classItem);
+                        return (
+                          <SelectItem key={id} value={id}>
+                            {fixMojibakeText(classItem.classCode || (classItem as any).className || (classItem as any).name || id)}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Ghi chú</Label>
+                <Input
+                  value={assignmentForm.note}
+                  onChange={(event) => setAssignmentForm((prev) => ({ ...prev, note: event.target.value }))}
+                  placeholder="VD: Phụ trách lý thuyết chính"
+                  className="mt-1.5"
+                />
+              </div>
+              <Button onClick={handleAssignInstructor} disabled={assignLoading || detailsLoading}>
+                <UserCheck className="mr-2 h-4 w-4" />
+                {assignLoading ? 'Đang phân công...' : 'Lưu phân công'}
+              </Button>
+
+              <div className="rounded-lg border">
+                {classAssignments.length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground">Chưa có giảng viên được phân công cho lớp học phần này.</div>
+                ) : (
+                  classAssignments.map((assignment) => {
+                    const lecturer = lecturerMap.get(assignment.instructorId);
+                    const adminClass = administrativeClassMap.get(assignment.classId);
+                    return (
+                      <div key={assignment.assignmentId} className="border-b p-4 last:border-b-0">
+                        <p className="font-semibold">
+                          {fixMojibakeText(lecturer?.fullName || lecturer?.name || assignment.instructorId)}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Lớp hành chính: {fixMojibakeText(adminClass?.classCode || (adminClass as any)?.className || (adminClass as any)?.name || assignment.classId)}
+                        </p>
+                        {assignment.note && <p className="mt-1 text-sm">{fixMojibakeText(assignment.note)}</p>}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="flex items-center gap-2 text-xl font-bold">
+                    <CalendarClock className="h-5 w-5 text-primary" />
+                    Lịch gốc của lớp học phần
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Lịch cố định được dùng làm nền; nghỉ, bù, tăng tiết sẽ đi qua yêu cầu điều chỉnh.
+                  </p>
+                </div>
+                <Badge variant="secondary">{classSchedules.length} buổi</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {detailsLoading ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">Đang tải lịch gốc...</div>
+              ) : classSchedules.length === 0 ? (
+                <div className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+                  Chưa có lịch gốc. Vào trang Thời khóa biểu để xếp lịch cho lớp học phần này.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {classSchedules.map((schedule) => (
+                    <div key={schedule.scheduleId} className="grid gap-2 rounded-lg border p-3 text-sm md:grid-cols-[120px_1fr_120px]">
+                      <div className="font-semibold">{schedule.date || `Thứ ${schedule.dayOfWeek || ''}`}</div>
+                      <div>
+                        <p className="font-medium">{fixMojibakeText(schedule.instructorName || 'Chưa rõ giảng viên')}</p>
+                        <p className="text-muted-foreground">
+                          {schedule.slotCode || 'Chưa rõ ca'} · {schedule.numberOfPeriods || 0} tiết · {schedule.mode || 'LT'}
+                        </p>
+                      </div>
+                      <div className="text-right font-semibold text-primary">{schedule.roomCode || 'Chưa phòng'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -640,6 +923,36 @@ export default function CourseClassesPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {selectedClass && (
+            <div className="mb-4 grid gap-3 rounded-lg border bg-muted/30 p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+              <div>
+                <Label>Thêm sinh viên vào lớp học phần</Label>
+                <Select
+                  value={selectedStudentId}
+                  onValueChange={setSelectedStudentId}
+                  disabled={addStudentLoading || availableStudents.length === 0}
+                >
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue placeholder={availableStudents.length === 0 ? 'Không còn sinh viên phù hợp' : 'Chọn sinh viên'} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[320px]">
+                    {availableStudents.map((student) => (
+                      <SelectItem key={student.studentId} value={student.studentId}>
+                        {student.studentCode || 'Chưa có mã'} - {fixMojibakeText(student.fullName || 'Sinh viên')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Hệ thống sẽ kiểm tra chương trình đào tạo, trùng môn, trùng lịch và sĩ số trước khi thêm.
+                </p>
+              </div>
+              <Button onClick={handleAddStudentToCourseClass} disabled={addStudentLoading || !selectedStudentId}>
+                <Users className="mr-2 h-4 w-4" />
+                {addStudentLoading ? 'Đang thêm...' : 'Thêm sinh viên'}
+              </Button>
+            </div>
+          )}
           {!selectedClass ? (
             <div className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">
               Chưa chọn lớp học phần.
@@ -794,11 +1107,11 @@ export default function CourseClassesPage() {
                   type="number"
                   min={0}
                   value={formData.currentStudent}
-                  onChange={(event) => setFormData({ ...formData, currentStudent: Number(event.target.value) })}
+                  onChange={() => undefined}
                   className="mt-1.5"
-                  required
+                  disabled
                 />
-                {errors.currentStudent && <p className="mt-1 text-xs text-destructive">{errors.currentStudent}</p>}
+                <p className="mt-1 text-xs text-muted-foreground">Sĩ số được tính tự động từ danh sách sinh viên trong lớp học phần.</p>
               </div>
             )}
 
@@ -813,7 +1126,7 @@ export default function CourseClassesPage() {
                     const id = getCourseId(course);
                     return (
                       <SelectItem key={id} value={id}>
-                        {course.code ? `${course.code} - ` : ''}{course.name || course.courseName || 'Chưa có tên'}
+                        {course.code ? `${course.code} - ` : ''}{fixMojibakeText(course.name || course.courseName || 'Chưa có tên')}
                       </SelectItem>
                     );
                   })}
@@ -834,7 +1147,7 @@ export default function CourseClassesPage() {
                       const id = getSemesterId(semester);
                       return (
                         <SelectItem key={id} value={id}>
-                          {semester.code ? `${semester.code} - ` : ''}{semester.name || 'Chưa có tên'}
+                          {semester.code ? `${semester.code} - ` : ''}{fixMojibakeText(semester.name || 'Chưa có tên')}
                         </SelectItem>
                       );
                     })}
@@ -855,7 +1168,7 @@ export default function CourseClassesPage() {
                       const id = getRoomId(room);
                       return (
                         <SelectItem key={id} value={id}>
-                          {room.code || room.roomCode || room.name || 'Chưa có tên'}
+                          {fixMojibakeText(room.code || room.roomCode || room.name || 'Chưa có tên')}
                         </SelectItem>
                       );
                     })}

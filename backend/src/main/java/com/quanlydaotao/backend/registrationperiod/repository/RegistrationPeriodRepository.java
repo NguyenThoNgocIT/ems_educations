@@ -37,4 +37,25 @@ public interface RegistrationPeriodRepository extends JpaRepository<Registration
             ORDER BY p.startDate DESC
             """)
     List<RegistrationPeriod> findActiveRetakePeriods(UUID semesterId, LocalDateTime now);
+
+    @Query("""
+            SELECT p
+            FROM RegistrationPeriod p
+            WHERE p.semesterId = :semesterId
+              AND p.isActive = true
+              AND (p.status IS NULL OR p.status = 1)
+              AND (p.allowRetake IS NULL OR p.allowRetake = false)
+            ORDER BY p.startDate DESC
+            """)
+    List<RegistrationPeriod> findDefaultAdminPeriods(UUID semesterId);
+
+    @Query("""
+            SELECT p
+            FROM RegistrationPeriod p
+            WHERE p.semesterId = :semesterId
+              AND p.isActive = true
+              AND (p.status IS NULL OR p.status = 1)
+            ORDER BY p.startDate DESC
+            """)
+    List<RegistrationPeriod> findActivePeriodsBySemester(UUID semesterId);
 }

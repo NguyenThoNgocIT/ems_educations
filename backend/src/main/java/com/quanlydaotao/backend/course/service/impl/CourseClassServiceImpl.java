@@ -2,6 +2,7 @@ package com.quanlydaotao.backend.course.service.impl;
 
 import com.quanlydaotao.backend.common.exception.BusinessException;
 import com.quanlydaotao.backend.common.exception.ResourceNotFoundException;
+import com.quanlydaotao.backend.course.dto.AdminAddCourseClassStudentRequest;
 import com.quanlydaotao.backend.course.dto.CourseClassDto;
 import com.quanlydaotao.backend.course.dto.CourseClassStudentResponse;
 import com.quanlydaotao.backend.course.entity.Course;
@@ -13,9 +14,15 @@ import com.quanlydaotao.backend.course.repository.CourseRegistrationRepository;
 import com.quanlydaotao.backend.course.repository.CourseRepository;
 import com.quanlydaotao.backend.course.service.CourseClassService;
 import com.quanlydaotao.backend.person.entity.Person;
+import com.quanlydaotao.backend.registrationperiod.entity.RegistrationPeriod;
+import com.quanlydaotao.backend.registrationperiod.repository.RegistrationPeriodRepository;
+import com.quanlydaotao.backend.scheduling.entity.Schedule;
+import com.quanlydaotao.backend.scheduling.repository.ScheduleRepository;
 import com.quanlydaotao.backend.semester.entity.Semester;
 import com.quanlydaotao.backend.semester.repository.SemesterRepository;
 import com.quanlydaotao.backend.student.entity.Student;
+import com.quanlydaotao.backend.student.repository.StudentRepository;
+import com.quanlydaotao.backend.trainingprogramcourse.repository.TrainingProgramCourseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +41,10 @@ public class CourseClassServiceImpl implements CourseClassService {
     private final CourseRepository courseRepository;
     private final SemesterRepository semesterRepository;
     private final CourseRegistrationRepository courseRegistrationRepository;
+    private final StudentRepository studentRepository;
+    private final RegistrationPeriodRepository registrationPeriodRepository;
+    private final TrainingProgramCourseRepository trainingProgramCourseRepository;
+    private final ScheduleRepository scheduleRepository;
     private final CourseClassMapper courseClassMapper;
 
     @Override
@@ -106,6 +117,47 @@ public class CourseClassServiceImpl implements CourseClassService {
 
     @Override
     @Transactional
+    public CourseClassStudentResponse addStudentToCourseClass(UUID courseClassId, AdminAddCourseClassStudentRequest request) {
+        CourseClass courseClass = courseClassRepository.findById(courseClassId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học phần"));
+        Student student = studentRepository.findById(request.getStudentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sinh viên"));
+
+        if (!Boolean.TRUE.equals(courseClass.getIsActive())) {
+            throw new BusinessException("Lớp học phần không còn hoạt động");
+        }
+        if (courseRegistrationRepository.existsByStudentIdAndCourseClassIdAndIsActiveTrue(student.getStudentId(), courseClassId)) {
+            throw new BusinessException("Sinh viên đã có trong lớp học phần này");
+        }
+
+        long currentCount = courseRegistrationRepository.countByCourseClassIdAndIsActiveTrue(courseClassId);
+        if (courseClass.getMaxStudent() != null && currentCount >= courseClass.getMaxStudent()) {
+            throw new BusinessException("Lớp học phần đã đủ sĩ số");
+        }
+
+        validateStudentCanJoinCourseClass(student, courseClass);
+        validateDuplicateCourseInSemester(student.getStudentId(), courseClass);
+        validateScheduleConflict(student.getStudentId(), courseClass);
+
+        RegistrationPeriod period = resolveRegistrationPeriod(request.getRegistrationPeriodId(), courseClass.getSemesterId());
+        CourseRegistration registration = CourseRegistration.builder()
+                .studentId(student.getStudentId())
+                .courseClassId(courseClassId)
+                .registrationPeriodId(period.getRegistrationPeriodId())
+                .registrationType(request.getRegistrationType() == null ? 0 : request.getRegistrationType())
+                .registeredAt(LocalDateTime.now())
+                .status(request.getStatus() == null ? 1 : request.getStatus())
+                .isPaid(Boolean.TRUE.equals(request.getIsPaid()))
+                .build();
+        registration.setIsActive(true);
+
+        CourseRegistration saved = courseRegistrationRepository.save(registration);
+        refreshCourseClassStudentCount(courseClass);
+        return toCourseClassStudentResponse(saved);
+    }
+
+    @Override
+    @Transactional
     public CourseClassStudentResponse transferStudentCourseClass(UUID courseRegistrationId, UUID targetCourseClassId) {
         if (targetCourseClassId == null) {
             throw new BusinessException("Lớp học phần chuyển đến không được để trống");
@@ -162,6 +214,10 @@ public class CourseClassServiceImpl implements CourseClassService {
         }
         validateCapacity(courseClassDto);
         validateDateRange(courseClassDto, semester);
+        int currentCount = (int) courseRegistrationRepository.countByCourseClassIdAndIsActiveTrue(id);
+        if (courseClassDto.getMaxStudent() != null && currentCount > courseClassDto.getMaxStudent()) {
+            throw new BusinessException("Sĩ số tối đa không được nhỏ hơn số sinh viên hiện có");
+        }
         courseClassRepository.findByClassCodeAndSemesterIdAndCourseId(classCode, semesterId, courseId)
                 .filter(existing -> !existing.getCourseClassId().equals(id))
                 .ifPresent(existing -> {
@@ -219,6 +275,83 @@ public class CourseClassServiceImpl implements CourseClassService {
 
     private String normalizeCode(String code) {
         return code.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private RegistrationPeriod resolveRegistrationPeriod(UUID registrationPeriodId, UUID semesterId) {
+        if (registrationPeriodId != null) {
+            RegistrationPeriod period = registrationPeriodRepository.findById(registrationPeriodId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đợt đăng ký"));
+            if (!semesterId.equals(period.getSemesterId())) {
+                throw new BusinessException("Đợt đăng ký không thuộc học kỳ của lớp học phần");
+            }
+            return period;
+        }
+
+        List<RegistrationPeriod> defaultPeriods = registrationPeriodRepository.findDefaultAdminPeriods(semesterId);
+        if (!defaultPeriods.isEmpty()) {
+            return defaultPeriods.get(0);
+        }
+        List<RegistrationPeriod> activePeriods = registrationPeriodRepository.findActivePeriodsBySemester(semesterId);
+        if (!activePeriods.isEmpty()) {
+            return activePeriods.get(0);
+        }
+        throw new BusinessException("Chưa có đợt đăng ký trong học kỳ này để ghi nhận sinh viên vào lớp học phần");
+    }
+
+    private void validateStudentCanJoinCourseClass(Student student, CourseClass courseClass) {
+        if (student.getTrainingProgramId() == null) {
+            throw new BusinessException("Sinh viên chưa được gán chương trình đào tạo");
+        }
+        if (!trainingProgramCourseRepository.existsByTrainingProgramIdAndCourseIdAndIsActiveTrue(
+                student.getTrainingProgramId(), courseClass.getCourseId())) {
+            throw new BusinessException("Học phần không thuộc chương trình đào tạo hiện tại của sinh viên");
+        }
+    }
+
+    private void validateDuplicateCourseInSemester(UUID studentId, CourseClass courseClass) {
+        List<UUID> sameCourseClassIds = courseClassRepository
+                .findBySemesterIdAndCourseId(courseClass.getSemesterId(), courseClass.getCourseId())
+                .stream()
+                .map(CourseClass::getCourseClassId)
+                .toList();
+        boolean existed = courseRegistrationRepository.findByStudentIdAndIsActiveTrue(studentId).stream()
+                .anyMatch(registration -> sameCourseClassIds.contains(registration.getCourseClassId()));
+        if (existed) {
+            throw new BusinessException("Sinh viên đã có học phần này trong học kỳ");
+        }
+    }
+
+    private void validateScheduleConflict(UUID studentId, CourseClass targetCourseClass) {
+        List<Schedule> targetSchedules = scheduleRepository.findByCourseClassCourseClassId(targetCourseClass.getCourseClassId());
+        if (targetSchedules.isEmpty()) {
+            return;
+        }
+        List<CourseRegistration> activeRegistrations = courseRegistrationRepository.findByStudentIdAndIsActiveTrue(studentId);
+        for (CourseRegistration registration : activeRegistrations) {
+            if (registration.getCourseClassId().equals(targetCourseClass.getCourseClassId())) {
+                continue;
+            }
+            List<Schedule> registeredSchedules = scheduleRepository.findByCourseClassCourseClassId(registration.getCourseClassId());
+            boolean conflicted = targetSchedules.stream()
+                    .anyMatch(target -> registeredSchedules.stream().anyMatch(registered -> sameScheduleSlot(target, registered)));
+            if (conflicted) {
+                throw new BusinessException("Lịch học bị trùng với học phần sinh viên đã có trong học kỳ");
+            }
+        }
+    }
+
+    private boolean sameScheduleSlot(Schedule first, Schedule second) {
+        if (first.getTimeSlot() == null || second.getTimeSlot() == null) {
+            return false;
+        }
+        boolean sameTimeSlot = first.getTimeSlot().getTimeSlotId().equals(second.getTimeSlot().getTimeSlotId());
+        if (!sameTimeSlot) {
+            return false;
+        }
+        if (first.getDate() != null && second.getDate() != null) {
+            return first.getDate().equals(second.getDate());
+        }
+        return first.getDayOfWeek() != null && first.getDayOfWeek().equals(second.getDayOfWeek());
     }
 
     private CourseClassStudentResponse toCourseClassStudentResponse(CourseRegistration registration) {

@@ -1,5 +1,7 @@
 package com.quanlydaotao.backend.course.controller;
 
+import com.quanlydaotao.backend.common.dto.ApiResponse;
+import com.quanlydaotao.backend.course.dto.AdminAddCourseClassStudentRequest;
 import com.quanlydaotao.backend.course.dto.CourseClassDto;
 import com.quanlydaotao.backend.course.dto.CourseClassStudentResponse;
 import com.quanlydaotao.backend.course.dto.CourseDto;
@@ -8,9 +10,11 @@ import com.quanlydaotao.backend.course.service.CourseClassService;
 import com.quanlydaotao.backend.course.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -106,6 +110,16 @@ public class CourseController {
     @Operation(summary = "Danh sách sinh viên của lớp học phần", description = "Lấy sinh viên đăng ký thật trong một lớp học phần")
     public ResponseEntity<List<CourseClassStudentResponse>> getStudentsByCourseClass(@PathVariable UUID id) {
         return ResponseEntity.ok(courseClassService.getStudentsByCourseClass(id));
+    }
+
+    @PostMapping("/classes/{id}/students")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or @rbacPermissionEvaluator.hasCurrentRequestPermission(authentication)")
+    @Operation(summary = "Admin thêm sinh viên vào lớp học phần", description = "Gán sinh viên vào lớp học phần mặc định theo chương trình đào tạo và kiểm tra sĩ số, trùng môn, trùng lịch")
+    public ResponseEntity<ApiResponse<CourseClassStudentResponse>> addStudentToCourseClass(
+            @PathVariable UUID id,
+            @Valid @RequestBody AdminAddCourseClassStudentRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Thêm sinh viên vào lớp học phần thành công",
+                courseClassService.addStudentToCourseClass(id, request)));
     }
 
     @PutMapping("/classes/registrations/{registrationId}/transfer")

@@ -61,8 +61,8 @@ public class StudentClassServiceImpl implements StudentClassService {
         UUID classId = request.getClassId() != null ? request.getClassId() : studentClass.getClassId();
         UUID semesterId = request.getSemesterId() != null ? request.getSemesterId() : studentClass.getSemesterId();
         validateReferences(studentId, classId, semesterId);
-        validateOneActiveClassPerSemester(studentId, classId, semesterId, id);
         if (!Boolean.FALSE.equals(request.getIsActive())) {
+            closeOtherActiveClassesInSemester(studentId, classId, semesterId, id);
             validateClassCapacity(classId, semesterId, id);
         }
 
@@ -89,13 +89,13 @@ public class StudentClassServiceImpl implements StudentClassService {
     @Transactional
     public StudentClassResponse assignStudentToClass(UUID studentId, UUID classId, UUID semesterId, String roleInClass, String status, String note) {
         validateReferences(studentId, classId, semesterId);
-        validateOneActiveClassPerSemester(studentId, classId, semesterId, null);
 
         List<StudentClass> studentClasses = studentClassRepository.findByStudentIdAndClassIdAndSemesterId(studentId, classId, semesterId);
         StudentClass studentClass = studentClasses.isEmpty() ? new StudentClass() : studentClasses.get(0);
         if (studentClasses.size() > 1) {
             cleanupDuplicateStudentClasses(studentClasses, studentClass);
         }
+        closeOtherActiveClassesInSemester(studentId, classId, semesterId, studentClass.getStudentClassId());
         validateClassCapacity(classId, semesterId, studentClass.getStudentClassId());
         studentClass.setStudentId(studentId);
         studentClass.setClassId(classId);
@@ -145,6 +145,28 @@ public class StudentClassServiceImpl implements StudentClassService {
                 && !administrativeClass.getSpecializationId().equals(student.getSpecializationId())) {
             throw new BusinessException("Lớp hành chính không thuộc chuyên ngành của sinh viên");
         }
+    }
+
+    private void closeOtherActiveClassesInSemester(UUID studentId, UUID classId, UUID semesterId, UUID currentStudentClassId) {
+        List<StudentClass> oldClasses = studentClassRepository.findByStudentIdAndSemesterIdAndIsActiveTrue(studentId, semesterId)
+                .stream()
+                .filter(existing -> currentStudentClassId == null || !existing.getStudentClassId().equals(currentStudentClassId))
+                .filter(existing -> !existing.getClassId().equals(classId))
+                .toList();
+        if (oldClasses.isEmpty()) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        oldClasses.forEach(existing -> {
+            existing.setIsActive(false);
+            existing.setDeletedAt(now);
+            existing.setStatus("TRANSFERRED_OUT");
+            if (!StringUtils.hasText(existing.getNote())) {
+                existing.setNote("Da chuyen sang lop hanh chinh khac trong cung hoc ky");
+            }
+        });
+        studentClassRepository.saveAll(oldClasses);
     }
 
     private void validateOneActiveClassPerSemester(UUID studentId, UUID classId, UUID semesterId, UUID currentStudentClassId) {

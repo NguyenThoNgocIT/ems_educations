@@ -98,7 +98,7 @@ const mapSaveErrorToFields = (message: string): FormErrors => {
   if (normalized.includes('chương trình đào tạo')) fieldErrors.trainingProgramId = message;
   if (normalized.includes('ngành')) fieldErrors.majorId = message;
   if (normalized.includes('khóa tuyển sinh') || normalized.includes('khóa học')) fieldErrors.academicCohortId = message;
-  if (normalized.includes('học kỳ')) fieldErrors.semesterId = message;
+  if (normalized.includes('học kỳ')) fieldErrors.classId = message;
   if (normalized.includes('email edu') || normalized.includes('email liên hệ') || normalized.includes('email')) fieldErrors.contactEmail = message;
   if (normalized.includes('số điện thoại') || normalized.includes('điện thoại')) fieldErrors.phoneNumber = message;
   if (normalized.includes('địa chỉ')) fieldErrors.permanentAddress = message;
@@ -150,17 +150,52 @@ export default function StudentDialog({
   const getMajorId = (major: Major) => major.majorId || major.id || '';
   const getCohortId = (cohort: AcademicCohort) => cohort.academicCohortId || cohort.cohortId || cohort.id || '';
   const getSemesterId = (semester: Semester) => semester.semesterId || '';
-  const getSemesterName = (semester: Semester) => semester.name || 'Học kỳ';
   const getClassId = (classItem: AdministrativeClass) => classItem.classId || classItem.id || '';
+  const getCohortStartYear = (cohort?: AcademicCohort) => {
+    if (cohort?.startYear) return cohort.startYear;
+    const yearFromName = `${cohort?.code || ''} ${cohort?.name || ''}`.match(/20\d{2}/);
+    if (yearFromName) return Number(yearFromName[0]);
+    const shortYear = `${cohort?.code || ''} ${cohort?.name || ''}`.match(/K(\d{2})/i);
+    return shortYear ? 2000 + Number(shortYear[1]) : undefined;
+  };
+  const getSemesterStartYear = (semester: Semester) => {
+    if (semester.startDate) return new Date(semester.startDate).getFullYear();
+    const yearFromName = `${semester.code || ''} ${semester.name || ''}`.match(/20\d{2}/);
+    return yearFromName ? Number(yearFromName[0]) : undefined;
+  };
+  const getSemesterSortValue = (semester: Semester) =>
+    semester.startDate ? new Date(semester.startDate).getTime() : Number.MAX_SAFE_INTEGER;
+  const getSemestersForCohort = (cohortId?: string) => {
+    if (!cohortId) return semesters;
+    const cohort = cohorts.find((item) => getCohortId(item) === cohortId);
+    const startYear = getCohortStartYear(cohort);
+    const endYear = cohort?.endYear;
+    if (!startYear) return semesters;
+    return semesters
+      .filter((semester) => {
+        const semesterYear = getSemesterStartYear(semester);
+        if (!semesterYear) return true;
+        return semesterYear >= startYear && (!endYear || semesterYear <= endYear);
+      })
+      .sort((left, right) => getSemesterSortValue(left) - getSemesterSortValue(right));
+  };
+  const resolveDefaultSemesterId = (cohortId?: string) => {
+    const semester = getSemestersForCohort(cohortId)[0];
+    return semester ? getSemesterId(semester) : '';
+  };
   const controlClass = (field: keyof FormErrors, baseClass: string) =>
     cn(baseClass, errors[field] && 'border-destructive focus-visible:ring-destructive/20 focus-visible:ring-2');
 
   // ── Cascading filter helpers ───────────────────────────────────────────────
-  // Programs filtered by selected department
+  // Programs filtered by selected department, major and cohort
   const filteredPrograms = useMemo(() => {
-    if (!formData.departmentId) return programs;
-    return programs.filter((p) => !p.departmentId || p.departmentId === formData.departmentId);
-  }, [programs, formData.departmentId]);
+    return programs.filter((p) => {
+      const matchDepartment = !formData.departmentId || !p.departmentId || p.departmentId === formData.departmentId;
+      const matchMajor = !formData.majorId || !p.majorId || p.majorId === formData.majorId;
+      const matchCohort = !formData.academicCohortId || !p.academicCohortId || p.academicCohortId === formData.academicCohortId;
+      return matchDepartment && matchMajor && matchCohort;
+    });
+  }, [programs, formData.departmentId, formData.majorId, formData.academicCohortId]);
 
   // Majors filtered by selected department
   const filteredMajors = useMemo(() => {
@@ -187,8 +222,11 @@ export default function StudentDialog({
     if (formData.academicCohortId) {
       result = result.filter((c) => !c.academicCohortId || c.academicCohortId === formData.academicCohortId);
     }
+    if (formData.majorId) {
+      result = result.filter((c) => !c.majorId || c.majorId === formData.majorId);
+    }
     return result;
-  }, [classes, formData.departmentId, formData.academicCohortId]);
+  }, [classes, formData.departmentId, formData.academicCohortId, formData.majorId]);
 
   // Program data for the currently selected training program
   const selectedProgramData = useMemo(
@@ -228,11 +266,58 @@ export default function StudentDialog({
     setErrors((current) => ({ ...current, departmentId: undefined, trainingProgramId: undefined, majorId: undefined, academicCohortId: undefined }));
   };
 
+  const handleMajorChange = (majorId: string) => {
+    setFormData((current) => ({
+      ...current,
+      majorId,
+      trainingProgramId: '',
+      classId: '',
+      semesterId: '',
+    }));
+    setErrors((current) => ({
+      ...current,
+      majorId: undefined,
+      trainingProgramId: undefined,
+      classId: undefined,
+      semesterId: undefined,
+    }));
+  };
+
+  const handleCohortChange = (cohortId: string) => {
+    setFormData((current) => {
+      const selectedProgram = programs.find((item) => getProgramId(item) === current.trainingProgramId);
+      const keepProgram = !selectedProgram?.academicCohortId || selectedProgram.academicCohortId === cohortId;
+      return {
+        ...current,
+        academicCohortId: cohortId,
+        trainingProgramId: keepProgram ? current.trainingProgramId : '',
+        classId: '',
+        semesterId: resolveDefaultSemesterId(cohortId),
+      };
+    });
+    setErrors((current) => ({
+      ...current,
+      academicCohortId: undefined,
+      trainingProgramId: undefined,
+      classId: undefined,
+      semesterId: undefined,
+    }));
+  };
+
+  const handleClassChange = (classId: string) => {
+    setFormData((current) => ({
+      ...current,
+      classId,
+      semesterId: classId ? current.semesterId || resolveDefaultSemesterId(current.academicCohortId) : '',
+    }));
+    setErrors((current) => ({ ...current, classId: undefined, semesterId: undefined }));
+  };
+
   // When program changes: auto-fill AND lock major + cohort from program data
   // If cohort changes, also reset class (class must belong to cohort)
   const handleProgramChange = (programId: string | null) => {
     if (!programId) {
-      setFormData((current) => ({ ...current, trainingProgramId: '', majorId: '', academicCohortId: '' }));
+      setFormData((current) => ({ ...current, trainingProgramId: '', majorId: '', academicCohortId: '', classId: '', semesterId: '' }));
       return;
     }
     const program = programs.find((item) => getProgramId(item) === programId);
@@ -246,7 +331,7 @@ export default function StudentDialog({
         academicCohortId: newCohortId,
         // Reset class if cohort changes (old class belongs to old cohort)
         classId: cohortChanged ? '' : current.classId,
-        semesterId: cohortChanged ? '' : current.semesterId,
+        semesterId: cohortChanged ? resolveDefaultSemesterId(newCohortId) : current.semesterId,
       };
     });
     setErrors((current) => ({
@@ -335,6 +420,14 @@ export default function StudentDialog({
     }
   }, [open, studentId, onOpenChange]);
 
+  useEffect(() => {
+    if (!open || !formData.classId || formData.semesterId || semesters.length === 0) return;
+    const semesterId = resolveDefaultSemesterId(formData.academicCohortId);
+    if (semesterId) {
+      setFormData((current) => ({ ...current, semesterId }));
+    }
+  }, [open, formData.classId, formData.semesterId, formData.academicCohortId, semesters.length, cohorts.length]);
+
   const validate = (): boolean => {
     const nextErrors: FormErrors = {};
 
@@ -344,7 +437,9 @@ export default function StudentDialog({
     if (!formData.trainingProgramId) nextErrors.trainingProgramId = 'Vui lòng chọn chương trình đào tạo';
     if (!formData.majorId) nextErrors.majorId = 'Vui lòng chọn ngành';
     if (!formData.academicCohortId) nextErrors.academicCohortId = 'Vui lòng chọn khóa tuyển sinh';
-    // semester removed from form
+    if (formData.classId && !(formData.semesterId || resolveDefaultSemesterId(formData.academicCohortId))) {
+      nextErrors.classId = 'Không tìm thấy học kỳ phù hợp với khóa tuyển sinh để ghi nhận phân lớp';
+    }
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -358,8 +453,10 @@ export default function StudentDialog({
     setApiError(null);
     const toastId = toast.loading(studentId ? 'Đang cập nhật sinh viên...' : 'Đang thêm sinh viên...');
     // build payload up-front
-    const classIdVal = undefined;
     const isUpdate = Boolean(studentId);
+    const effectiveSemesterId = formData.classId
+      ? formData.semesterId || resolveDefaultSemesterId(formData.academicCohortId)
+      : undefined;
 
     const buildUpdatePayload = () => {
       const payload: any = {
@@ -381,14 +478,16 @@ export default function StudentDialog({
         const majorChanged = formData.majorId !== originalValues.majorId;
         const cohortChanged = formData.academicCohortId !== originalValues.academicCohortId;
         const classChanged = formData.classId !== originalValues.classId;
+        const semesterChanged = formData.semesterId !== originalValues.semesterId;
         if (deptChanged || progChanged || majorChanged || cohortChanged) {
           payload.departmentId = formData.departmentId || undefined;
           payload.trainingProgramId = formData.trainingProgramId || undefined;
           payload.majorId = formData.majorId || undefined;
           payload.academicCohortId = formData.academicCohortId || undefined;
         }
-        if (classChanged) {
+        if (classChanged || semesterChanged) {
           payload.classId = formData.classId || undefined;
+          if (formData.classId) payload.semesterId = effectiveSemesterId;
         }
       } else {
         payload.departmentId = formData.departmentId || undefined;
@@ -396,6 +495,7 @@ export default function StudentDialog({
         payload.majorId = formData.majorId || undefined;
         payload.academicCohortId = formData.academicCohortId || undefined;
         payload.classId = formData.classId || undefined;
+        if (formData.classId) payload.semesterId = effectiveSemesterId;
       }
 
       // Only include academic references (cohort/program/major) when changed
@@ -414,6 +514,7 @@ export default function StudentDialog({
       majorId: formData.majorId,
       academicCohortId: formData.academicCohortId,
       classId: formData.classId || undefined,
+      semesterId: formData.classId ? effectiveSemesterId : undefined,
       admissionDate: formData.admissionDate || undefined,
       note: formData.note || undefined,
     });
@@ -637,7 +738,7 @@ export default function StudentDialog({
                   </Label>
                   <Select
                     value={formData.majorId}
-                    onValueChange={(value) => setField('majorId', value || '')}
+                    onValueChange={(value) => handleMajorChange(value || '')}
                     disabled={isMajorLockedByProgram}
                   >
                     <SelectTrigger className={controlClass('majorId', 'mt-1.5 h-10 w-full')}>
@@ -667,7 +768,7 @@ export default function StudentDialog({
                   </Label>
                   <Select
                     value={formData.academicCohortId}
-                    onValueChange={(value) => setField('academicCohortId', value || '')}
+                    onValueChange={(value) => handleCohortChange(value || '')}
                   >
                       <SelectTrigger className={cn(
                       'mt-1.5 h-10 w-full',
@@ -701,7 +802,7 @@ export default function StudentDialog({
                   <Label>Lớp hành chính</Label>
                   <Select
                     value={formData.classId}
-                    onValueChange={(value) => setField('classId', value || '')}
+                    onValueChange={(value) => handleClassChange(value || '')}
                     disabled={!formData.departmentId || !formData.academicCohortId}
                   >
                     <SelectTrigger className="mt-1.5 h-10 w-full">
@@ -722,8 +823,6 @@ export default function StudentDialog({
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Semester removed: only admissionDate and cohort are kept */}
 
                 <div>
                   <Label htmlFor="admissionDate">Ngày nhập học</Label>

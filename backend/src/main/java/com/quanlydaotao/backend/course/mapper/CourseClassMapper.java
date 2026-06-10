@@ -24,6 +24,7 @@ public interface CourseClassMapper {
     List<CourseClassDto> toDtoList(List<CourseClass> entities);
 
     @Mapping(target = "courseClassId", ignore = true)
+    @Mapping(target = "currentStudent", ignore = true)
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntityFromDto(CourseClassDto dto, @MappingTarget CourseClass entity);
 }

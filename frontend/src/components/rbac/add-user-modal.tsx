@@ -1,19 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  UserPlus, 
-  UserCircle, 
-  ShieldCheck, 
-  RefreshCw, 
-  Key, 
-  Search, 
-  Check,
-  Upload
-} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Check, RefreshCw, Search, ShieldCheck, UserPlus, X } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { DatePicker } from '@/components/ui/date-picker';
-import type { Role } from '@/types/rbac';
 import { request } from '@/utils/request';
+import type { Role } from '@/types/rbac';
+import { fixMojibakeText } from '@/utils/text';
 import { parseUserList } from './shared';
 
 interface AddUserModalProps {
@@ -25,588 +16,463 @@ interface AddUserModalProps {
 
 type AccountType = 'STUDENT' | 'LECTURER' | 'STAFF';
 
-const removeVietnameseTones = (str: string) => {
-  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, 'a');
-  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, 'e');
-  str = str.replace(/ì|í|ị|ỉ|ĩ/g, 'i');
-  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, 'o');
-  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, 'u');
-  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, 'y');
-  str = str.replace(/đ/g, 'd');
-  str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, 'A');
-  str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, 'E');
-  str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, 'I');
-  str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, 'O');
-  str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, 'U');
-  str = str.replace(/Ỳ|Ý|ỵ|Ỷ|Ỹ/g, 'Y');
-  str = str.replace(/Đ/g, 'D');
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, '');
-  str = str.replace(/\u02C6|\u0306|\u031B/g, '');
-  str = str.replace(/ + /g, ' ');
-  str = str.trim();
-  str = str.replace(/!|@|%|\^|\*|\(|\)|\+|\=|\<|\>|\?|\/|,|\.|\:|\;|\'|\"|\&|\#|\[|\]|~|\$|_|`|-|{|}|\||\\/g, ' ');
-  return str;
-};
+const roleIdOf = (role: Role) => role.id || role.roleId || '';
+
+function removeVietnameseTones(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getOptionId(item: any, keys: string[]) {
+  for (const key of keys) {
+    if (item?.[key]) return item[key];
+  }
+  return item?.id || '';
+}
+
+function getOptionName(item: any) {
+  return fixMojibakeText(item?.name || item?.fullName || item?.code || 'Chưa có tên');
+}
 
 export function AddUserModal({ isOpen, onClose, allRoles, onSave }: AddUserModalProps) {
   const [fullName, setFullName] = useState('');
+  const [fullNameNoAccent, setFullNameNoAccent] = useState('');
   const [dob, setDob] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [gender, setGender] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
   const [accountType, setAccountType] = useState<AccountType>('STUDENT');
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [roleSearch, setRoleSearch] = useState('');
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const [loadingLookups, setLoadingLookups] = useState(false);
 
-  // Metadata states
   const [divisions, setDivisions] = useState<any[]>([]);
+  const [positions, setPositions] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [majors, setMajors] = useState<any[]>([]);
   const [cohorts, setCohorts] = useState<any[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
 
-  // Selected IDs states
   const [selectedDivisionId, setSelectedDivisionId] = useState('');
+  const [selectedPositionId, setSelectedPositionId] = useState('');
   const [selectedDepartmentId, setSelectedDepartmentId] = useState('');
   const [selectedMajorId, setSelectedMajorId] = useState('');
   const [selectedCohortId, setSelectedCohortId] = useState('');
   const [selectedProgramId, setSelectedProgramId] = useState('');
 
-  // Fetch metadata when modal is open
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const [divsRes, deptsRes, majorsRes, cohortsRes, programsRes] = await Promise.all([
-          request.get('/api/v1/divisions/admin'),
-          request.get('/api/v1/departments/admin'),
-          request.get('/api/v1/majors/admin'),
-          request.get('/api/v1/academic-cohorts/admin'),
-          request.get('/api/v1/training-programs/admin')
-        ]);
-        setDivisions(parseUserList(divsRes));
-        setDepartments(parseUserList(deptsRes));
-        setMajors(parseUserList(majorsRes));
-        setCohorts(parseUserList(cohortsRes));
-        setPrograms(parseUserList(programsRes));
-      } catch (err) {
-        console.error('Lỗi khi tải dữ liệu nền để tạo người dùng:', err);
-      }
-    };
-    if (isOpen) {
-      fetchMetadata();
-    }
-  }, [isOpen]);
-
-  // Set default selections
-  useEffect(() => {
-    if (divisions.length > 0 && !selectedDivisionId) setSelectedDivisionId(divisions[0].divisionId || divisions[0].id);
-  }, [divisions, selectedDivisionId]);
-
-  useEffect(() => {
-    if (departments.length > 0 && !selectedDepartmentId) setSelectedDepartmentId(departments[0].departmentId || departments[0].id);
-  }, [departments, selectedDepartmentId]);
-
-  useEffect(() => {
-    if (majors.length > 0 && !selectedMajorId) setSelectedMajorId(majors[0].majorId || majors[0].id);
-  }, [majors, selectedMajorId]);
-
-  useEffect(() => {
-    if (cohorts.length > 0 && !selectedCohortId) setSelectedCohortId(cohorts[0].cohortId || cohorts[0].id);
-  }, [cohorts, selectedCohortId]);
-
-  useEffect(() => {
-    if (programs.length > 0 && !selectedProgramId) setSelectedProgramId(programs[0].trainingProgramId || programs[0].id);
-  }, [programs, selectedProgramId]);
+  const isStudent = accountType === 'STUDENT';
+  const isLecturer = accountType === 'LECTURER';
+  const isStaff = accountType === 'STAFF';
 
   useEffect(() => {
     if (!isOpen) return;
-    const baseRole = allRoles.find(r => r.code === accountType);
-    const baseRoleId = baseRole?.id || baseRole?.roleId;
+    const fetchLookups = async () => {
+      setLoadingLookups(true);
+      try {
+        const [divisionRes, positionRes, departmentRes, majorRes, cohortRes, programRes] = await Promise.all([
+          request.get('/api/v1/divisions/admin'),
+          request.get('/api/v1/positions/admin'),
+          request.get('/api/v1/departments/admin'),
+          request.get('/api/v1/majors/admin'),
+          request.get('/api/v1/academic-cohorts/admin'),
+          request.get('/api/v1/training-programs/admin'),
+        ]);
+        setDivisions(parseUserList(divisionRes));
+        setPositions(parseUserList(positionRes));
+        setDepartments(parseUserList(departmentRes));
+        setMajors(parseUserList(majorRes));
+        setCohorts(parseUserList(cohortRes));
+        setPrograms(parseUserList(programRes));
+      } finally {
+        setLoadingLookups(false);
+      }
+    };
+    fetchLookups();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const baseRole = allRoles.find(role => role.code === accountType);
+    const baseRoleId = baseRole ? roleIdOf(baseRole) : '';
     setSelectedRoles(prev => {
-      const objectRoleCodes = new Set(['STUDENT', 'LECTURER', 'STAFF']);
-      const next = new Set(
-        Array.from(prev).filter(roleId => {
-          const role = allRoles.find(r => (r.id || r.roleId) === roleId);
-          return !role || !objectRoleCodes.has(role.code) || role.code === accountType;
-        }),
-      );
+      const objectRoles = new Set(['STUDENT', 'LECTURER', 'STAFF']);
+      const next = new Set(Array.from(prev).filter(roleId => {
+        const role = allRoles.find(item => roleIdOf(item) === roleId);
+        return !role || !objectRoles.has(role.code) || role.code === accountType;
+      }));
       if (baseRoleId) next.add(baseRoleId);
       return next;
     });
   }, [accountType, allRoles, isOpen]);
 
-  const isStudent = accountType === 'STUDENT';
-  const isLecturer = accountType === 'LECTURER';
-  const isStaff = accountType === 'STAFF';
-  const filteredMajors = selectedDepartmentId
-    ? majors.filter(m => String(m.departmentId || m.department?.departmentId || m.department?.id || '') === String(selectedDepartmentId))
-    : majors;
-  const filteredPrograms = programs.filter(p => {
-    const programMajorId = String(p.majorId || p.major?.majorId || p.major?.id || '');
-    const programCohortId = String(p.academicCohortId || p.cohortId || p.academicCohort?.cohortId || p.academicCohort?.id || '');
-    return (!selectedMajorId || !programMajorId || programMajorId === String(selectedMajorId))
-      && (!selectedCohortId || !programCohortId || programCohortId === String(selectedCohortId));
-  });
+  useEffect(() => {
+    if (fullName.trim()) {
+      setFullNameNoAccent(removeVietnameseTones(fullName));
+    } else {
+      setFullNameNoAccent('');
+    }
+  }, [fullName]);
 
   useEffect(() => {
-    if (!isStudent || !selectedMajorId) return;
-    const stillValid = filteredMajors.some(m => String(m.majorId || m.id) === String(selectedMajorId));
-    if (!stillValid) {
+    if (!selectedDepartmentId) {
+      setSelectedMajorId('');
+      setSelectedProgramId('');
+      return;
+    }
+    const validMajor = majors.some(major =>
+      String(getOptionId(major, ['majorId'])) === String(selectedMajorId) &&
+      String(major.departmentId || major.department?.departmentId || '') === String(selectedDepartmentId),
+    );
+    if (!validMajor) {
       setSelectedMajorId('');
       setSelectedProgramId('');
     }
-  }, [isStudent, selectedDepartmentId, selectedMajorId, majors]);
+  }, [selectedDepartmentId, selectedMajorId, majors]);
 
-  const isFormValid = (() => {
-    if (!fullName || !dob) return false;
-    if (isStudent) {
-      return !!selectedDepartmentId && !!selectedCohortId;
-    }
-    if (isLecturer) {
-      return !!selectedDepartmentId;
-    }
-    if (isStaff) {
-      return !!selectedDivisionId;
-    }
-    return true;
-  })();
+  const filteredMajors = useMemo(() => {
+    return selectedDepartmentId
+      ? majors.filter(major => String(major.departmentId || major.department?.departmentId || '') === String(selectedDepartmentId))
+      : majors;
+  }, [majors, selectedDepartmentId]);
 
-  // Auto-generate Email from Full Name
-  useEffect(() => {
-    if (!fullName.trim()) {
-      setEmail('');
-      return;
-    }
-    const cleanName = removeVietnameseTones(fullName.trim())
-      .toLowerCase()
-      .replace(/\s+/g, '.');
-    setEmail(`${cleanName}@donga.edu.vn`);
-  }, [fullName]);
+  const filteredPrograms = useMemo(() => {
+    return programs.filter(program => {
+      const departmentId = String(program.departmentId || program.department?.departmentId || '');
+      const majorId = String(program.majorId || program.major?.majorId || '');
+      const cohortId = String(program.academicCohortId || program.cohortId || program.academicCohort?.academicCohortId || '');
+      return (!selectedDepartmentId || !departmentId || departmentId === String(selectedDepartmentId))
+        && (!selectedMajorId || !majorId || majorId === String(selectedMajorId))
+        && (!selectedCohortId || !cohortId || cohortId === String(selectedCohortId));
+    });
+  }, [programs, selectedDepartmentId, selectedMajorId, selectedCohortId]);
 
-  // Auto-generate Password from DoB (DDMMYYYY)
-  useEffect(() => {
-    if (!dob) {
-      setPassword('');
-      return;
-    }
-    const [year, month, day] = dob.split('-');
-    setPassword(`${day}${month}${year}`);
-  }, [dob]);
+  const filteredRoles = useMemo(() => {
+    const keyword = roleSearch.trim().toLowerCase();
+    if (!keyword) return allRoles;
+    return allRoles.filter(role =>
+      role.code.toLowerCase().includes(keyword) ||
+      role.name.toLowerCase().includes(keyword) ||
+      role.description?.toLowerCase().includes(keyword),
+    );
+  }, [allRoles, roleSearch]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+  const isFormValid = Boolean(fullName.trim() && dob)
+    && (!isStudent || Boolean(selectedDepartmentId && selectedCohortId))
+    && (!isLecturer || Boolean(selectedDepartmentId))
+    && (!isStaff || Boolean(selectedDivisionId));
+
+  const toggleRole = (role: Role) => {
+    const id = roleIdOf(role);
+    if (!id) return;
+    setSelectedRoles(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
-  const handleSave = () => {
-    const roleIds = new Set(selectedRoles);
-    const baseRole = allRoles.find(r => r.code === accountType);
-    const baseRoleId = baseRole?.id || baseRole?.roleId;
-    if (baseRoleId) roleIds.add(baseRoleId);
-
-    onSave({
-      fullName,
-      dob,
-      email,
-      password,
-      roles: Array.from(roleIds),
-      avatar,
-      accountType,
-      isStudent,
-      isLecturer,
-      isStaff,
-      divisionId: selectedDivisionId || null,
-      departmentId: selectedDepartmentId || null,
-      majorId: selectedMajorId || null,
-      academicCohortId: selectedCohortId || null,
-      trainingProgramId: selectedProgramId || null,
-    });
-    // Reset form
+  const resetForm = () => {
     setFullName('');
+    setFullNameNoAccent('');
     setDob('');
+    setGender('');
+    setPhoneNumber('');
+    setContactEmail('');
     setAccountType('STUDENT');
     setSelectedRoles(new Set());
-    setAvatar(null);
+    setRoleSearch('');
     setSelectedDivisionId('');
+    setSelectedPositionId('');
     setSelectedDepartmentId('');
     setSelectedMajorId('');
     setSelectedCohortId('');
     setSelectedProgramId('');
   };
 
+  const handleSave = () => {
+    const roleIds = new Set(selectedRoles);
+    const baseRole = allRoles.find(role => role.code === accountType);
+    const baseRoleId = baseRole ? roleIdOf(baseRole) : '';
+    if (baseRoleId) roleIds.add(baseRoleId);
+
+    onSave({
+      fullName: fullName.trim(),
+      fullNameNoAccent,
+      dob,
+      gender: gender || null,
+      phoneNumber: phoneNumber || null,
+      contactEmail: contactEmail || null,
+      accountType,
+      roles: Array.from(roleIds),
+      isStudent,
+      isLecturer,
+      isStaff,
+      divisionId: selectedDivisionId || null,
+      positionId: selectedPositionId || null,
+      departmentId: selectedDepartmentId || null,
+      majorId: selectedMajorId || null,
+      academicCohortId: selectedCohortId || null,
+      trainingProgramId: selectedProgramId || null,
+    });
+    resetForm();
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      className="max-w-4xl w-full mx-4"
-    >
-      <div className="flex flex-col bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
+    <Modal isOpen={isOpen} onClose={handleClose} className="max-w-5xl w-full mx-4">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/70 px-6 py-5 dark:border-gray-800 dark:bg-gray-800/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl">
-              <UserPlus size={24} />
+            <div className="rounded-xl bg-emerald-100 p-2 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+              <UserPlus size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">Thêm người dùng mới</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Tạo tài khoản và phân quyền hệ thống</p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Thêm tài khoản người dùng</h2>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Backend tự sinh mã số, username, email edu, mật khẩu ban đầu và gắn vai trò cơ bản.
+              </p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
-            className="p-2 rounded-xl hover:bg-gray-200/50 dark:hover:bg-gray-700/50 text-gray-400 transition"
-            aria-label="Đóng"
-          >
+          <button onClick={handleClose} className="rounded-xl p-2 text-gray-400 transition hover:bg-gray-200/60 dark:hover:bg-gray-700" aria-label="Đóng">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[75vh]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left Column: Personal Info */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
-                <UserCircle size={18} className="text-emerald-500" />
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Thông tin cá nhân</h3>
+        <div className="max-h-[74vh] overflow-y-auto p-6">
+          <div className="grid gap-8 lg:grid-cols-[1fr_0.95fr]">
+            <div className="space-y-5">
+              <div>
+                <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">Thông tin cá nhân</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Họ và tên <span className="text-red-500">*</span></label>
+                    <input
+                      value={fullName}
+                      onChange={event => setFullName(event.target.value)}
+                      placeholder="Ví dụ: Nguyễn Văn A"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Tên không dấu</label>
+                    <input
+                      value={fullNameNoAccent}
+                      onChange={event => setFullNameNoAccent(event.target.value)}
+                      placeholder="Tu sinh tu ho ten"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Ngày sinh <span className="text-red-500">*</span></label>
+                    <DatePicker value={dob} onChange={setDob} placeholder="Chọn ngày sinh" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Giới tính</label>
+                    <select
+                      value={gender}
+                      onChange={event => setGender(event.target.value)}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                    >
+                      <option value="">Chưa chọn</option>
+                      <option value="MALE">Nam</option>
+                      <option value="FEMALE">Nữ</option>
+                      <option value="OTHER">Khác</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Số điện thoại</label>
+                    <input
+                      value={phoneNumber}
+                      onChange={event => setPhoneNumber(event.target.value)}
+                      placeholder="090..."
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Email cá nhân</label>
+                    <input
+                      value={contactEmail}
+                      onChange={event => setContactEmail(event.target.value)}
+                      placeholder="email cá nhân nếu có"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                    />
+                  </div>
+                </div>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
-                    Họ và tên <span className="text-red-500">*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Ví dụ: Nguyễn Văn A" 
-                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm" 
-                  />
+
+              <div>
+                <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">Loại đối tượng</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'STUDENT', label: 'Sinh viên' },
+                    { value: 'LECTURER', label: 'Giảng viên' },
+                    { value: 'STAFF', label: 'Nhân viên' },
+                  ].map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setAccountType(option.value as AccountType)}
+                      className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${accountType === option.value ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' : 'border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'}`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
-                    Ngày sinh <span className="text-red-500">*</span>
-                  </label>
-                  <DatePicker
-                    value={dob}
-                    onChange={setDob}
-                    placeholder="Chọn ngày sinh"
-                  />
+              {loadingLookups ? (
+                <div className="flex items-center gap-2 rounded-xl border border-gray-200 p-4 text-sm text-gray-500 dark:border-gray-800">
+                  <RefreshCw size={15} className="animate-spin" /> Đang tải dữ liệu nền...
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Loại đối tượng <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { value: 'STUDENT', label: 'Sinh viên' },
-                      { value: 'LECTURER', label: 'Giảng viên' },
-                      { value: 'STAFF', label: 'Nhân viên' },
-                    ].map(option => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setAccountType(option.value as AccountType)}
-                        className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                          accountType === option.value
-                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
-                            : 'border-gray-200 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Dynamically show additional fields based on selected roles */}
-                {isStudent && (
-                  <div className="space-y-4 pt-2">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        Khoa <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={selectedDepartmentId}
-                        onChange={e => setSelectedDepartmentId(e.target.value)}
-                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
-                      >
-                        <option value="">-- Chọn khoa --</option>
-                        {departments.map(d => (
-                          <option key={d.departmentId || d.id} value={d.departmentId || d.id}>{d.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        Ngành học
-                      </label>
-                      <select
-                        value={selectedMajorId}
-                        onChange={e => setSelectedMajorId(e.target.value)}
-                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
-                      >
-                        <option value="">-- Chọn ngành học --</option>
-                        {filteredMajors.map(m => (
-                          <option key={m.majorId || m.id} value={m.majorId || m.id}>{m.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        Niên khóa <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={selectedCohortId}
-                        onChange={e => setSelectedCohortId(e.target.value)}
-                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
-                      >
-                        <option value="">-- Chọn niên khóa --</option>
-                        {cohorts.map(c => (
-                          <option key={c.cohortId || c.id} value={c.cohortId || c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        Chương trình đào tạo
-                      </label>
-                      <select
-                        value={selectedProgramId}
-                        onChange={e => setSelectedProgramId(e.target.value)}
-                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
-                      >
-                        <option value="">-- Chọn chương trình đào tạo --</option>
-                        {filteredPrograms.map(p => (
-                          <option key={p.trainingProgramId || p.id} value={p.trainingProgramId || p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {isLecturer && !isStudent && (
-                  <div className="space-y-4 pt-2">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {(isStudent || isLecturer) && (
+                    <div className="md:col-span-2">
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Khoa/Bộ môn <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        value={selectedDepartmentId}
-                        onChange={e => setSelectedDepartmentId(e.target.value)}
-                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
-                      >
+                      <select value={selectedDepartmentId} onChange={event => setSelectedDepartmentId(event.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white">
                         <option value="">-- Chọn khoa/bộ môn --</option>
-                        {departments.map(d => (
-                          <option key={d.departmentId || d.id} value={d.departmentId || d.id}>{d.name}</option>
-                        ))}
+                        {departments.map(item => <option key={getOptionId(item, ['departmentId'])} value={getOptionId(item, ['departmentId'])}>{getOptionName(item)}</option>)}
                       </select>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {isStaff && !isStudent && !isLecturer && (
-                  <div className="space-y-4 pt-2">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                        Phòng ban <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={selectedDivisionId}
-                        onChange={e => setSelectedDivisionId(e.target.value)}
-                        className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition shadow-sm"
-                      >
-                        <option value="">-- Chọn phòng ban --</option>
-                        {divisions.map(d => (
-                          <option key={d.divisionId || d.id} value={d.divisionId || d.id}>{d.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
+                  {isStudent && (
+                    <>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Ngành</label>
+                        <select value={selectedMajorId} onChange={event => setSelectedMajorId(event.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white">
+                          <option value="">-- Có thể để trống giai đoạn cơ sở --</option>
+                          {filteredMajors.map(item => <option key={getOptionId(item, ['majorId'])} value={getOptionId(item, ['majorId'])}>{getOptionName(item)}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Niên khóa <span className="text-red-500">*</span></label>
+                        <select value={selectedCohortId} onChange={event => setSelectedCohortId(event.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white">
+                          <option value="">-- Chọn niên khóa --</option>
+                          {cohorts.map(item => <option key={getOptionId(item, ['academicCohortId', 'cohortId'])} value={getOptionId(item, ['academicCohortId', 'cohortId'])}>{getOptionName(item)}</option>)}
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Chương trình đào tạo</label>
+                        <select value={selectedProgramId} onChange={event => setSelectedProgramId(event.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white">
+                          <option value="">-- Có thể để trống, chọn sau --</option>
+                          {filteredPrograms.map(item => <option key={getOptionId(item, ['trainingProgramId'])} value={getOptionId(item, ['trainingProgramId'])}>{getOptionName(item)}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
 
-                <div className="pt-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Xem trước ảnh đại diện</label>
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border-2 border-dashed border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-500 overflow-hidden">
-                      {avatar ? (
-                        <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : fullName ? (
-                        <span className="text-xl font-bold">{fullName[0].toUpperCase()}</span>
-                      ) : (
-                        <UserCircle size={32} strokeWidth={1.5} />
-                      )}
-                    </div>
-                    <label className="px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg hover:bg-emerald-100 transition border border-emerald-200 dark:border-emerald-800/50 cursor-pointer">
-                      <Upload size={14} className="inline mr-1" />
-                      Tải ảnh lên
-                      <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-                    </label>
-                  </div>
+                  {isStaff && (
+                    <>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Phòng ban <span className="text-red-500">*</span></label>
+                        <select value={selectedDivisionId} onChange={event => setSelectedDivisionId(event.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white">
+                          <option value="">-- Chọn phòng ban --</option>
+                          {divisions.map(item => <option key={getOptionId(item, ['divisionId'])} value={getOptionId(item, ['divisionId'])}>{getOptionName(item)}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Chức vụ</label>
+                        <select value={selectedPositionId} onChange={event => setSelectedPositionId(event.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white">
+                          <option value="">-- Chọn chức vụ nếu có --</option>
+                          {positions.map(item => <option key={getOptionId(item, ['positionId'])} value={getOptionId(item, ['positionId'])}>{getOptionName(item)}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Right Column: Account & Permissions */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
-                <ShieldCheck size={18} className="text-emerald-500" />
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tài khoản & Quyền hạn</h3>
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-sm leading-6 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-300">
+                <p className="font-semibold">Tài khoản tự động</p>
+                <p className="mt-1 text-xs">
+                  Sau khi lưu, backend sẽ sinh mã đối tượng, username/email edu theo mã đó, mật khẩu mặc định theo ngày sinh và đặt `requirePasswordChange = true`.
+                </p>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center justify-between">
-                    Email đăng nhập
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 rounded-full uppercase tracking-tight">Tự động</span>
-                  </label>
-                  <div className="relative">
-                    <input 
-                      type="email" 
-                      value={email}
-                      readOnly
-                      placeholder="email@donga.edu.vn" 
-                      className="w-full pl-4 pr-10 py-2.5 text-sm rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 italic cursor-not-allowed" 
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-gray-500">Vai trò gán thêm</p>
+                  <div className="relative w-44">
+                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      value={roleSearch}
+                      onChange={event => setRoleSearch(event.target.value)}
+                      placeholder="Tìm vai trò..."
+                      className="w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-8 pr-2 text-xs dark:border-gray-700 dark:bg-gray-950"
                     />
-                    <RefreshCw size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300" />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center justify-between">
-                    Mật khẩu mặc định
-                    <span className="text-[11px] text-gray-400 font-normal">DDMMYYYY</span>
-                  </label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      value={password}
-                      readOnly
-                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 font-mono tracking-wider cursor-not-allowed" 
-                    />
-                    <Key size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300" />
-                  </div>
-                  <p className="mt-1.5 text-[11px] text-gray-400 italic">Mật khẩu này sẽ được gửi qua email cho người dùng sau khi tạo</p>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between">
-                    Gán vai trò
-                    <div className="relative w-32">
-                      <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input 
-                        type="text"
-                        value={roleSearch}
-                        onChange={(e) => setRoleSearch(e.target.value)}
-                        placeholder="Tìm vai trò..."
-                        className="w-full pl-6 pr-2 py-1 text-[11px] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 focus:ring-1 focus:ring-emerald-500/30"
-                      />
-                    </div>
-                  </label>
-                  
-                  <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden shadow-inner bg-gray-50/30 dark:bg-gray-950/30">
-                    <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                      <table className="w-full text-left text-[13px]">
-                        <thead className="sticky top-0 bg-white dark:bg-gray-900 shadow-sm text-gray-400 font-medium border-b border-gray-100 dark:border-gray-800">
-                          <tr>
-                            <th className="py-2 px-3 w-8"></th>
-                            <th className="py-2 px-2">Vai trò</th>
-                            <th className="py-2 px-2 text-right pr-4 text-[11px] uppercase tracking-tighter">Quyền</th>
+                <div className="max-h-[420px] overflow-y-auto rounded-2xl border border-gray-200 dark:border-gray-800">
+                  <table className="w-full text-left text-sm">
+                    <thead className="sticky top-0 border-b border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800">
+                      <tr>
+                        <th className="w-10 px-3 py-2"></th>
+                        <th className="px-3 py-2 text-xs font-semibold uppercase text-gray-500">Vai trò</th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-gray-500">Quyền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRoles.map(role => {
+                        const id = roleIdOf(role);
+                        const checked = selectedRoles.has(id);
+                        const isBase = role.code === accountType;
+                        return (
+                          <tr key={id || role.code} onClick={() => !isBase && toggleRole(role)} className={`border-b border-gray-100 transition dark:border-gray-800 ${isBase ? 'bg-emerald-50/70 dark:bg-emerald-900/20' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40'}`}>
+                            <td className="px-3 py-2.5">
+                              <span className={`flex h-5 w-5 items-center justify-center rounded border-2 ${checked ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-gray-300'}`}>
+                                {checked && <Check size={12} />}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <p className="font-semibold text-gray-800 dark:text-gray-100">{fixMojibakeText(role.name)}</p>
+                              <p className="text-xs text-gray-400">{role.code}{isBase ? ' · Vai trò cơ bản bắt buộc' : ''}</p>
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{role.permissionCount ?? role.permissions?.length ?? 0}</span>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                          {allRoles
-                            .filter(r => 
-                              !roleSearch || 
-                              r.name.toLowerCase().includes(roleSearch.toLowerCase()) || 
-                              r.code.toLowerCase().includes(roleSearch.toLowerCase())
-                            )
-                            .map(role => {
-                              const roleId = role.id || role.roleId || '';
-                              const isChecked = selectedRoles.has(roleId);
-                              return (
-                                <tr 
-                                  key={roleId}
-                                  className={`group hover:bg-emerald-50/40 dark:hover:bg-emerald-900/5 transition-colors cursor-pointer ${isChecked ? 'bg-emerald-50/60 dark:bg-emerald-900/10' : ''}`}
-                                  onClick={() => {
-                                    const newSet = new Set(selectedRoles);
-                                    if (newSet.has(roleId)) newSet.delete(roleId);
-                                    else newSet.add(roleId);
-                                    setSelectedRoles(newSet);
-                                  }}
-                                >
-                                  <td className="py-2.5 px-3">
-                                    <input 
-                                      type="checkbox" 
-                                      checked={isChecked}
-                                      onChange={() => {}} 
-                                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5" 
-                                    />
-                                  </td>
-                                  <td className="py-2.5 px-2">
-                                    <p className="font-semibold text-gray-700 dark:text-gray-200">{role.name}</p>
-                                    <p className="text-[11px] text-gray-400 line-clamp-1 truncate max-w-[150px]">{role.description || 'Không có mô tả'}</p>
-                                  </td>
-                                  <td className="py-2.5 px-2 text-right pr-4">
-                                    <span className="inline-flex px-1.5 py-0.5 rounded-md bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-[10px] font-bold text-gray-500">
-                                      {role.permissions?.length || 0}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-900 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="w-7 h-7 rounded-full border-2 border-white dark:border-gray-900 bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-[10px] font-bold text-emerald-600">
-                  <UserCircle size={14} />
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Sẵn sàng tạo tài khoản tự động</p>
+        <div className="flex items-center justify-between border-t border-gray-100 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+          <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-300">
+            <ShieldCheck size={14} />
+            Sẵn sàng tạo tài khoản theo đúng vai trò đối tượng
           </div>
-          
           <div className="flex gap-3">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="px-5 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-            >
+            <button type="button" onClick={handleClose} className="px-5 py-2 text-sm font-semibold text-gray-500 transition hover:text-gray-700">
               Hủy
             </button>
-            <button 
+            <button
               type="button"
               onClick={handleSave}
               disabled={!isFormValid}
-              className={`flex items-center gap-2 px-6 py-2 text-sm font-bold text-white rounded-xl shadow-lg transition-all ${
-                isFormValid
-                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20 hover:-translate-y-0.5' 
-                  : 'bg-gray-300 cursor-not-allowed shadow-none'
-              }`}
+              className={`flex items-center gap-2 rounded-xl px-6 py-2 text-sm font-bold text-white shadow-lg transition ${isFormValid ? 'bg-emerald-600 shadow-emerald-500/20 hover:bg-emerald-700' : 'cursor-not-allowed bg-gray-300 shadow-none'}`}
             >
-              <span>Tạo người dùng</span>
-              <Check size={16} />
+              Tạo tài khoản <Check size={16} />
             </button>
           </div>
         </div>

@@ -6,7 +6,15 @@ import type { AdministrativeClass } from '@/types/lookup';
 const CACHE_PREFIX = 'administrative_classes';
 
 export const administrativeClassApi = {
-  getAll: async (params?: { keyword?: string; departmentId?: string; academicCohortId?: string; isActive?: boolean }): Promise<AdministrativeClass[]> => {
+  getAll: async (params?: {
+    keyword?: string;
+    departmentId?: string;
+    majorId?: string;
+    specializationId?: string;
+    academicCohortId?: string;
+    classPhase?: string;
+    isActive?: boolean;
+  }): Promise<AdministrativeClass[]> => {
     const cacheKey = `${CACHE_PREFIX}_${JSON.stringify(params || {})}`;
     return withCache(cacheKey, async () => {
       const response = await request.get('/api/v1/classes/admin', { params });

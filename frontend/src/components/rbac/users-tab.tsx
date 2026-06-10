@@ -1,101 +1,106 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  Search,
-  Users,
-  Settings2,
-  UserCircle,
-  Check,
-  RefreshCw,
-  Download,
-  AlertTriangle,
-  Key,
-  ShieldCheck,
-  X,
-  Layers,
-  UserPlus,
-} from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Check, Key, RefreshCw, Search, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { AddUserModal } from './add-user-modal';
 import { useAuth } from '@/context/AuthContext';
 import { roleApi, userRoleApi } from '@/api/rbac';
 import { request } from '@/utils/request';
-import type { Role, UserWithRoles, Permission } from '@/types/rbac';
-import { EmptyState, ActionMenu, ActionMenuItem, parseUserList, useDebounce, UserTableSkeleton, MethodBadge } from './shared';
+import { unwrapApiResponse } from '@/api/response';
+import { fixMojibakeText } from '@/utils/text';
+import type { Permission, Role, UserWithRoles } from '@/types/rbac';
+import { EmptyState, MethodBadge, UserTableSkeleton, parseUserList, useDebounce } from './shared';
 
 interface UsersTabProps {
   initialSearch?: string;
 }
 
+type UserRow = UserWithRoles & {
+  userId?: string;
+  displayCode?: string;
+  accountType?: string;
+  fullNameNoAccent?: string;
+  requirePasswordChange?: boolean;
+  emailConfirmed?: boolean;
+  isActive?: boolean;
+};
+
+const userIdOf = (user: UserRow) => user.id || user.userId || '';
+const roleIdOf = (role: Role) => role.id || role.roleId || '';
+
+function normalizeUser(raw: any, roles: Role[]): UserRow {
+  const roleObjects = Array.isArray(raw.roles)
+    ? raw.roles.map((role: any) => {
+        if (typeof role === 'string') {
+          return roles.find(item => item.code === role || item.name === role) || { code: role, name: role };
+        }
+        return role;
+      })
+    : [];
+
+  return {
+    ...raw,
+    id: raw.id || raw.userId || '',
+    userId: raw.userId || raw.id || '',
+    fullName: fixMojibakeText(raw.fullName),
+    fullNameNoAccent: fixMojibakeText(raw.fullNameNoAccent),
+    email: fixMojibakeText(raw.email),
+    username: fixMojibakeText(raw.username),
+    displayCode: fixMojibakeText(raw.displayCode),
+    accountType: fixMojibakeText(raw.accountType),
+    roles: roleObjects.map((role: Role) => ({
+      ...role,
+      name: fixMojibakeText(role.name),
+      description: fixMojibakeText(role.description),
+    })),
+  };
+}
+
+function roleLabel(code?: string) {
+  if (code === 'ADMIN') return 'Quản trị viên';
+  if (code === 'SUPER_ADMIN') return 'Quản trị cấp cao';
+  if (code === 'LECTURER') return 'Giảng viên';
+  if (code === 'STAFF') return 'Nhân viên';
+  if (code === 'STUDENT') return 'Sinh viên';
+  return code || 'Vai trò';
+}
+
 export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   const [rawUsers, setRawUsers] = useState<any[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
-  const [rolesLoading, setRolesLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rolesLoading, setRolesLoading] = useState(false);
   const [search, setSearch] = useState(initialSearch);
-  const searchDebounced = useDebounce(search, 300);
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
-
-  const users: UserWithRoles[] = useMemo(() => rawUsers.map((user: any) => {
-    const mappedRoles = Array.isArray(user.roles)
-      ? user.roles.map((role: any) => {
-          if (typeof role === 'string') {
-            const match = allRoles.find(r => r.code === role || r.name === role);
-            return match || { code: role, name: role, id: '', roleId: '' };
-          }
-          return role;
-        })
-      : [];
-
-    return {
-      ...user,
-      id: user.id || user.userId || user.userId?.toString() || '',
-      roles: mappedRoles,
-    };
-  }), [rawUsers, allRoles]);
-
-  // Modal states
-  const [modalUser, setModalUser] = useState<UserWithRoles | null>(null);
-  const [modalTab, setModalTab] = useState<'roles' | 'permissions'>('roles');
+  const [modalUser, setModalUser] = useState<UserRow | null>(null);
   const [selectedRoleIds, setSelectedRoleIds] = useState<Set<string>>(new Set());
-  const [saving, setSaving] = useState(false);
   const [roleSearch, setRoleSearch] = useState('');
-  const [permMethodFilter, setPermMethodFilter] = useState<string>('ALL');
-  
-  // Add User Modal States
+  const [saving, setSaving] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-
+  const debouncedSearch = useDebounce(search, 300);
   const { user: authUser, refreshUser } = useAuth();
-  const currentUserEmail = authUser?.email || authUser?.username || '';
+
+  const users = useMemo(
+    () => rawUsers.map(user => normalizeUser(user, allRoles)),
+    [rawUsers, allRoles],
+  );
 
   const fetchRoles = useCallback(async () => {
     setRolesLoading(true);
     try {
-      // Use the standard endpoint to get roles and then query their permissions in parallel
-      const res: any = await roleApi.getAll();
-      const rolesList = parseUserList(res);
-      
-      const rolesWithPerms = await Promise.all(
-        rolesList.map(async (role: any) => {
-          const roleId = role.id || role.roleId;
-          if (!roleId) return role;
-          try {
-            const permsRes = await roleApi.getPermissions(roleId);
-            return {
-              ...role,
-              permissions: parseUserList(permsRes),
-            };
-          } catch (e) {
-            console.error(`Lỗi khi lấy quyền của vai trò ${roleId}:`, e);
-            return { ...role, permissions: [] };
-          }
-        })
-      );
-      
-      setAllRoles(rolesWithPerms);
-    } catch (error) {
-      console.error('Lỗi khi tải danh sách vai trò:', error);
-      toast.error('Không thể tải danh sách vai trò. Vui lòng kiểm tra máy chủ.');
+      const roles = await roleApi.getAllWithPermissions();
+      setAllRoles(roles.map(role => ({
+        ...role,
+        name: fixMojibakeText(role.name),
+        description: fixMojibakeText(role.description),
+        permissions: role.permissions?.map(permission => ({
+          ...permission,
+          name: fixMojibakeText(permission.name),
+          description: fixMojibakeText(permission.description),
+          module: fixMojibakeText(permission.module),
+        })),
+      })));
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Không thể tải danh sách vai trò');
     } finally {
       setRolesLoading(false);
     }
@@ -104,22 +109,15 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const keyword = searchDebounced.startsWith('role:') 
-        ? undefined
-        : searchDebounced || undefined;
-
-      const res: any = await userRoleApi.searchUsers({
-        keyword,
-        size: 50,
-      });
-      const serverUsers = parseUserList(res);
-      setRawUsers(serverUsers);
-    } catch {
-      toast.error('Không thể tải danh sách người dùng');
+      const keyword = debouncedSearch.startsWith('role:') ? undefined : debouncedSearch || undefined;
+      const response = await userRoleApi.searchUsers({ keyword, size: 100 });
+      setRawUsers(parseUserList(response));
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Không thể tải danh sách người dùng');
     } finally {
       setLoading(false);
     }
-  }, [searchDebounced]);
+  }, [debouncedSearch]);
 
   useEffect(() => { fetchRoles(); }, [fetchRoles]);
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
@@ -127,228 +125,143 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
     if (initialSearch) setSearch(initialSearch);
   }, [initialSearch]);
 
-  useEffect(() => {
-    if (!modalUser || selectedRoleIds.size > 0) return;
+  const activeRoleFilter = debouncedSearch.startsWith('role:')
+    ? debouncedSearch.replace('role:', '').trim().toUpperCase()
+    : '';
 
-    const initialSelected = new Set<string>();
-    modalUser.roles?.forEach(role => {
-      if (typeof role === 'string') {
-        const match = allRoles.find(r => r.code === role || r.name === role);
-        if (match) initialSelected.add(match.id || match.roleId || '');
-      } else {
-        const roleId = role.id || role.roleId || role.code || role.name;
-        if (roleId) initialSelected.add(roleId);
-      }
+  const visibleUsers = useMemo(() => {
+    if (!activeRoleFilter) return users;
+    return users.filter(user => user.roles.some(role => role.code?.toUpperCase() === activeRoleFilter));
+  }, [users, activeRoleFilter]);
+
+  const selectedRoles = useMemo(() => {
+    return allRoles.filter(role => {
+      const id = roleIdOf(role);
+      return id && selectedRoleIds.has(id);
     });
+  }, [allRoles, selectedRoleIds]);
 
-    if (initialSelected.size > 0) {
-      setSelectedRoleIds(initialSelected);
-    }
-  }, [modalUser, allRoles, selectedRoleIds.size]);
+  const inheritedPermissions = useMemo(() => {
+    const map = new Map<string, Permission>();
+    selectedRoles.forEach(role => {
+      role.permissions?.forEach(permission => {
+        const id = permission.id || permission.permissionId || permission.code;
+        if (id && !map.has(id)) map.set(id, permission);
+      });
+    });
+    return Array.from(map.values());
+  }, [selectedRoles]);
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedUserIds(new Set(visibleUsers.map(u => u.id)));
-    } else {
-      setSelectedUserIds(new Set());
-    }
-  };
+  const endpointCount = inheritedPermissions.reduce((total, permission) => total + (permission.apis?.length || permission.apiCount || 0), 0);
 
-  const handleSelectUser = (id: string) => {
-    const newSet = new Set(selectedUserIds);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setSelectedUserIds(newSet);
-  };
+  const filteredRoles = useMemo(() => {
+    const keyword = roleSearch.trim().toLowerCase();
+    if (!keyword) return allRoles;
+    return allRoles.filter(role =>
+      role.code.toLowerCase().includes(keyword) ||
+      role.name.toLowerCase().includes(keyword) ||
+      role.description?.toLowerCase().includes(keyword),
+    );
+  }, [allRoles, roleSearch]);
 
-  const openAssign = (user: UserWithRoles) => {
-    // Find the full user object from the memoized users list
-    const fullUser = users.find(u => u.id === user.id);
-    setModalUser(fullUser || user); // Fallback to the provided user
-    setModalTab('roles');
+  const openAssign = (user: UserRow) => {
+    const selected = new Set<string>();
+    user.roles.forEach(role => {
+      const matched = allRoles.find(item => item.code === role.code || roleIdOf(item) === roleIdOf(role));
+      const id = matched ? roleIdOf(matched) : roleIdOf(role);
+      if (id) selected.add(id);
+    });
+    setSelectedRoleIds(selected);
     setRoleSearch('');
+    setModalUser(user);
+  };
 
-    const initialSelected = new Set<string>();
-    (fullUser || user).roles?.forEach(role => {
-      if (typeof role === 'string') {
-        const match = allRoles.find(r => r.code === role || r.name === role);
-        if (match) {
-          initialSelected.add(match.id || match.roleId || '');
-        }
-      } else {
-        const roleId = role.id || role.roleId || role.code || role.name;
-        if (roleId) initialSelected.add(roleId);
-      }
+  const closeModal = () => setModalUser(null);
+
+  const toggleRole = (role: Role) => {
+    const id = roleIdOf(role);
+    if (!id) return;
+    setSelectedRoleIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
     });
-
-    setSelectedRoleIds(initialSelected);
   };
 
-  const closeModal = () => {
-    setModalUser(null);
-  };
-
-  const handleSaveRoles = async () => {
+  const saveRoles = async () => {
     if (!modalUser) return;
-
-    if (selectedRoleIds.size === 0) {
-      const confirm = window.confirm('User sẽ mất toàn bộ quyền truy cập. Bạn có chắc chắn muốn tiếp tục?');
-      if (!confirm) return;
+    if (selectedRoleIds.size === 0 && !window.confirm('Tài khoản sẽ không còn vai trò nào. Bạn muốn tiếp tục?')) {
+      return;
     }
 
     setSaving(true);
     try {
-      const roleIdsArray = Array.from(selectedRoleIds).map(sel => {
-        const match = allRoles.find(r => r.id === sel || r.roleId === sel || r.code === sel || r.name === sel);
-        return match?.id || match?.roleId || sel;
-      }).filter(Boolean);
+      const userId = userIdOf(modalUser);
+      const roleIds = Array.from(selectedRoleIds);
+      await userRoleApi.updateUserRoles(userId, roleIds);
 
-      await userRoleApi.updateUserRoles(modalUser.id, roleIdsArray);
-      
-      // Optimistic update local users state
-      const updatedRoles = allRoles.filter(r => {
-        const rId = r.id || r.roleId;
-        return rId && selectedRoleIds.has(rId);
-      });
-      setRawUsers(prev => prev.map(u => u.id === modalUser.id ? { ...u, roles: updatedRoles } : u));
-      if (
-        modalUser.id === authUser?.id ||
-        modalUser.email === authUser?.email ||
-        modalUser.username === authUser?.username
-      ) {
+      const updatedRoleCodes = allRoles
+        .filter(role => selectedRoleIds.has(roleIdOf(role)))
+        .map(role => role.code);
+      setRawUsers(prev => prev.map(user => {
+        const id = user.id || user.userId;
+        return id === userId ? { ...user, roles: updatedRoleCodes } : user;
+      }));
+
+      if (modalUser.email === authUser?.email || modalUser.username === authUser?.username || userId === authUser?.id) {
         await refreshUser();
       }
-      
-      toast.success(`Đã cập nhật vai trò cho người dùng ${modalUser.fullName || modalUser.email}`);
+      toast.success('Đã cập nhật vai trò cho tài khoản');
       closeModal();
-    } catch {
-      toast.error('Cập nhật vai trò thất bại. Vui lòng thử lại.');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Cập nhật vai trò thất bại');
     } finally {
       setSaving(false);
     }
   };
 
-  // Derived calculations for Preview Panel
-  const { totalPermissions, totalEndpoints, previewPermissions } = useMemo(() => {
-    const permsMap = new Map<string, Permission>();
-    let endpoints = 0;
-
-    allRoles.forEach(role => {
-      const rId = role.id || role.roleId;
-      if (rId && selectedRoleIds.has(rId)) {
-        role.permissions?.forEach(p => {
-          const pId = p.id || p.permissionId;
-          if (pId && !permsMap.has(pId)) {
-            permsMap.set(pId, p);
-            endpoints += p.apis?.length || p.apiCount || 0;
-          }
-        });
-      }
-    });
-
-    const allPerms = Array.from(permsMap.values());
-    return {
-      totalPermissions: allPerms.length,
-      totalEndpoints: endpoints,
-      previewPermissions: allPerms.slice(0, 3)
-    };
-  }, [selectedRoleIds, allRoles]);
-
-  // Derived for Tab B: Permissions list of the user
-  const userInheritedPermissions = useMemo(() => {
-    const permsMap = new Map<string, Permission>();
-    if (modalUser) {
-      // Ensure we are iterating over the roles of the user currently in the modal
-      const userRoles = users.find(u => u.id === modalUser.id)?.roles || modalUser.roles || [];
-      
-      userRoles.forEach(role => {
-        // Find the full role object from the master 'allRoles' list
-        const fullRole = allRoles.find(r => 
-          r.id === (role.id || role.roleId) || r.code === role.code
-        );
-
-        if (fullRole && fullRole.permissions) {
-          fullRole.permissions.forEach(p => {
-            const pId = p.id || p.permissionId;
-            if (pId && !permsMap.has(pId)) {
-              permsMap.set(pId, p);
-            }
-          });
-        }
-      });
-    }
-    const list = Array.from(permsMap.values());
-    if (permMethodFilter === 'ALL') return list;
-    return list.filter(p => p.apis?.some(api => api.method === permMethodFilter));
-  }, [modalUser, users, allRoles, permMethodFilter]);
-
-  const filteredRoles = allRoles.filter(r => 
-    r.name.toLowerCase().includes(roleSearch.toLowerCase()) || 
-    r.code.toLowerCase().includes(roleSearch.toLowerCase())
-  );
-  const activeRoleFilter = searchDebounced.startsWith('role:')
-    ? searchDebounced.replace('role:', '').trim().toUpperCase()
-    : '';
-  const visibleUsers = useMemo(() => {
-    if (!activeRoleFilter) return users;
-    return users.filter(user => user.roles?.some(role => role.code?.toUpperCase() === activeRoleFilter));
-  }, [users, activeRoleFilter]);
-
   const handleSaveUsers = async (userData: any) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      let userId: string | null = null;
-      const fullName = userData.fullName;
+      const payload = {
+        fullName: userData.fullName,
+        fullNameNoAccent: userData.fullNameNoAccent,
+        dateOfBirth: userData.dob,
+        gender: userData.gender || undefined,
+        phoneNumber: userData.phoneNumber || undefined,
+        contactEmail: userData.contactEmail || undefined,
+        avatarUrl: userData.avatar || undefined,
+        departmentId: userData.departmentId || undefined,
+        majorId: userData.majorId || undefined,
+        trainingProgramId: userData.trainingProgramId || undefined,
+        academicCohortId: userData.academicCohortId || undefined,
+        divisionId: userData.divisionId || undefined,
+        positionId: userData.positionId || undefined,
+      };
 
-      if (userData.isStudent) {
-        const response: any = await request.post('/api/v1/students/admin', {
-          fullName: userData.fullName,
-          dateOfBirth: userData.dob,
-          departmentId: userData.departmentId,
-          majorId: userData.majorId,
-          trainingProgramId: userData.trainingProgramId,
-          academicCohortId: userData.academicCohortId,
-        });
-        const responseData = response?.data || response;
-        userId = responseData.userId || responseData.data?.userId;
-      } else if (userData.isLecturer) {
-        const response: any = await request.post('/api/v1/instructors/admin', {
-          fullName: userData.fullName,
-          dateOfBirth: userData.dob,
-          departmentId: userData.departmentId,
-        });
-        const responseData = response?.data || response;
-        userId = responseData.userId || responseData.data?.userId;
-      } else {
-        const response: any = await request.post('/api/v1/staffs/admin', {
-          fullName: userData.fullName,
-          dateOfBirth: userData.dob,
-          divisionId: userData.divisionId,
-        });
-        const responseData = response?.data || response;
-        userId = responseData.userId || responseData.data?.userId;
-      }
+      const endpoint = userData.isStudent
+        ? '/api/v1/students/admin'
+        : userData.isLecturer
+          ? '/api/v1/instructors/admin'
+          : '/api/v1/staffs/admin';
 
+      const response = await request.post(endpoint, payload);
+      const account: any = unwrapApiResponse(response);
+      const userId = account?.userId;
       if (!userId) {
-        throw new Error('Không nhận được mã người dùng từ máy chủ.');
+        throw new Error('Backend chưa trả về userId sau khi tạo tài khoản');
       }
 
-      if (userData.roles && userData.roles.length > 0) {
-        const roleIdsArray = userData.roles.map((sel: string) => {
-          const match = allRoles.find(r => r.id === sel || r.roleId === sel || r.code === sel || r.name === sel);
-          return match?.id || match?.roleId || sel;
-        }).filter(Boolean);
-
-        await userRoleApi.updateUserRoles(userId, roleIdsArray);
+      const roleIds = Array.from(new Set<string>((userData.roles || []).map(String))).filter(Boolean);
+      if (roleIds.length > 0) {
+        await userRoleApi.updateUserRoles(userId, roleIds);
       }
 
-      toast.success(`Đã tạo người dùng ${fullName} thành công!`);
+      toast.success(`Đã tạo tài khoản ${account.emailEdu || userData.fullName}`);
       setIsAddUserModalOpen(false);
-      fetchUsers();
-    } catch (err: any) {
-      console.error('Lỗi khi tạo người dùng:', err);
-      const errorMsg = err?.response?.data?.message || err?.message || 'Không thể tạo người dùng mới';
-      toast.error(errorMsg);
+      await fetchUsers();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message || 'Không thể tạo tài khoản');
     } finally {
       setLoading(false);
     }
@@ -359,18 +272,18 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 dark:border-emerald-900/40 dark:bg-emerald-900/10">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-            <UserPlus size={16} /> Tạo tài khoản
+            <UserPlus size={16} /> Tạo tài khoản theo đối tượng
           </div>
           <p className="text-xs leading-5 text-emerald-700/80 dark:text-emerald-300/80">
-            Chọn loại đối tượng Sinh viên, Giảng viên, Nhân viên; hệ thống tự sinh tên đăng nhập, email edu và mật khẩu.
+            Admin tạo sinh viên, giảng viên hoặc nhân viên. Backend tự sinh mã, email edu, tài khoản và mật khẩu ban đầu.
           </p>
         </div>
         <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-900/40 dark:bg-blue-900/10">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-800 dark:text-blue-300">
-            <ShieldCheck size={16} /> Gắn vai trò
+            <ShieldCheck size={16} /> Gán vai trò
           </div>
           <p className="text-xs leading-5 text-blue-700/80 dark:text-blue-300/80">
-            Người dùng nhận quyền thông qua các vai trò được chọn, không gắn quyền trực tiếp.
+            Người dùng không nhận quyền trực tiếp. Mỗi tài khoản được gán một hoặc nhiều vai trò.
           </p>
         </div>
         <div className="rounded-xl border border-violet-100 bg-violet-50/60 p-4 dark:border-violet-900/40 dark:bg-violet-900/10">
@@ -378,495 +291,285 @@ export function UsersTab({ initialSearch = '' }: UsersTabProps) {
             <Key size={16} /> Quyền kế thừa
           </div>
           <p className="text-xs leading-5 text-violet-700/80 dark:text-violet-300/80">
-            Tab quyền chi tiết chỉ để xem người dùng sẽ vào được API/menu nào.
+            Quyền và API được tính tự động từ các vai trò đã chọn, dùng để hiển thị menu và bảo vệ endpoint.
           </p>
         </div>
       </div>
 
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-md">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Tìm theo email, họ tên hoặc mã vai trò..."
-            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition shadow-sm"
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Tìm theo họ tên, email, mã số hoặc role:STUDENT..."
+            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-800 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
           />
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsAddUserModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition shadow-sm"
+            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
           >
-            <UserPlus size={15} />
-            <span className="hidden sm:inline">Thêm người dùng</span>
+            <UserPlus size={15} /> Thêm tài khoản
           </button>
-          <button 
-            onClick={() => fetchUsers()} 
-            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition shadow-sm"
+          <button
+            onClick={fetchUsers}
+            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin text-emerald-600' : ''} />
-            <span className="hidden sm:inline">Làm mới</span>
+            <RefreshCw size={15} className={loading ? 'animate-spin text-emerald-600' : ''} /> Làm mới
           </button>
         </div>
       </div>
 
-      {allRoles.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 text-xs dark:border-gray-800 dark:bg-gray-900">
-          <span className="font-semibold text-gray-500 dark:text-gray-400">Lọc theo vai trò:</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 text-xs dark:border-gray-800 dark:bg-gray-900">
+        <span className="font-semibold text-gray-500 dark:text-gray-400">Lọc nhanh:</span>
+        <button
+          type="button"
+          onClick={() => setSearch('')}
+          className={`rounded-lg px-2.5 py-1 font-medium transition ${!activeRoleFilter ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'}`}
+        >
+          Tất cả
+        </button>
+        {allRoles.map(role => (
           <button
+            key={roleIdOf(role) || role.code}
             type="button"
-            onClick={() => setSearch('')}
-            className={`rounded-lg px-2.5 py-1 font-medium transition ${
-              !activeRoleFilter ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'
-            }`}
+            onClick={() => setSearch(`role:${role.code}`)}
+            className={`rounded-lg px-2.5 py-1 font-medium transition ${activeRoleFilter === role.code ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'}`}
           >
-            Tất cả
+            {role.name || roleLabel(role.code)}
           </button>
-          {allRoles.map(role => (
-            <button
-              key={role.id || role.roleId || role.code}
-              type="button"
-              onClick={() => setSearch(`role:${role.code}`)}
-              className={`rounded-lg px-2.5 py-1 font-medium transition ${
-                activeRoleFilter === role.code
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300'
-              }`}
-            >
-              {role.name}
-            </button>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
-      {/* Main Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm" role="grid">
+          <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/50">
-                <th className="py-3 px-4 w-12">
-                  <input 
-                    type="checkbox" 
-                    aria-label="Chọn tất cả người dùng"
-                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 cursor-pointer w-4 h-4"
-                    checked={visibleUsers.length > 0 && selectedUserIds.size === visibleUsers.length}
-                    onChange={handleSelectAll}
-                  />
-                </th>
-                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Người dùng</th>
-                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Email</th>
-                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Số vai trò</th>
-                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Tổng quyền</th>
-                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs">Trạng thái</th>
-                <th className="py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs text-right">Thao tác</th>
+              <tr className="border-b border-gray-100 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-800/50">
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Người dùng</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Mã số</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Vai trò</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Quyền</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Trạng thái</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {loading
-                ? <UserTableSkeleton rows={6} />
-                : visibleUsers.length === 0
-                ? (
-                  <tr><td colSpan={7}>
+              {loading ? (
+                <UserTableSkeleton rows={6} />
+              ) : visibleUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
                     <EmptyState
                       icon={<Users size={32} />}
-                      title={searchDebounced ? 'Không tìm thấy người dùng' : 'Chưa có người dùng nào'}
-                      description={searchDebounced ? `Không có kết quả cho "${searchDebounced}"` : 'Hãy thay đổi bộ lọc hoặc thêm mới'}
+                      title="Chưa có tài khoản phù hợp"
+                      description="Thử đổi từ khóa tìm kiếm hoặc tạo tài khoản mới."
                     />
-                  </td></tr>
-                )
-                : visibleUsers.map(user => {
-                  const roleCount = user.roles?.length ?? 0;
-                  
-                  // Shared logic to calculate permission count
-                  const permSet = new Set<string>();
-                  user.roles.forEach(role => {
-                    const fullRole = allRoles.find(r => (r.id || r.roleId) === (role.id || role.roleId) || r.code === role.code);
-                    fullRole?.permissions?.forEach(p => permSet.add(p.id || p.permissionId || ''));
+                  </td>
+                </tr>
+              ) : visibleUsers.map(user => {
+                const permissions = new Map<string, Permission>();
+                user.roles.forEach(role => {
+                  const fullRole = allRoles.find(item => item.code === role.code || roleIdOf(item) === roleIdOf(role));
+                  fullRole?.permissions?.forEach(permission => {
+                    const id = permission.id || permission.permissionId || permission.code;
+                    if (id) permissions.set(id, permission);
                   });
-                  const permCount = permSet.size;
+                });
 
-                  return (
-                    <tr 
-                      key={user.id} 
-                      className={`border-b border-gray-100 dark:border-gray-800 transition-colors cursor-pointer group ${selectedUserIds.has(user.id) ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : 'hover:bg-gray-50/60 dark:hover:bg-gray-800/30'}`}
-                      onClick={(e) => {
-                        // Prevent row click if clicking checkbox or action menu
-                        if ((e.target as HTMLElement).closest('input[type="checkbox"], button')) return;
-                        openAssign(user);
-                      }}
-                    >
-                      <td className="py-3 px-4">
-                        <input 
-                          type="checkbox" 
-                          aria-label={`Chọn người dùng ${user.fullName || user.email}`}
-                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 cursor-pointer w-4 h-4"
-                          checked={selectedUserIds.has(user.id)}
-                          onChange={() => handleSelectUser(user.id)}
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                            {(user.fullName || user.username || user.email || 'U')[0].toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.fullName || user.username || '—'}</p>
-                            {user.username && user.fullName && <p className="text-[11px] text-gray-400">@{user.username}</p>}
-                          </div>
+                return (
+                  <tr key={userIdOf(user)} className="border-b border-gray-100 transition hover:bg-gray-50/60 dark:border-gray-800 dark:hover:bg-gray-800/30">
+                    <td className="px-4 py-3">
+                      <div className="flex min-w-[240px] items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold uppercase text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                          {(user.fullName || user.username || 'U')[0]}
                         </div>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-300">{user.email || '—'}</td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50">
-                          {roleCount} vai trò
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-500">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (permCount/25)*100)}%` }}></div>
-                          </div>
-                          <span className="text-xs font-mono font-bold text-gray-600 dark:text-gray-400">{permCount}</span>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-gray-900 dark:text-gray-100">{user.fullName || user.username || 'Chưa có họ tên'}</p>
+                          <p className="truncate text-xs text-gray-400">{user.email || user.username}</p>
                         </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${
-                          user.isActive !== false
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/30 dark:border-emerald-800'
-                            : 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:border-gray-700'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${user.isActive !== false ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                          {user.isActive !== false ? 'Hoạt động' : 'Ngưng hoạt động'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <ActionMenu>
-                          <ActionMenuItem icon={<Settings2 size={14} />} label="Gán vai trò / Xem quyền" onClick={() => openAssign(user)} />
-                        </ActionMenu>
-                      </td>
-                    </tr>
-                  );
-                })
-              }
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-200">{user.displayCode || '-'}</p>
+                      <p className="mt-1 text-[11px] text-gray-400">{user.accountType || '-'}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        {user.roles.length === 0 ? (
+                          <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">Chưa có vai trò</span>
+                        ) : user.roles.map(role => (
+                          <span key={role.code || roleIdOf(role)} className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                            {role.name || roleLabel(role.code)}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                        {permissions.size} quyền
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${user.isActive === false ? 'bg-gray-100 text-gray-500' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
+                        {user.isActive === false ? 'Ngừng hoạt động' : 'Hoạt động'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => openAssign(user)}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                      >
+                        <ShieldCheck size={14} /> Gán vai trò
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-        
-        {/* Simple pagination footer (UI only for now) */}
-        {!loading && visibleUsers.length > 0 && (
-          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm text-gray-500">
-            <span>Hiển thị {visibleUsers.length} người dùng</span>
-            <div className="flex gap-1">
-              <button className="px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50">Trước</button>
-              <button className="px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50">Sau</button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Modal thêm người dùng */}
-      <AddUserModal 
-        isOpen={isAddUserModalOpen} 
-        onClose={() => setIsAddUserModalOpen(false)} 
+      <AddUserModal
+        isOpen={isAddUserModalOpen}
+        onClose={() => setIsAddUserModalOpen(false)}
         allRoles={allRoles}
         onSave={handleSaveUsers}
       />
 
-      {/* Modal chi tiết người dùng */}
-      <Modal isOpen={!!modalUser} onClose={closeModal} className="max-w-7xl w-full mx-4 h-[90vh] flex flex-col">
+      <Modal isOpen={!!modalUser} onClose={closeModal} className="max-w-6xl w-full mx-4">
         {modalUser && (
-          <div className="flex flex-col h-full bg-gray-50/30 dark:bg-gray-900/20">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col gap-4 flex-shrink-0">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 flex items-center justify-center font-bold text-lg">
-                    {(modalUser.fullName || modalUser.username || modalUser.email || 'U')[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
-                      {modalUser.fullName || modalUser.username || modalUser.email}
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{modalUser.email}</p>
-                  </div>
-                </div>
-                <button onClick={closeModal} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition" aria-label="Đóng">
-                  <X size={20} />
-                </button>
+          <div className="max-h-[88vh] overflow-hidden rounded-2xl bg-white dark:bg-gray-900">
+            <div className="flex items-start justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Gán vai trò cho tài khoản</h2>
+                <p className="mt-1 text-sm text-gray-500">{modalUser.fullName || modalUser.email}</p>
               </div>
-
-              {/* Self-edit protection warning */}
-              {modalUser.email === currentUserEmail && (
-                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-xl text-red-700 dark:text-red-400 text-sm">
-                  <AlertTriangle size={16} />
-                  <span><strong>Cảnh báo:</strong> Bạn đang thao tác phân quyền trên <strong>chính tài khoản của mình</strong>. Hãy cẩn thận tránh tự khóa quyền truy cập!</span>
-                </div>
-              )}
-
-              {/* Inner Pill Tabs */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setModalTab('roles')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    modalTab === 'roles'
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
-                      : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  <ShieldCheck size={16} /> Vai trò
-                </button>
-                <button
-                  onClick={() => setModalTab('permissions')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    modalTab === 'permissions'
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
-                      : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  <Key size={16} /> Quyền chi tiết
-                </button>
-              </div>
+              <button onClick={closeModal} className="rounded-xl p-2 text-gray-400 transition hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Đóng">
+                <X size={20} />
+              </button>
             </div>
 
-            {/* Modal Content Area */}
-            <div className="flex-1 overflow-hidden relative">
-              
-              {/* TAB A: ROLES */}
-              {modalTab === 'roles' && (
-                <div className="absolute inset-0 flex flex-col md:flex-row gap-6 p-6 overflow-y-auto custom-scrollbar">
-                  {/* Left: Role Selection Table */}
-                  <div className="flex-1 space-y-4">
-                    <div className="relative">
-                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        value={roleSearch}
-                        onChange={e => setRoleSearch(e.target.value)}
-                        placeholder="Tìm vai trò theo tên hoặc mã (Nhấn Ctrl+K)..."
-                        className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition"
-                      />
-                    </div>
-                    
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
-                      <table className="w-full text-left text-sm" role="grid">
-                        <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
-                          <tr>
-                            <th className="py-2.5 px-4 w-12 font-medium text-gray-500">Chọn</th>
-                            <th className="py-2.5 px-4 font-medium text-gray-500">Tên vai trò</th>
-                            <th className="py-2.5 px-4 font-medium text-gray-500">Mô tả</th>
-                            <th className="py-2.5 px-4 font-medium text-gray-500">Quyền</th>
-                            <th className="py-2.5 px-4 font-medium text-gray-500 text-right">Người dùng</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rolesLoading ? (
-                            <tr>
-                              <td colSpan={5} className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-                                Đang tải danh sách vai trò...
-                              </td>
-                            </tr>
-                          ) : filteredRoles.length === 0 ? (
-                            <tr>
-                              <td colSpan={5} className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-                                Không tìm thấy vai trò phù hợp.
-                              </td>
-                            </tr>
-                          ) : filteredRoles.map(role => {
-                            const rId = role.id || role.roleId;
-                            if (!rId) return null;
-                            const isSelected = selectedRoleIds.has(rId);
-                            
-                            return (
-                              <tr 
-                                key={rId}
-                                onClick={() => {
-                                  const newSet = new Set(selectedRoleIds);
-                                  if (newSet.has(rId)) newSet.delete(rId);
-                                  else newSet.add(rId);
-                                  setSelectedRoleIds(newSet);
-                                }}
-                                className={`border-b border-gray-100 dark:border-gray-800 cursor-pointer transition-colors ${
-                                  isSelected ? 'bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100/60' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                                }`}
-                              >
-                                <td className="py-3 px-4">
-                                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${
-                                    isSelected
-                                      ? 'bg-emerald-500 border-emerald-500'
-                                      : 'border-gray-300 dark:border-gray-600'
-                                  }`}>
-                                    {isSelected && <Check size={11} className="text-white" />}
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4 font-semibold text-gray-900 dark:text-gray-100">
-                                  {role.name}
-                                  <span className="block text-[11px] font-normal text-gray-400 mt-0.5">{role.code}</span>
-                                </td>
-                                <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{role.description || '—'}</td>
-                                <td className="py-3 px-4">
-                                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                    {role.permissionCount ?? (role.permissions?.length || 0)}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4 text-right text-gray-500 text-xs">
-                                  {role.userCount ?? 0}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Right: Sticky Preview Panel */}
-                  <div className="w-full md:w-80 flex-shrink-0">
-                    <div className="sticky top-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
-                      <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Layers size={16} className="text-emerald-600" />
-                        Xem trước quyền hạn
-                      </h3>
-                      
-                      <div className="grid grid-cols-2 gap-3 mb-5">
-                        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Tổng quyền</p>
-                          <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{totalPermissions}</p>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Điểm cuối API</p>
-                          <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalEndpoints}</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Quyền nổi bật sẽ nhận được:</p>
-                        {previewPermissions.length > 0 ? (
-                          <ul className="space-y-2">
-                            {previewPermissions.map(p => (
-                              <li key={p.id || p.permissionId} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
-                                <Check size={14} className="text-emerald-500 mt-0.5 flex-shrink-0" />
-                                <span>{p.name}</span>
-                              </li>
-                            ))}
-                            {totalPermissions > 3 && (
-                              <li className="text-xs text-gray-400 pl-6 italic">+ {totalPermissions - 3} quyền khác...</li>
-                            )}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-gray-400 italic bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg text-center">
-                            Chưa chọn vai trò nào. Người dùng sẽ không có quyền truy cập.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB B: PERMISSIONS READ-ONLY */}
-              {modalTab === 'permissions' && (
-                <div className="absolute inset-0 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4">
-                  <div className="flex flex-wrap gap-2">
-                    {['ALL', 'GET', 'POST', 'PUT', 'DELETE'].map(method => (
-                      <button
-                        key={method}
-                        onClick={() => setPermMethodFilter(method)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
-                          permMethodFilter === method
-                            ? method === 'ALL' ? 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900' : 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-                            : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {method}
-                      </button>
-                    ))}
-                    <div className="flex-1" />
-                    <button className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 text-gray-600 dark:text-gray-300 text-xs font-medium rounded-lg transition">
-                      <Download size={14} /> Xuất DS Quyền
-                    </button>
-                  </div>
-
-                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden flex-1 shadow-sm">
-                    {userInheritedPermissions.length === 0 ? (
-                      <EmptyState
-                        icon={<Key size={32} />}
-                        title="Không có quyền nào"
-                        description="Người dùng chưa được gán vai trò nào có chứa API hoặc không khớp bộ lọc phương thức."
-                      />
-                    ) : (
-                      <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
-                          <tr>
-                            <th className="py-3 px-4 font-medium text-gray-500">Tên Quyền</th>
-                            <th className="py-3 px-4 font-medium text-gray-500">Module</th>
-                            <th className="py-3 px-4 font-medium text-gray-500">Phương thức & API</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {userInheritedPermissions.map(p => (
-                            <tr key={p.id || p.permissionId} className="border-b border-gray-100 dark:border-gray-800">
-                              <td className="py-3 px-4">
-                                <p className="font-semibold text-gray-900 dark:text-gray-100">{p.name}</p>
-                                {p.description && <p className="text-xs text-gray-400 mt-0.5">{p.description}</p>}
-                              </td>
-                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                                {p.module ? (
-                                  <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md text-xs">{p.module}</span>
-                                ) : '—'}
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex flex-col gap-1.5">
-                                  {p.apis?.map(api => (
-                                    <div key={api.id} className="flex items-center gap-2">
-                                      <MethodBadge method={api.method} />
-                                      <code className="text-xs text-gray-600 dark:text-gray-400 font-mono bg-gray-50 dark:bg-gray-800/50 px-1.5 py-0.5 rounded">
-                                        {api.path}
-                                      </code>
-                                    </div>
-                                  ))}
-                                  {(!p.apis || p.apis.length === 0) && (
-                                    <span className="text-xs text-gray-400 italic">Không có API</span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer (Sticky bottom) */}
-            {modalTab === 'roles' && (
-              <div className="px-6 py-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3 flex-shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <button 
-                  onClick={() => setSelectedRoleIds(new Set())} 
-                  className="px-5 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
-                >
-                  Reset (Xóa hết)
-                </button>
-                <div className="flex-1" />
-                <button 
-                  onClick={closeModal} 
-                  className="px-5 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                >
-                  Đóng
-                </button>
-                <button
-                  onClick={handleSaveRoles}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition shadow-md shadow-emerald-600/20"
-                >
-                  {saving && <RefreshCw size={15} className="animate-spin" />}
-                  Lưu thay đổi
-                </button>
+            {modalUser.email === authUser?.email && (
+              <div className="mx-6 mt-4 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
+                <AlertTriangle size={16} />
+                Bạn đang chỉnh vai trò của chính mình. Hãy giữ ít nhất một vai trò có quyền quản trị.
               </div>
             )}
+
+            <div className="grid max-h-[65vh] gap-5 overflow-y-auto p-6 lg:grid-cols-[1fr_0.9fr]">
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={roleSearch}
+                    onChange={event => setRoleSearch(event.target.value)}
+                    placeholder="Tìm vai trò..."
+                    className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm text-gray-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+                  />
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
+                      <tr>
+                        <th className="w-12 px-4 py-3 text-xs font-semibold uppercase text-gray-500">Chọn</th>
+                        <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-500">Vai trò</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500">Quyền</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500">User</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rolesLoading ? (
+                        <tr><td colSpan={4} className="px-4 py-10 text-center text-gray-400">Đang tải vai trò...</td></tr>
+                      ) : filteredRoles.map(role => {
+                        const id = roleIdOf(role);
+                        const checked = selectedRoleIds.has(id);
+                        return (
+                          <tr key={id || role.code} onClick={() => toggleRole(role)} className={`cursor-pointer border-b border-gray-100 transition dark:border-gray-800 ${checked ? 'bg-emerald-50/70 dark:bg-emerald-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800/40'}`}>
+                            <td className="px-4 py-3">
+                              <span className={`flex h-5 w-5 items-center justify-center rounded border-2 ${checked ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-gray-300'}`}>
+                                {checked && <Check size={12} />}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <p className="font-semibold text-gray-900 dark:text-gray-100">{role.name || roleLabel(role.code)}</p>
+                              <p className="mt-0.5 text-xs text-gray-400">{role.code} · {role.description || 'Không có mô tả'}</p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{role.permissionCount ?? role.permissions?.length ?? 0}</span>
+                            </td>
+                            <td className="px-4 py-3 text-center text-xs text-gray-500">{role.userCount ?? 0}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/10">
+                    <p className="text-xs font-medium text-emerald-700">Vai trò</p>
+                    <p className="mt-1 text-2xl font-bold text-emerald-800 dark:text-emerald-300">{selectedRoles.length}</p>
+                  </div>
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 dark:border-blue-900/40 dark:bg-blue-900/10">
+                    <p className="text-xs font-medium text-blue-700">Quyền</p>
+                    <p className="mt-1 text-2xl font-bold text-blue-800 dark:text-blue-300">{inheritedPermissions.length}</p>
+                  </div>
+                  <div className="rounded-xl border border-violet-100 bg-violet-50 p-3 dark:border-violet-900/40 dark:bg-violet-900/10">
+                    <p className="text-xs font-medium text-violet-700">API</p>
+                    <p className="mt-1 text-2xl font-bold text-violet-800 dark:text-violet-300">{endpointCount}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 dark:border-gray-800">
+                  <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Quyền kế thừa từ vai trò</h3>
+                    <p className="mt-1 text-xs text-gray-400">Danh sách này chỉ để kiểm tra. Muốn đổi quyền, hãy sửa quyền của vai trò ở tab Vai trò.</p>
+                  </div>
+                  <div className="max-h-[330px] overflow-y-auto p-3">
+                    {inheritedPermissions.length === 0 ? (
+                      <p className="rounded-xl bg-gray-50 p-4 text-center text-sm text-gray-400 dark:bg-gray-800/50">Chưa có quyền nào.</p>
+                    ) : inheritedPermissions.map(permission => (
+                      <div key={permission.id || permission.permissionId || permission.code} className="mb-2 rounded-xl border border-gray-100 p-3 dark:border-gray-800">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-gray-100">{permission.name}</p>
+                            <p className="mt-0.5 text-xs text-gray-400">{permission.code} · {permission.module || 'Chưa phân nhóm'}</p>
+                          </div>
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-500 dark:bg-gray-800">
+                            {permission.apis?.length || permission.apiCount || 0} API
+                          </span>
+                        </div>
+                        {permission.apis && permission.apis.length > 0 && (
+                          <div className="mt-2 space-y-1.5">
+                            {permission.apis.slice(0, 3).map(api => (
+                              <div key={api.id} className="flex items-center gap-2">
+                                <MethodBadge method={api.method} />
+                                <code className="truncate text-xs text-gray-500">{api.path}</code>
+                              </div>
+                            ))}
+                            {permission.apis.length > 3 && <p className="text-xs text-gray-400">+ {permission.apis.length - 3} API khác</p>}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+              <button onClick={closeModal} className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-700">Hủy</button>
+              <button onClick={saveRoles} disabled={saving} className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50">
+                {saving && <RefreshCw size={15} className="animate-spin" />} Lưu vai trò
+              </button>
+            </div>
           </div>
         )}
       </Modal>

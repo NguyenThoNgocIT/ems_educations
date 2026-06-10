@@ -1,6 +1,7 @@
 package com.quanlydaotao.backend.instructor.repository;
 
 import com.quanlydaotao.backend.instructor.entity.InstructorProfile;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +20,7 @@ public interface InstructorProfileRepository extends JpaRepository<InstructorPro
 
     Optional<InstructorProfile> findByEmployeeEmployeeId(UUID employeeId);
 
+    @EntityGraph(attributePaths = {"employee", "employee.person"})
     @Query("""
             SELECT i
             FROM InstructorProfile i

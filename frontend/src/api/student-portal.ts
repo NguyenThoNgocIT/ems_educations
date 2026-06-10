@@ -1,6 +1,7 @@
 import { unwrapApiResponse } from '@/api/response';
 import { studentApi } from '@/api/student';
 import { request } from '@/utils/request';
+import { fixMojibakeText } from '@/utils/text';
 import type {
   StudentAcademicResult,
   StudentAnnouncement,
@@ -267,11 +268,11 @@ function normalizeSchedule(item: StudentPortalScheduleApiItem): StudentScheduleI
     dayLabel: toDayLabel(item.dayOfWeek),
     dateLabel: formatDate(item.date),
     time: formatTimeRange(item.startTime, item.endTime),
-    courseCode: item.courseCode || '--',
-    courseName: item.courseName || 'Học phần chưa đặt tên',
-    classCode: item.classCode || '--',
-    room: item.roomCode || 'Chưa xếp phòng',
-    lecturer: item.instructorName || 'Chưa phân công',
+    courseCode: fixMojibakeText(item.courseCode || '--'),
+    courseName: fixMojibakeText(item.courseName || 'Học phần chưa đặt tên'),
+    classCode: fixMojibakeText(item.classCode || '--'),
+    room: fixMojibakeText(item.roomCode || 'Chưa xếp phòng'),
+    lecturer: fixMojibakeText(item.instructorName || 'Chưa phân công'),
     mode: normalizeScheduleMode(item.mode),
     overrideType: item.overrideType || undefined,
     isCancelled: item.isCancelled ?? undefined,

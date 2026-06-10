@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MoreVertical } from 'lucide-react';
+import { unwrapApiResponse } from '@/api/response';
 import type { HttpMethod } from '@/types/rbac';
 
 export const METHOD_COLORS: Record<HttpMethod, string> = {
@@ -68,12 +69,9 @@ export function useDebounce<T>(value: T, delay: number): T {
 
 export function parseUserList(response: any): any[] {
   if (!response) return [];
-  if (Array.isArray(response)) return response;
-  if (response.data) {
-    if (Array.isArray(response.data)) return response.data;
-    if (response.data.content && Array.isArray(response.data.content)) return response.data.content;
-  }
-  if (response.content && Array.isArray(response.content)) return response.content;
+  const data: any = unwrapApiResponse(response);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.content)) return data.content;
   return [];
 }
 

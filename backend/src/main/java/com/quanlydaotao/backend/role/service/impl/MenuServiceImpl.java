@@ -12,6 +12,7 @@ import com.quanlydaotao.backend.role.repository.RolePermissionRepository;
 import com.quanlydaotao.backend.role.service.MenuService;
 import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.user.repository.UserRepository;
+import com.quanlydaotao.backend.user.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ public class MenuServiceImpl implements MenuService {
     private final MenuRepository menuRepository;
     private final PermissionRepository permissionRepository;
     private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final MenuMapper menuMapper;
 
@@ -76,6 +78,11 @@ public class MenuServiceImpl implements MenuService {
     public List<MenuDto> getCurrentUserMenus(String username) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản"));
+        if (isAdminUser(user)) {
+            return menuMapper.toDtoList(menuRepository.findByIsActiveTrueOrderByOrderIndexAscMenuTitleAsc().stream()
+                    .filter(menu -> StringUtils.hasText(menu.getMenuTitle()))
+                    .toList());
+        }
         List<String> permissionCodes = rolePermissionRepository.findActivePermissionCodesByUserId(user.getUserId());
         List<Menus> menus = permissionCodes.isEmpty()
                 ? menuRepository.findByIsActiveTrueAndPermissionIsNullOrderByOrderIndexAscMenuTitleAsc()
@@ -83,6 +90,12 @@ public class MenuServiceImpl implements MenuService {
         return menuMapper.toDtoList(menus.stream()
                 .filter(menu -> StringUtils.hasText(menu.getMenuTitle()))
                 .toList());
+    }
+
+    private boolean isAdminUser(User user) {
+        return userRoleRepository.findActiveRolesByUserId(user.getUserId()).stream()
+                .map(userRole -> userRole.getRole().getCode())
+                .anyMatch(roleCode -> "ADMIN".equalsIgnoreCase(roleCode) || "SUPER_ADMIN".equalsIgnoreCase(roleCode));
     }
 
     private Menus findMenu(UUID id) {
