@@ -336,7 +336,7 @@ export default function TimetableCalendar({
         }
 
         .admin-timetable-calendar .fc-timegrid-slot {
-          height: clamp(74px, 5.2vw, 100px);
+          height: 100px !important;
         }
 
         .admin-timetable-calendar .fc-direction-ltr .fc-timegrid-slot-label-frame,

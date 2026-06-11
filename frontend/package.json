@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build --webpack && node flatten-rsc.js",
     "build:cf": "npx @opennextjs/cloudflare build",
     "preview": "npm run build:cf && wrangler dev .opennext/dist/worker.mjs",
     "deploy": "npm run build && npm run start",

@@ -9,7 +9,7 @@ spring:
     password: ${DB_PASSWORD:Nguyenthongoc123@}
     driver-class-name: ${DB_DRIVER:com.microsoft.sqlserver.jdbc.SQLServerDriver}
   jpa:
-    database-platform: ${DB_DIALECT:org.hibernate.dialect.SQLServerDialect}
+    database-platform: ${DB_DIALECT:}
     hibernate:
       ddl-auto: none
       naming:
