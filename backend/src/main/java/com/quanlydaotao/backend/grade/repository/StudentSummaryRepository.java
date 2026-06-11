@@ -52,6 +52,16 @@ public interface StudentSummaryRepository extends JpaRepository<StudentSummary, 
             """)
     long countPassedFinalizedActive();
 
+    @Query("""
+            SELECT COUNT(s)
+            FROM StudentSummary s
+            JOIN s.courseRegistration r
+            WHERE r.courseClassId = :courseClassId
+              AND s.isActive = true
+              AND s.isFinalized = true
+            """)
+    long countFinalizedByCourseClassId(@org.springframework.data.repository.query.Param("courseClassId") UUID courseClassId);
+
     default Optional<StudentSummary> findLatestFinalizedByStudentAndCourse(UUID studentId, UUID courseId) {
         return findFinalizedByStudentAndCourse(studentId, courseId).stream().findFirst();
     }

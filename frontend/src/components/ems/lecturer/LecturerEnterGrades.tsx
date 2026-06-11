@@ -180,7 +180,16 @@ export default function LecturerEnterGrades() {
         <div className="flex items-center gap-3 w-full sm:w-[350px]">
           <Select value={selectedClass} onValueChange={(val) => setSelectedClass(val || 'all')}>
             <SelectTrigger className="bg-white dark:bg-gray-800 h-11 border-gray-200 dark:border-gray-700 font-medium">
-              <SelectValue placeholder="-- Chọn lớp học phần --" />
+              <SelectValue placeholder="-- Chọn lớp học phần --">
+                {(() => {
+                  if (selectedClass === 'all') return "-- Chọn lớp học phần --";
+                  const matchedClass = courseClasses.find(c => c.courseClassId === selectedClass);
+                  if (matchedClass) {
+                    return `${matchedClass.classCode} - ${matchedClass.courseName}`;
+                  }
+                  return selectedClass;
+                })()}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">-- Chọn lớp học phần --</SelectItem>

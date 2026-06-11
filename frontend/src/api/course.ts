@@ -39,6 +39,9 @@ export const courseClassApi = {
       return unwrapApiResponse<any[]>(await request.get('/api/v1/courses/classes'));
     });
   },
+  getMyClasses: async () => {
+    return unwrapApiResponse<any[]>(await request.get('/api/v1/instructors/me/course-classes'));
+  },
   getById: async (id: string) => unwrapApiResponse<any>(await request.get(`/api/v1/courses/classes/${id}`)),
   getByCourse: async (courseId: string) => unwrapApiResponse<any[]>(await request.get(`/api/v1/courses/${courseId}/classes`)),
   getBySemester: async (semesterId: string) => {

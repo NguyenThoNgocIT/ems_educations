@@ -217,14 +217,20 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
     public ScheduleAdjustmentResponse approve(UUID requestId, ScheduleAdjustmentReviewRequest request) {
         ScheduleAdjustmentRequest entity = findForUpdate(requestId);
         ensureReviewable(entity);
+        ScheduleAdjustmentSubmitRequest submitRequest = toSubmitRequest(entity);
         try {
-            validateWorkflowOrThrow(toSubmitRequest(entity), entity.getRequestId());
+            validateWorkflowOrThrow(submitRequest, entity.getRequestId());
         } catch (BusinessException ex) {
             entity.setStatus("CONFLICT_DETECTED");
             entity.setAdminNote("Phát hiện xung đột khi duyệt: " + ex.getMessage());
             requestRepository.save(entity);
             throw ex;
         }
+
+        entity.setAbsentDate(submitRequest.getAbsentDate());
+        entity.setAbsentTimeSlotId(submitRequest.getAbsentTimeSlotId());
+        entity.setAbsentPeriods(submitRequest.getAbsentPeriods());
+
         createOverrides(entity);
         entity.setStatus("APPROVED");
         entity.setAdminNote(request.getNote());
@@ -338,6 +344,20 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
     private ScheduleAdjustmentValidationResponse buildValidationPreview(ScheduleAdjustmentValidateRequest request, UUID ignoredRequestId) {
         List<ValidationResultDto> results = new ArrayList<>();
         String requestType = normalizeType(request.getRequestType());
+
+        Schedule originalSchedule = resolveOriginalSchedule(request);
+        if (originalSchedule != null) {
+            if (request.getAbsentDate() == null && originalSchedule.getDate() != null) {
+                request.setAbsentDate(originalSchedule.getDate());
+            }
+            if (request.getAbsentTimeSlotId() == null && originalSchedule.getTimeSlot() != null) {
+                request.setAbsentTimeSlotId(originalSchedule.getTimeSlot().getTimeSlotId());
+            }
+            if (request.getAbsentPeriods() == null) {
+                request.setAbsentPeriods(originalSchedule.getNumberOfPeriods());
+            }
+        }
+
         validateInput(request, requestType, results);
 
         CourseClass courseClass = courseClassRepository.findById(request.getCourseClassId()).orElse(null);
@@ -356,6 +376,37 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
         CourseClass courseClass = requireCourseClass(request.getCourseClassId());
         requireInstructorAssigned(request, courseClass);
         Schedule originalSchedule = requireOriginalScheduleIfNeeded(request, requestType);
+
+        if (originalSchedule != null) {
+            if (request.getAbsentDate() == null && originalSchedule.getDate() != null) {
+                request.setAbsentDate(originalSchedule.getDate());
+            }
+            if (request.getAbsentTimeSlotId() == null && originalSchedule.getTimeSlot() != null) {
+                request.setAbsentTimeSlotId(originalSchedule.getTimeSlot().getTimeSlotId());
+            }
+            if (request.getAbsentPeriods() == null) {
+                request.setAbsentPeriods(originalSchedule.getNumberOfPeriods());
+            }
+
+            if (!originalSchedule.getCourseClass().getCourseClassId().equals(request.getCourseClassId())) {
+                throw new BusinessException(ErrorCode.SCHEDULE_ADJUSTMENT_INVALID, "Buổi lịch gốc không thuộc lớp học phần đã chọn");
+            }
+            if (request.getAbsentDate() != null) {
+                if (originalSchedule.getDate() != null) {
+                    if (!originalSchedule.getDate().equals(request.getAbsentDate())) {
+                        throw new BusinessException(ErrorCode.SCHEDULE_ADJUSTMENT_INVALID, "Ngày nghỉ không khớp với ngày của buổi học gốc");
+                    }
+                } else if (originalSchedule.getDayOfWeek() != null) {
+                    if (request.getAbsentDate().getDayOfWeek().getValue() != originalSchedule.getDayOfWeek()) {
+                        throw new BusinessException(ErrorCode.SCHEDULE_ADJUSTMENT_INVALID, "Ngày nghỉ không khớp với thứ của buổi học gốc");
+                    }
+                }
+            }
+            if (request.getAbsentTimeSlotId() != null && !originalSchedule.getTimeSlot().getTimeSlotId().equals(request.getAbsentTimeSlotId())) {
+                throw new BusinessException(ErrorCode.SCHEDULE_ADJUSTMENT_INVALID, "Ca nghỉ không khớp với ca của buổi học gốc");
+            }
+        }
+
         ensureOriginalScheduleNotHeld(originalSchedule, requestType, ignoredRequestId);
         ensureProposedSessionAvailable(request, courseClass, ignoredRequestId);
         return new WorkflowContext(requestType, courseClass, originalSchedule);
@@ -522,6 +573,25 @@ public class ScheduleAdjustmentServiceImpl implements ScheduleAdjustmentService 
             return;
         }
         add(results, "R1", "OK", "Tìm thấy buổi lịch gốc cần điều chỉnh");
+
+        if (!originalSchedule.getCourseClass().getCourseClassId().equals(request.getCourseClassId())) {
+            add(results, "R1_CLASS", "ERROR", "Buổi lịch gốc không thuộc lớp học phần đã chọn");
+        }
+        if (request.getAbsentDate() != null) {
+            if (originalSchedule.getDate() != null) {
+                if (!originalSchedule.getDate().equals(request.getAbsentDate())) {
+                    add(results, "R1_DATE", "ERROR", "Ngày nghỉ không khớp với ngày của buổi học gốc (" + originalSchedule.getDate() + ")");
+                }
+            } else if (originalSchedule.getDayOfWeek() != null) {
+                if (request.getAbsentDate().getDayOfWeek().getValue() != originalSchedule.getDayOfWeek()) {
+                    add(results, "R1_DATE", "ERROR", "Ngày nghỉ không khớp với thứ của buổi học gốc (Thứ " + (originalSchedule.getDayOfWeek() + 1) + ")");
+                }
+            }
+        }
+        if (request.getAbsentTimeSlotId() != null && !originalSchedule.getTimeSlot().getTimeSlotId().equals(request.getAbsentTimeSlotId())) {
+            add(results, "R1_SLOT", "ERROR", "Ca nghỉ không khớp với ca của buổi học gốc");
+        }
+
         if (requestRepository.hasActiveRequestForOriginalSchedule(originalSchedule.getScheduleId(), ignoredRequestId)) {
             add(results, "R2", "ERROR", "Buổi này đã có yêu cầu điều chỉnh đang xử lý");
         } else {

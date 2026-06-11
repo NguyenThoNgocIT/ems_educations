@@ -300,16 +300,8 @@ public class GradeServiceImpl implements GradeService {
 
     private InstructorGradeCourseClassResponse toInstructorCourseClassResponse(CourseClass courseClass) {
         List<CourseRegistration> registrations = registrationRepository.findByCourseClassIdAndIsActiveTrue(courseClass.getCourseClassId());
-        int gradedStudents = (int) registrations.stream()
-                .filter(registration -> !componentGradeRepository
-                        .findByCourseRegistrationCourseRegistrationIdAndIsActiveTrue(registration.getCourseRegistrationId())
-                        .isEmpty())
-                .count();
-        int finalizedStudents = (int) registrations.stream()
-                .map(registration -> summaryRepository.findById(registration.getCourseRegistrationId()).orElse(null))
-                .filter(Objects::nonNull)
-                .filter(summary -> Boolean.TRUE.equals(summary.getIsFinalized()))
-                .count();
+        int gradedStudents = (int) componentGradeRepository.countGradedRegistrationsByCourseClassId(courseClass.getCourseClassId());
+        int finalizedStudents = (int) summaryRepository.countFinalizedByCourseClassId(courseClass.getCourseClassId());
         Course course = courseClass.getCourse();
         return InstructorGradeCourseClassResponse.builder()
                 .courseClassId(courseClass.getCourseClassId())

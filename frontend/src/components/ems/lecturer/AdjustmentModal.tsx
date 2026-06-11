@@ -298,7 +298,15 @@ export default function AdjustmentModal({ isOpen, onClose, eventData, onSuccess 
                 <label className="text-sm font-medium">Lớp học phần</label>
                 <select
                   value={courseClassId}
-                  onChange={(event) => setCourseClassId(event.target.value)}
+                  onChange={(event) => {
+                    setCourseClassId(event.target.value);
+                    setSelectedScheduleId('');
+                    setAbsentDate('');
+                    setAbsentTimeSlotId('');
+                    setAbsentPeriods(3);
+                    setSuggestions([]);
+                    setValidationResults([]);
+                  }}
                   className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
                 >
                   <option value="">Chọn lớp học phần</option>
