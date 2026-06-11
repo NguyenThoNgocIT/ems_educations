@@ -234,13 +234,15 @@ public class StudentServiceImpl implements StudentService {
 
         courseClasses.forEach(courseClass -> scheduleRepository.findByCourseClassCourseClassId(courseClass.getCourseClassId())
                 .stream()
-                .filter(schedule -> Boolean.TRUE.equals(schedule.getIsActive()))
+                .filter(this::isVisibleStudentBaseSchedule)
                 .forEach(schedule -> {
                     if (schedule.getDate() != null) {
                         LocalDate date = schedule.getDate();
                         boolean isCancelled = isSessionCancelled(schedule.getScheduleId(), date, overrides);
-                        String key = schedule.getScheduleId() + "_" + date;
-                        schedulesMap.putIfAbsent(key, toScheduleResponse(schedule, date, isCancelled));
+                        if (!isCancelled) {
+                            String key = schedule.getScheduleId() + "_" + date;
+                            schedulesMap.putIfAbsent(key, toScheduleResponse(schedule, date));
+                        }
                     } else {
                         Semester semester = semesterRepository.findById(schedule.getSemesterId()).orElse(null);
                         if (semester != null) {
@@ -250,8 +252,10 @@ public class StudentServiceImpl implements StudentService {
                                 for (LocalDate date = recStart; !date.isAfter(recEnd); date = date.plusDays(1)) {
                                     if (date.getDayOfWeek().getValue() == schedule.getDayOfWeek()) {
                                         boolean isCancelled = isSessionCancelled(schedule.getScheduleId(), date, overrides);
-                                        String key = schedule.getScheduleId() + "_" + date;
-                                        schedulesMap.putIfAbsent(key, toScheduleResponse(schedule, date, isCancelled));
+                                        if (!isCancelled) {
+                                            String key = schedule.getScheduleId() + "_" + date;
+                                            schedulesMap.putIfAbsent(key, toScheduleResponse(schedule, date));
+                                        }
                                     }
                                 }
                             }
@@ -261,6 +265,7 @@ public class StudentServiceImpl implements StudentService {
                 
         overrides.stream()
                 .filter(o -> Boolean.TRUE.equals(o.getIsVisible()))
+                .filter(o -> !"CANCELLED".equals(o.getOverrideType()))
                 .forEach(o -> schedulesMap.putIfAbsent(o.getOverrideId().toString(), toScheduleResponse(o)));
 
         return schedulesMap.values().stream()
@@ -416,11 +421,17 @@ public class StudentServiceImpl implements StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Tài khoản hiện tại không phải sinh viên"));
     }
 
-    private StudentPortalScheduleResponse toScheduleResponse(Schedule schedule, LocalDate date, boolean isCancelled) {
+    private StudentPortalScheduleResponse toScheduleResponse(Schedule schedule, LocalDate date) {
         CourseClass courseClass = schedule.getCourseClass();
         Course course = courseClass == null ? null : courseClass.getCourse();
+        Semester semester = courseClass == null || courseClass.getSemesterId() == null
+                ? null
+                : semesterRepository.findById(courseClass.getSemesterId()).orElse(null);
         return StudentPortalScheduleResponse.builder()
                 .scheduleId(schedule.getScheduleId())
+                .courseClassId(courseClass == null ? null : courseClass.getCourseClassId())
+                .semesterId(courseClass == null ? schedule.getSemesterId() : courseClass.getSemesterId())
+                .semesterName(semester == null ? null : semester.getName())
                 .dayOfWeek(schedule.getDayOfWeek())
                 .date(date != null ? date : schedule.getDate())
                 .startTime(schedule.getTimeSlot() == null ? null : schedule.getTimeSlot().getStartTime())
@@ -432,13 +443,17 @@ public class StudentServiceImpl implements StudentService {
                 .instructorName(schedule.getInstructor() == null || schedule.getInstructor().getPerson() == null
                         ? null : schedule.getInstructor().getPerson().getFullName())
                 .mode(schedule.getMode())
-                .isCancelled(isCancelled)
+                .numberOfPeriods(schedule.getNumberOfPeriods())
+                .isCancelled(false)
                 .build();
     }
 
     private StudentPortalScheduleResponse toScheduleResponse(TeachingSessionOverride override) {
         CourseClass courseClass = courseClassRepository.findById(override.getCourseClassId()).orElse(null); 
         Course course = courseClass == null ? null : courseClass.getCourse();
+        Semester semester = courseClass == null || courseClass.getSemesterId() == null
+                ? null
+                : semesterRepository.findById(courseClass.getSemesterId()).orElse(null);
         TimeSlot timeSlot = override.getTimeSlotId() != null ? timeSlotRepository.findById(override.getTimeSlotId()).orElse(null) : null;
         Room room = override.getRoomId() != null ? roomRepository.findById(override.getRoomId()).orElse(null) : null;
         Employee employee = override.getInstructorId() != null ? employeeRepository.findById(override.getInstructorId()).orElse(null) : null;
@@ -447,6 +462,9 @@ public class StudentServiceImpl implements StudentService {
 
         return StudentPortalScheduleResponse.builder()
                 .scheduleId(override.getOverrideId())
+                .courseClassId(courseClass == null ? override.getCourseClassId() : courseClass.getCourseClassId())
+                .semesterId(courseClass == null ? null : courseClass.getSemesterId())
+                .semesterName(semester == null ? null : semester.getName())
                 .dayOfWeek(dayOfWeek)
                 .date(override.getTeachingDate())
                 .startTime(timeSlot == null ? null : timeSlot.getStartTime())
@@ -458,8 +476,16 @@ public class StudentServiceImpl implements StudentService {
                 .instructorName(employee == null || employee.getPerson() == null ? null : employee.getPerson().getFullName())
                 .mode(courseClass == null ? null : "LT")
                 .overrideType(override.getOverrideType())
+                .numberOfPeriods(override.getNumberOfPeriods())
                 .isCancelled(false)
                 .build();
+    }
+
+    private boolean isVisibleStudentBaseSchedule(Schedule schedule) {
+        return Boolean.TRUE.equals(schedule.getIsActive())
+                && schedule.getDeletedAt() == null
+                && (schedule.getScheduleStatus() == null
+                || !List.of("CANCELLED", "ABSENT").contains(schedule.getScheduleStatus()));
     }
 
     private StudentPortalRegistrationResponse toRegistrationResponse(
@@ -480,12 +506,23 @@ public class StudentServiceImpl implements StudentService {
                 .courseName(course == null ? null : course.getName())
                 .classCode(courseClass == null ? null : courseClass.getClassCode())
                 .credits(course == null ? null : course.getCredits())
+                .semesterId(courseClass == null ? null : courseClass.getSemesterId())
                 .semesterLabel(semester == null ? null : semester.getName())
-                .registrationPeriodName(period == null ? null : period.getName())
+                .registrationPeriodName(resolveRegistrationPeriodName(period, semester, courseClass))
                 .registeredAt(registration.getRegisteredAt())
                 .status(registration.getStatus())
                 .paid(registration.getIsPaid())
                 .build();
+    }
+
+    private String resolveRegistrationPeriodName(RegistrationPeriod period, Semester semester, CourseClass courseClass) {
+        if (period != null && courseClass != null && Objects.equals(period.getSemesterId(), courseClass.getSemesterId())) {
+            return period.getName();
+        }
+        if (semester != null) {
+            return "Đợt gán học phần mặc định - " + semester.getName();
+        }
+        return period == null ? null : period.getName();
     }
 
     private Map<UUID, Semester> loadSemesters(List<CourseRegistration> registrations) {

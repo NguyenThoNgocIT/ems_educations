@@ -7,6 +7,9 @@ export type StudentPortalPayload<T> = {
 
 export type StudentScheduleItem = {
   id: string;
+  courseClassId: string;
+  semesterId: string;
+  semesterLabel: string;
   dayLabel: string;
   dateLabel: string;
   time: string;
@@ -17,6 +20,7 @@ export type StudentScheduleItem = {
   lecturer: string;
   mode: 'LT' | 'TH' | 'Online';
   overrideType?: string;
+  numberOfPeriods?: number;
   isCancelled?: boolean;
   date: string | null;
   startTime: string | null;
@@ -40,6 +44,9 @@ export type StudentGradeItem = {
 
 export type StudentPortalScheduleApiItem = {
   scheduleId: string;
+  courseClassId: string | null;
+  semesterId: string | null;
+  semesterName: string | null;
   dayOfWeek: number | null;
   date: string | null;
   startTime: string | null;
@@ -51,6 +58,7 @@ export type StudentPortalScheduleApiItem = {
   instructorName: string | null;
   mode: string | null;
   overrideType: string | null;
+  numberOfPeriods: number | null;
   isCancelled: boolean | null;
 };
 
@@ -117,6 +125,7 @@ export type StudentRegistration = {
   courseName: string;
   classCode: string;
   credits: number;
+  semesterId: string;
   semesterLabel: string;
   registrationPeriodName: string;
   registeredAt: string;

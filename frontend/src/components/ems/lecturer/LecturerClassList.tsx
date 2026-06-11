@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { scheduleApi } from "@/api/schedule";
+import { courseClassApi } from "@/api/course";
 import { useAuth } from "@/context/AuthContext";
 import { request } from "@/utils/request";
 import {
@@ -78,9 +78,7 @@ export default function LecturerClassList() {
 
       try {
         setLoading(true);
-        const res = await scheduleApi.getTeachingProgress({
-          instructorId: employeeId,
-        });
+        const res = await courseClassApi.getMyClasses();
         const rows = toArray(res);
         setClasses(rows);
         if (selectedSemesterId === ALL_SEMESTERS) {

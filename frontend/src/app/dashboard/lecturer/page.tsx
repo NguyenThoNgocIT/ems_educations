@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BookOpen, CalendarClock, CheckCircle2, ChevronRight, Clock, Info, Loader2, Users } from "lucide-react";
 import { scheduleApi } from "@/api/schedule";
+import { courseClassApi } from "@/api/course";
 import { useAuth } from "@/context/AuthContext";
 import { request } from "@/utils/request";
 
@@ -67,7 +68,7 @@ export default function LecturerDashboard() {
         setLoading(true);
         const now = new Date();
         const [classesRes, calendarRes] = await Promise.all([
-          scheduleApi.getTeachingProgress({ instructorId: employeeId }),
+          courseClassApi.getMyClasses(),
           scheduleApi.getCalendar({
             instructorId: employeeId,
             month: now.getMonth() + 1,

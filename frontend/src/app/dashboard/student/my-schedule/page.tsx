@@ -13,6 +13,7 @@ const StudentSchedule = dynamic(() => import('@/components/ems/student/StudentSc
 });
 
 type SemesterGroup = {
+  id: string;
   label: string;
   registrations: StudentRegistration[];
   credits: number;
@@ -48,8 +49,8 @@ export default function StudentMySchedulePage() {
       setAcademic(academicPayload.data);
 
       const firstSemester =
-        registrationPayload.data[0]?.semesterLabel ||
-        academicPayload.data.semesters.at(-1)?.label ||
+        registrationPayload.data[0]?.semesterId ||
+        academicPayload.data.semesters.at(-1)?.id ||
         '';
       setSelectedSemester(firstSemester);
     });
@@ -60,29 +61,33 @@ export default function StudentMySchedulePage() {
   }, []);
 
   const semesterGroups = useMemo(() => {
-    const groupMap = new Map<string, StudentRegistration[]>();
+    const groupMap = new Map<string, { label: string; registrations: StudentRegistration[] }>();
 
     registrations.forEach((item) => {
       const label = item.semesterLabel || 'Chưa xác định học kỳ';
-      groupMap.set(label, [...(groupMap.get(label) ?? []), item]);
+      const id = item.semesterId || label;
+      const group = groupMap.get(id) ?? { label, registrations: [] };
+      group.registrations = [...group.registrations, item];
+      groupMap.set(id, group);
     });
 
     (academic?.semesters ?? []).forEach((semester) => {
-      if (!groupMap.has(semester.label)) {
-        groupMap.set(semester.label, []);
+      if (!groupMap.has(semester.id)) {
+        groupMap.set(semester.id, { label: semester.label, registrations: [] });
       }
     });
 
-    return Array.from(groupMap.entries()).map(([label, items]) => ({
-      label,
-      registrations: items,
-      credits: items.reduce((total, item) => total + item.credits, 0),
+    return Array.from(groupMap.entries()).map(([id, group]) => ({
+      id,
+      label: group.label,
+      registrations: group.registrations,
+      credits: group.registrations.reduce((total, item) => total + item.credits, 0),
     }));
   }, [academic?.semesters, registrations]);
 
   const selectedGroup = useMemo<SemesterGroup | null>(() => {
     if (semesterGroups.length === 0) return null;
-    return semesterGroups.find((group) => group.label === selectedSemester) ?? semesterGroups[0];
+    return semesterGroups.find((group) => group.id === selectedSemester) ?? semesterGroups[0];
   }, [selectedSemester, semesterGroups]);
 
   const totalCredits = useMemo(
@@ -90,15 +95,24 @@ export default function StudentMySchedulePage() {
     [registrations],
   );
 
+  const selectedCourseClassIds = useMemo(() => {
+    return new Set((selectedGroup?.registrations ?? [])
+      .map((item) => item.courseClassId)
+      .filter(Boolean));
+  }, [selectedGroup]);
+
   const filteredSchedules = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return schedules;
+    const selectedSchedules = selectedCourseClassIds.size > 0
+      ? schedules.filter((item) => selectedCourseClassIds.has(item.courseClassId))
+      : schedules;
+    if (!normalized) return selectedSchedules;
 
-    return schedules.filter((item) =>
+    return selectedSchedules.filter((item) =>
       [item.courseCode, item.courseName, item.classCode, item.room, item.lecturer]
         .some((value) => value.toLowerCase().includes(normalized)),
     );
-  }, [query, schedules]);
+  }, [query, schedules, selectedCourseClassIds]);
 
   return (
     <div className="flex w-full flex-col gap-5 pb-8">
@@ -150,11 +164,11 @@ export default function StudentMySchedulePage() {
           <div className="flex gap-2 overflow-x-auto pb-1">
             {semesterGroups.map((group) => (
               <button
-                key={group.label}
+                key={group.id}
                 type="button"
-                onClick={() => setSelectedSemester(group.label)}
+                onClick={() => setSelectedSemester(group.id)}
                 className={`shrink-0 rounded-lg border px-3 py-2 text-left text-sm transition ${
-                  selectedGroup?.label === group.label
+                  selectedGroup?.id === group.id
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
                     : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300'
                 }`}

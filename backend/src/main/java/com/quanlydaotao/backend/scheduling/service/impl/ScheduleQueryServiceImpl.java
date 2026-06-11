@@ -32,7 +32,10 @@ import com.quanlydaotao.backend.scheduling.repository.TimeSlotRepository;
 import com.quanlydaotao.backend.scheduling.service.ScheduleQueryService;
 import com.quanlydaotao.backend.semester.entity.Semester;
 import com.quanlydaotao.backend.semester.repository.SemesterRepository;
+import com.quanlydaotao.backend.teachingassignment.entity.TeachingAssignment;
+import com.quanlydaotao.backend.teachingassignment.repository.TeachingAssignmentRepository;
 import com.quanlydaotao.backend.teachingprogress.repository.TeachingProgressLogRepository;
+import com.quanlydaotao.backend.course.repository.CourseRegistrationRepository;
 import com.quanlydaotao.backend.user.entity.User;
 import com.quanlydaotao.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +52,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -65,6 +69,8 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
     private final CourseRepository courseRepository;
     private final SemesterRepository semesterRepository;
     private final TeachingProgressLogRepository progressLogRepository;
+    private final CourseRegistrationRepository courseRegistrationRepository;
+    private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final EmployeeLeaveRequestRepository leaveRequestRepository;
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
@@ -76,13 +82,20 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
         UUID instructorId = resolveCurrentInstructorId(username);
         UUID targetSemesterId = semesterId != null ? semesterId : resolveCurrentSemesterId();
 
-        List<Schedule> instructorSchedules = scheduleRepository.findBySemesterIdAndIsActiveTrue(targetSemesterId).stream()
-                .filter(s -> s.getInstructor() != null && instructorId.equals(s.getInstructor().getEmployeeId()))
-                .toList();
-
-        java.util.Set<UUID> classIds = instructorSchedules.stream()
-                .map(s -> s.getCourseClass().getCourseClassId())
-                .collect(Collectors.toSet());
+        Map<UUID, CourseClass> assignedCourseClasses = teachingAssignmentRepository
+                .findByInstructorIdAndIsActiveTrue(instructorId)
+                .stream()
+                .filter(assignment -> targetSemesterId.equals(assignment.getSemesterId()))
+                .map(TeachingAssignment::getCourseClassId)
+                .distinct()
+                .map(courseClassRepository::findById)
+                .flatMap(Optional::stream)
+                .filter(courseClass -> targetSemesterId.equals(courseClass.getSemesterId()))
+                .collect(Collectors.toMap(
+                        CourseClass::getCourseClassId,
+                        courseClass -> courseClass,
+                        (first, ignored) -> first,
+                        LinkedHashMap::new));
 
         List<TeachingSessionOverride> overrides = overrideRepository.findAll().stream()
                 .filter(o -> Boolean.TRUE.equals(o.getIsActive()) && instructorId.equals(o.getInstructorId()))
@@ -91,19 +104,19 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
         for (TeachingSessionOverride override : overrides) {
             CourseClass cc = courseClassRepository.findById(override.getCourseClassId()).orElse(null);
             if (cc != null && targetSemesterId.equals(cc.getSemesterId())) {
-                classIds.add(cc.getCourseClassId());
+                assignedCourseClasses.putIfAbsent(cc.getCourseClassId(), cc);
             }
         }
 
         List<InstructorCourseClassSummaryResponse> summaries = new ArrayList<>();
-        for (UUID classId : classIds) {
-            CourseClass cc = courseClassRepository.findById(classId).orElse(null);
-            if (cc != null) {
-                List<Schedule> classSchedules = instructorSchedules.stream()
-                        .filter(s -> classId.equals(s.getCourseClass().getCourseClassId()))
-                        .toList();
-                summaries.add(buildCourseClassSummary(cc, classSchedules));
-            }
+        for (CourseClass courseClass : assignedCourseClasses.values()) {
+            List<Schedule> classSchedules = scheduleRepository.findByCourseClassCourseClassId(courseClass.getCourseClassId())
+                    .stream()
+                    .filter(this::isVisibleBaseSchedule)
+                    .filter(schedule -> schedule.getInstructor() != null
+                            && instructorId.equals(schedule.getInstructor().getEmployeeId()))
+                    .toList();
+            summaries.add(buildCourseClassSummary(courseClass, classSchedules));
         }
 
         return summaries.stream()
@@ -324,8 +337,15 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
 
     private InstructorCourseClassSummaryResponse buildCourseClassSummary(CourseClass courseClass, List<Schedule> schedules) {
         Course course = course(courseClass.getCourseId());
+        Semester semester = semesterRepository.findById(courseClass.getSemesterId()).orElse(null);
         int requiredPeriods = requiredPeriods(course);
         int taughtPeriods = defaultInt(progressLogRepository.sumTaughtPeriods(courseClass.getCourseClassId()));
+        int scheduledPeriods = schedules.stream()
+                .map(Schedule::getNumberOfPeriods)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+        int totalStudents = (int) courseRegistrationRepository.countByCourseClassIdAndIsActiveTrue(courseClass.getCourseClassId());
         return InstructorCourseClassSummaryResponse.builder()
                 .courseClassId(courseClass.getCourseClassId())
                 .courseClassCode(courseClass.getClassCode())
@@ -334,11 +354,19 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
                 .courseName(course.getName())
                 .credits(course.getCredits())
                 .semesterId(courseClass.getSemesterId())
+                .semesterCode(semester == null ? null : semester.getCode())
+                .semesterName(semester == null ? null : semester.getName())
+                .semesterStartDate(semester == null ? null : semester.getStartDate())
+                .semesterEndDate(semester == null ? null : semester.getEndDate())
                 .startDate(courseClass.getStartDate())
                 .endDate(courseClass.getEndDate())
+                .maxStudent(courseClass.getMaxStudent())
+                .currentStudent(courseClass.getCurrentStudent())
+                .totalStudents(totalStudents)
                 .requiredPeriods(requiredPeriods)
                 .taughtPeriods(taughtPeriods)
                 .remainingPeriods(Math.max(requiredPeriods - taughtPeriods, 0))
+                .scheduledPeriods(scheduledPeriods)
                 .fixedScheduleText(buildFixedScheduleText(schedules))
                 .build();
     }
@@ -482,9 +510,11 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
             return List.of(courseClass(courseClassId));
         }
         if (semesterId == null && instructorId != null) {
-            return scheduleRepository.findByInstructorEmployeeId(instructorId).stream()
-                    .map(Schedule::getCourseClass)
-                    .filter(Objects::nonNull)
+            return teachingAssignmentRepository.findByInstructorIdAndIsActiveTrue(instructorId).stream()
+                    .map(TeachingAssignment::getCourseClassId)
+                    .distinct()
+                    .map(courseClassRepository::findById)
+                    .flatMap(Optional::stream)
                     .collect(Collectors.toMap(
                             CourseClass::getCourseClassId,
                             courseClass -> courseClass,
@@ -495,12 +525,33 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
                     .toList();
         }
         UUID targetSemesterId = semesterId != null ? semesterId : resolveCurrentSemesterId();
+        if (instructorId != null) {
+            return teachingAssignmentRepository.findByInstructorIdAndIsActiveTrue(instructorId).stream()
+                    .filter(assignment -> targetSemesterId.equals(assignment.getSemesterId()))
+                    .map(TeachingAssignment::getCourseClassId)
+                    .distinct()
+                    .map(courseClassRepository::findById)
+                    .flatMap(Optional::stream)
+                    .filter(courseClass -> targetSemesterId.equals(courseClass.getSemesterId()))
+                    .sorted(Comparator.comparing(CourseClass::getStartDate, Comparator.nullsLast(Comparator.reverseOrder())))
+                    .toList();
+        }
         return courseClassRepository.findBySemesterId(targetSemesterId);
     }
 
     private boolean hasInstructorSchedule(UUID courseClassId, UUID instructorId) {
-        return scheduleRepository.findByCourseClassCourseClassId(courseClassId).stream()
-                .anyMatch(schedule -> schedule.getInstructor() != null && instructorId.equals(schedule.getInstructor().getEmployeeId()));
+        CourseClass courseClass = courseClass(courseClassId);
+        return teachingAssignmentRepository.existsByInstructorIdAndCourseClassIdAndSemesterIdAndIsActiveTrue(
+                instructorId,
+                courseClassId,
+                courseClass.getSemesterId());
+    }
+
+    private boolean isVisibleBaseSchedule(Schedule schedule) {
+        return Boolean.TRUE.equals(schedule.getIsActive())
+                && schedule.getDeletedAt() == null
+                && (schedule.getScheduleStatus() == null
+                || !List.of("CANCELLED", "ABSENT").contains(schedule.getScheduleStatus()));
     }
 
     private String buildFixedScheduleText(List<Schedule> schedules) {

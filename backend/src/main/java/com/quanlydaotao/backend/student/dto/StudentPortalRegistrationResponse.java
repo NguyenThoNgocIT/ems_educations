@@ -17,6 +17,7 @@ public class StudentPortalRegistrationResponse {
     private String courseName;
     private String classCode;
     private Double credits;
+    private UUID semesterId;
     private String semesterLabel;
     private String registrationPeriodName;
     private LocalDateTime registeredAt;

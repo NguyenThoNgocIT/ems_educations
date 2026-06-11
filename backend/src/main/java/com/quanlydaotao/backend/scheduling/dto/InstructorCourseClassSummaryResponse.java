@@ -16,10 +16,18 @@ public class InstructorCourseClassSummaryResponse {
     private String courseName;
     private Double credits;
     private UUID semesterId;
+    private String semesterCode;
+    private String semesterName;
+    private LocalDate semesterStartDate;
+    private LocalDate semesterEndDate;
     private LocalDate startDate;
     private LocalDate endDate;
+    private Integer maxStudent;
+    private Integer currentStudent;
+    private Integer totalStudents;
     private Integer requiredPeriods;
     private Integer taughtPeriods;
     private Integer remainingPeriods;
+    private Integer scheduledPeriods;
     private String fixedScheduleText;
 }

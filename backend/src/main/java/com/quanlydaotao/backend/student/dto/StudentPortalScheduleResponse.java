@@ -11,6 +11,9 @@ import java.util.UUID;
 @Builder
 public class StudentPortalScheduleResponse {
     private UUID scheduleId;
+    private UUID courseClassId;
+    private UUID semesterId;
+    private String semesterName;
     private Integer dayOfWeek;
     private LocalDate date;
     private LocalTime startTime;
@@ -22,5 +25,6 @@ public class StudentPortalScheduleResponse {
     private String instructorName;
     private String mode;
     private String overrideType;
+    private Integer numberOfPeriods;
     private Boolean isCancelled;
 }

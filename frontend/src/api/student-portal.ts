@@ -211,19 +211,26 @@ function normalizeTuition(item: any): StudentTuition {
 }
 
 function normalizeRegistration(item: any): StudentRegistration {
-  return {
+  const response = {
     registrationId: String(item.registrationId ?? item.courseRegistrationId),
     courseClassId: String(item.courseClassId ?? ''),
     courseCode: String(item.courseCode ?? '--'),
     courseName: String(item.courseName ?? 'Học phần chưa đặt tên'),
     classCode: String(item.classCode ?? '--'),
     credits: Number(item.credits ?? 0),
+    semesterId: String(item.semesterId ?? item.courseClassSemesterId ?? 'unassigned'),
     semesterLabel: String(item.semesterLabel ?? 'Chưa xác định học kỳ'),
     registrationPeriodName: String(item.registrationPeriodName ?? 'Chưa xác định đợt đăng ký'),
     registeredAt: formatDisplayDate(item.registeredAt),
     status: item.status ?? null,
     paid: Boolean(item.paid),
   };
+  response.courseCode = fixMojibakeText(response.courseCode);
+  response.courseName = fixMojibakeText(response.courseName);
+  response.classCode = fixMojibakeText(response.classCode);
+  response.semesterLabel = fixMojibakeText(response.semesterLabel);
+  response.registrationPeriodName = fixMojibakeText(response.registrationPeriodName);
+  return response;
 }
 
 function normalizeExam(item: any): StudentExam {
@@ -265,6 +272,9 @@ function normalizeGradeStatus(status: string | null): StudentAcademicResult['gra
 function normalizeSchedule(item: StudentPortalScheduleApiItem): StudentScheduleItem {
   return {
     id: item.scheduleId,
+    courseClassId: item.courseClassId || '',
+    semesterId: item.semesterId || 'unassigned',
+    semesterLabel: fixMojibakeText(item.semesterName || 'Chưa xác định học kỳ'),
     dayLabel: toDayLabel(item.dayOfWeek),
     dateLabel: formatDate(item.date),
     time: formatTimeRange(item.startTime, item.endTime),
@@ -275,6 +285,7 @@ function normalizeSchedule(item: StudentPortalScheduleApiItem): StudentScheduleI
     lecturer: fixMojibakeText(item.instructorName || 'Chưa phân công'),
     mode: normalizeScheduleMode(item.mode),
     overrideType: item.overrideType || undefined,
+    numberOfPeriods: item.numberOfPeriods ?? undefined,
     isCancelled: item.isCancelled ?? undefined,
     date: item.date,
     startTime: item.startTime,

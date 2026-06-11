@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -34,6 +34,16 @@ export default function StudentSchedule({ schedules }: StudentScheduleProps) {
       }
     };
   }).filter(e => e.start);
+
+  useEffect(() => {
+    const firstDate = schedules
+      .map((item) => item.date)
+      .filter((date): date is string => Boolean(date))
+      .sort()[0];
+    if (firstDate) {
+      calendarRef.current?.getApi().gotoDate(firstDate);
+    }
+  }, [schedules]);
 
   const renderEventContent = (eventInfo: EventContentArg) => {
     const props = eventInfo.event.extendedProps as StudentScheduleItem;
