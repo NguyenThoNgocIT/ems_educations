@@ -13,6 +13,33 @@ export default function LecturerAttendance() {
   const classIdFromUrl = searchParams.get('classId');
   const dateFromUrl = searchParams.get('date');
   
+  // Helper to parse dates from URL which may be MM/DD/YYYY or DD/MM/YYYY
+  const parseUrlDate = (dateStr: string | null) => {
+    if (!dateStr) return new Date().toISOString().split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    
+    const match = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (match) {
+      const [, p1, p2, year] = match;
+      const val1 = parseInt(p1, 10);
+      const val2 = parseInt(p2, 10);
+      if (val1 > 12) {
+        return `${year}-${p2.padStart(2, '0')}-${p1.padStart(2, '0')}`;
+      } else if (val2 > 12) {
+        return `${year}-${p1.padStart(2, '0')}-${p2.padStart(2, '0')}`;
+      } else {
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          const y = parsed.getFullYear();
+          const m = String(parsed.getMonth() + 1).padStart(2, '0');
+          const d = String(parsed.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        }
+      }
+    }
+    return dateStr;
+  };
+
   const [courseClasses, setCourseClasses] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>(classIdFromUrl || 'all');
   const [students, setStudents] = useState<any[]>([]);
@@ -22,12 +49,12 @@ export default function LecturerAttendance() {
   // States for attendance
   const [attendanceData, setAttendanceData] = useState<Record<string, boolean>>({});
   const [lessonContent, setLessonContent] = useState('');
-  const [sessionDate, setSessionDate] = useState<string>(dateFromUrl || new Date().toISOString().split('T')[0]);
+  const [sessionDate, setSessionDate] = useState<string>(parseUrlDate(dateFromUrl));
 
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        const res = await courseClassApi.getAll();
+        const res = await courseClassApi.getMyClasses();
         setCourseClasses(res || []);
       } catch (e) {
         console.error("Failed to load classes", e);
@@ -35,6 +62,19 @@ export default function LecturerAttendance() {
     };
     fetchClasses();
   }, []);
+
+  // Đồng bộ selectedClass và sessionDate khi URL params thay đổi
+  useEffect(() => {
+    if (classIdFromUrl) {
+      setSelectedClass(classIdFromUrl);
+    }
+  }, [classIdFromUrl]);
+
+  useEffect(() => {
+    if (dateFromUrl) {
+      setSessionDate(parseUrlDate(dateFromUrl));
+    }
+  }, [dateFromUrl]);
 
   useEffect(() => {
     if (selectedClass === 'all') {
@@ -46,7 +86,7 @@ export default function LecturerAttendance() {
       setLoading(true);
       try {
         const res = await attendanceApi.getStudentsByClass(selectedClass);
-        const fetchedStudents = res.data?.data || res.data || [];
+        const fetchedStudents = Array.isArray(res) ? res : [];
         
         setStudents(fetchedStudents);
         
@@ -82,7 +122,12 @@ export default function LecturerAttendance() {
       if (students[0]?.studentCode === 'SV001') {
         await new Promise(resolve => setTimeout(resolve, 800));
       } else {
-        await attendanceApi.save({ classId: selectedClass, date: sessionDate, attendance: attendanceData });
+        await attendanceApi.save({ 
+          classId: selectedClass, 
+          date: sessionDate, 
+          attendance: attendanceData,
+          note: lessonContent
+        });
       }
       toast.success("Đã lưu điểm danh và tiến độ giảng dạy thành công!");
     } catch (error) {
@@ -109,13 +154,29 @@ export default function LecturerAttendance() {
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Lớp học phần</label>
               <Select value={selectedClass} onValueChange={(val) => setSelectedClass(val || 'all')}>
                 <SelectTrigger className="bg-white dark:bg-gray-800 h-11 border-gray-200 dark:border-gray-700 font-medium">
-                  <SelectValue placeholder="-- Chọn lớp học phần --" />
+                  <SelectValue placeholder="-- Chọn lớp học phần --">
+                    {(() => {
+                      if (selectedClass === 'all') return "-- Chọn lớp học phần --";
+                      const matchedClass = courseClasses.find(c => (c.courseClassId || c.id) === selectedClass);
+                      if (matchedClass) {
+                        const classCode = matchedClass.courseClassCode || matchedClass.classCode;
+                        return `${classCode} - ${matchedClass.courseName}`;
+                      }
+                      return selectedClass;
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">-- Chọn lớp học phần --</SelectItem>
-                  {courseClasses.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.classCode} - {c.courseName}</SelectItem>
-                  ))}
+                  {courseClasses.map(c => {
+                    const classId = c.courseClassId || c.id;
+                    const classCode = c.courseClassCode || c.classCode;
+                    return (
+                      <SelectItem key={classId} value={classId}>
+                        {classCode} - {c.courseName}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

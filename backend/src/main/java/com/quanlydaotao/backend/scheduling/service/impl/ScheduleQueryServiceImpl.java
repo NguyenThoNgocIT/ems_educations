@@ -75,10 +75,39 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
     public List<InstructorCourseClassSummaryResponse> getCurrentInstructorCourseClasses(String username, UUID semesterId) {
         UUID instructorId = resolveCurrentInstructorId(username);
         UUID targetSemesterId = semesterId != null ? semesterId : resolveCurrentSemesterId();
-        Map<UUID, List<Schedule>> schedulesByClass = scheduleRepository.findFixedByInstructorAndSemester(instructorId, targetSemesterId).stream()
-                .collect(Collectors.groupingBy(schedule -> schedule.getCourseClass().getCourseClassId(), LinkedHashMap::new, Collectors.toList()));
-        return schedulesByClass.values().stream()
-                .map(schedules -> buildCourseClassSummary(schedules.get(0).getCourseClass(), schedules))
+
+        List<Schedule> instructorSchedules = scheduleRepository.findBySemesterIdAndIsActiveTrue(targetSemesterId).stream()
+                .filter(s -> s.getInstructor() != null && instructorId.equals(s.getInstructor().getEmployeeId()))
+                .toList();
+
+        java.util.Set<UUID> classIds = instructorSchedules.stream()
+                .map(s -> s.getCourseClass().getCourseClassId())
+                .collect(Collectors.toSet());
+
+        List<TeachingSessionOverride> overrides = overrideRepository.findAll().stream()
+                .filter(o -> Boolean.TRUE.equals(o.getIsActive()) && instructorId.equals(o.getInstructorId()))
+                .toList();
+
+        for (TeachingSessionOverride override : overrides) {
+            CourseClass cc = courseClassRepository.findById(override.getCourseClassId()).orElse(null);
+            if (cc != null && targetSemesterId.equals(cc.getSemesterId())) {
+                classIds.add(cc.getCourseClassId());
+            }
+        }
+
+        List<InstructorCourseClassSummaryResponse> summaries = new ArrayList<>();
+        for (UUID classId : classIds) {
+            CourseClass cc = courseClassRepository.findById(classId).orElse(null);
+            if (cc != null) {
+                List<Schedule> classSchedules = instructorSchedules.stream()
+                        .filter(s -> classId.equals(s.getCourseClass().getCourseClassId()))
+                        .toList();
+                summaries.add(buildCourseClassSummary(cc, classSchedules));
+            }
+        }
+
+        return summaries.stream()
+                .sorted(Comparator.comparing(InstructorCourseClassSummaryResponse::getCourseClassCode))
                 .toList();
     }
 
@@ -533,9 +562,14 @@ public class ScheduleQueryServiceImpl implements ScheduleQueryService {
     }
 
     private UUID resolveCurrentSemesterId() {
+        LocalDate today = LocalDate.now();
         return semesterRepository.findAll().stream()
                 .filter(semester -> Boolean.TRUE.equals(semester.getStatus()))
-                .max(Comparator.comparing(Semester::getStartDate))
+                .filter(semester -> !today.isBefore(semester.getStartDate()) && !today.isAfter(semester.getEndDate()))
+                .findFirst()
+                .or(() -> semesterRepository.findAll().stream()
+                        .filter(semester -> Boolean.TRUE.equals(semester.getStatus()))
+                        .max(Comparator.comparing(Semester::getStartDate)))
                 .or(() -> semesterRepository.findAll().stream().max(Comparator.comparing(Semester::getStartDate)))
                 .map(Semester::getSemesterId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy học kỳ"));

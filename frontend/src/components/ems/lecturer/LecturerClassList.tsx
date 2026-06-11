@@ -215,7 +215,16 @@ export default function LecturerClassList() {
 
           <Select value={selectedSemesterId} onValueChange={setSelectedSemesterId}>
             <SelectTrigger className="h-10 w-full rounded-xl bg-white dark:bg-slate-950 sm:w-56">
-              <SelectValue placeholder="Chọn học kỳ" />
+              <SelectValue placeholder="Chọn học kỳ">
+                {(() => {
+                  if (selectedSemesterId === ALL_SEMESTERS) return "Tất cả học kỳ";
+                  const matched = semesters.find(s => s.semesterId === selectedSemesterId);
+                  if (matched) {
+                    return matched.semesterName || matched.semesterCode || "Học kỳ";
+                  }
+                  return selectedSemesterId;
+                })()}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_SEMESTERS}>Tất cả học kỳ</SelectItem>
@@ -302,7 +311,10 @@ function SummaryTile({ icon: Icon, label, value, tone }: { icon: any; label: str
 
 function ClassCard({ item, progress, badge }: { item: any; progress: number; badge: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+    <Link 
+      href={`/dashboard/lecturer/attendance?classId=${item.courseClassId}`}
+      className="group block rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 cursor-pointer"
+    >
       <div className="border-b border-slate-100 p-5 dark:border-slate-800">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -313,12 +325,11 @@ function ClassCard({ item, progress, badge }: { item: any; progress: number; bad
             <h3 className="line-clamp-2 text-lg font-bold text-slate-900 dark:text-white">{item.courseName || "Chưa có tên học phần"}</h3>
             <div className="mt-1 text-sm text-slate-500">{item.courseCode || "Học phần"} · {item.credits || 0} tín chỉ</div>
           </div>
-          <Link 
-            href={`/dashboard/lecturer/attendance?classId=${item.courseClassId}`}
-            className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-slate-700"
+          <div 
+            className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition group-hover:border-emerald-200 group-hover:text-emerald-700 dark:border-slate-700"
           >
             <ChevronRight className="h-4 w-4" />
-          </Link>
+          </div>
         </div>
       </div>
 
@@ -338,7 +349,7 @@ function ClassCard({ item, progress, badge }: { item: any; progress: number; bad
           <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${progress}%` }} />
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -367,6 +378,7 @@ function ClassTable({ classes, getProgressPercentage, getAlertBadge }: { classes
               <th className="px-5 py-4">Thời gian</th>
               <th className="px-5 py-4 text-center">Tiến độ</th>
               <th className="px-5 py-4">Trạng thái</th>
+              <th className="px-5 py-4 text-right"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -393,6 +405,14 @@ function ClassTable({ classes, getProgressPercentage, getAlertBadge }: { classes
                     </div>
                   </td>
                   <td className="px-5 py-4">{getAlertBadge(item.alertStatus)}</td>
+                  <td className="px-5 py-4 text-right">
+                    <Link 
+                      href={`/dashboard/lecturer/attendance?classId=${item.courseClassId}`}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-slate-700"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </td>
                 </tr>
               );
             })}
