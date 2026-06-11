@@ -92,69 +92,6 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         Schedule savedFirst = scheduleRepository.save(schedule);
 
-        // TỰ ĐỘNG SINH CÁC BUỔI TIẾP THEO CHO ĐỦ SỐ TIẾT
-        double theory = 0.0;
-        double practice = 0.0;
-        double credits = 3.0;
-        if (courseClass.getCourse() != null) {
-            theory = courseClass.getCourse().getTheoryHours() != null ? courseClass.getCourse().getTheoryHours() : 0.0;
-            practice = courseClass.getCourse().getPracticeHours() != null ? courseClass.getCourse().getPracticeHours() : 0.0;
-            credits = courseClass.getCourse().getCredits() != null ? courseClass.getCourse().getCredits() : 3.0;
-        }
-        int requiredPeriods = (int) Math.max(1, Math.ceil(theory + practice));
-        if (requiredPeriods == 0) {
-            requiredPeriods = (int) Math.max(1, Math.ceil(credits * 15));
-        }
-
-        // Đếm số tiết đã lên lịch trước đó (chỉ đếm các lịch Active)
-        List<Schedule> existingSchedules = scheduleRepository.findByCourseClassCourseClassId(courseClass.getCourseClassId());
-        int scheduledPeriods = 0;
-        for (Schedule s : existingSchedules) {
-            if (s.getIsActive() != null && s.getIsActive() && !s.getScheduleId().equals(savedFirst.getScheduleId())) {
-                scheduledPeriods += s.getNumberOfPeriods() != null ? s.getNumberOfPeriods() : 0;
-            }
-        }
-
-        int currentSessionPeriods = savedFirst.getNumberOfPeriods() != null ? savedFirst.getNumberOfPeriods() : 2;
-        int totalScheduledAfterFirst = scheduledPeriods + currentSessionPeriods;
-
-        if (totalScheduledAfterFirst < requiredPeriods && savedFirst.getDate() != null) {
-            int remainingPeriods = requiredPeriods - totalScheduledAfterFirst;
-            int additionalSessions = (int) Math.ceil((double) remainingPeriods / currentSessionPeriods);
-
-            LocalDate baseDate = savedFirst.getDate();
-            for (int i = 1; i <= additionalSessions; i++) {
-                LocalDate targetDate = baseDate.plusWeeks(i);
-                
-                int periodsForThisSession = currentSessionPeriods;
-                if (i == additionalSessions && (remainingPeriods % currentSessionPeriods != 0)) {
-                    periodsForThisSession = remainingPeriods % currentSessionPeriods;
-                }
-
-                Schedule nextSchedule = new Schedule();
-                nextSchedule.setCourseClass(courseClass);
-                nextSchedule.setInstructor(savedFirst.getInstructor());
-                nextSchedule.setRoom(savedFirst.getRoom());
-                nextSchedule.setTimeSlot(savedFirst.getTimeSlot());
-                nextSchedule.setSemesterId(savedFirst.getSemesterId());
-                nextSchedule.setDayOfWeek(savedFirst.getDayOfWeek());
-                nextSchedule.setDate(targetDate);
-                nextSchedule.setNumberOfPeriods(periodsForThisSession);
-                nextSchedule.setMode(savedFirst.getMode());
-                nextSchedule.setScheduleStatus(savedFirst.getScheduleStatus());
-                nextSchedule.setScheduleType(savedFirst.getScheduleType());
-                nextSchedule.setShift(savedFirst.getShift());
-                nextSchedule.setNote(savedFirst.getNote());
-                nextSchedule.setIsActive(true);
-                if (savedFirst.getTimeSlot() != null) {
-                    nextSchedule.setStartDate(targetDate.atTime(savedFirst.getTimeSlot().getStartTime()));
-                    nextSchedule.setEndDate(targetDate.atTime(savedFirst.getTimeSlot().getEndTime()));
-                }
-
-                scheduleRepository.save(nextSchedule);
-            }
-        }
-
         updateCourseClassDates(courseClass.getCourseClassId());
 
         return scheduleMapper.toDto(savedFirst);

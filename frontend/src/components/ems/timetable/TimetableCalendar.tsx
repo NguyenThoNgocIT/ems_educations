@@ -120,7 +120,7 @@ export default function TimetableCalendar({
           ) : null}
           <span className="flex items-center gap-1">
             <BookOpen size={13} />
-            {eventInfo.event.extendedProps.numberOfPeriods || 2} tiết
+            {eventInfo.event.extendedProps.numberOfPeriods || 3} tiết
           </span>
         </div>
       </div>

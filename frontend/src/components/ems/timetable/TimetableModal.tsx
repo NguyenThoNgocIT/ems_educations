@@ -326,10 +326,11 @@ export default function TimetableModal({ isOpen, onClose, formData, setFormData,
               <Label>Số tiết</Label>
               <Input
                 type="number"
-                min="1"
-                max="10"
-                value={formData.numberOfPeriods || 1}
-                onChange={(e) => setFormData({...formData, numberOfPeriods: parseInt(e.target.value) || 1})}
+                min="3"
+                max="3"
+                value={formData.numberOfPeriods || 3}
+                readOnly
+                onChange={() => setFormData({...formData, numberOfPeriods: 3})}
                 className="h-11 bg-gray-50/50 dark:bg-gray-800/50"
               />
             </div>
